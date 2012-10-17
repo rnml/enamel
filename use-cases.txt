@@ -1,0 +1,89 @@
+
+(* poly-kinded generics *)
+
+  let Poly_kind (type m : * -> *) = sig
+    type T1 (type t : * -> *)                     = forall a.         m a ->                             m (t a)
+    type T2 (type t : * -> * -> *)                = forall a,b.       m a -> m b ->                      m (t a b)
+    type T3 (type t : * -> * -> * -> *)           = forall a,b,c.     m a -> m b -> m c ->               m (t a b c)
+    type T4 (type t : * -> * -> * -> * -> *)      = forall a,b,c,d.   m a -> m b -> m c -> m d ->        m (t a b c d)
+    type T5 (type t : * -> * -> * -> * -> * -> *) = forall a,b,c,d,e. m a -> m b -> m c -> m d -> m d -> m (t a b c d e)
+  end
+
+  type eq a = a -> a -> bool
+
+  module Foo : sig
+    type t : * -> *
+    val equal : Poly_kind(eq).T1(t)
+  end
+
+(* signature functors *)
+
+  let Eq (type t : *) = sig
+    val equal : t -> t -> bool
+  end
+
+  let Ord (type t : *) = sig
+    val compare : t -> t -> Ordering.t
+  end
+
+  let Sexpable (type t : *) = sig
+    val to_sexp : t -> Sexp.t
+    val of_sexp : Sexp.t -> t
+  end
+
+  module Foo : sig
+    type t
+    include Eq (t)
+    include Ord (t)
+    include Sexpable (t)
+  end
+ 
+(* constructor classes *)
+
+  let Monad (type m : * -> *) = struct
+    signature T = struct
+      val return : a -> m a
+      val bind : m a -> (a -> m b) -> m b
+    end
+    signature S = struct
+      include T
+      val join : m (m a) -> m a
+    end
+    Make (X:T) : S
+  end
+  
+  let sequence (type m : * -> *) (M : Monad m) (type a : *) =
+    let (>>=) = M.bind in
+    loop sequence = function
+      | [] -> -> M.return []
+      | m :: ms ->
+        m >>= fun x ->
+        sequence (m, M, a) ms >>= fun xs ->
+        M.return (x :: xs)
+    end
+
+  let Container (type t : * -> *) : struct
+    signature T = struct
+      val fold : (b -> a -> b) -> b -> t a -> b
+    end
+    signature S = struct
+      include T
+      val iter   : (a -> unit) -> t a -> unit
+      val forall : (a -> bool) -> t a -> bool
+      val exists : (a -> bool) -> t a -> bool
+    end
+    Make (X:T) : S
+  end
+
+  module Option : sig
+    type t a = None | Some a
+    include Monad(t).S
+    include Container(t).S
+  end
+
+  module List : sig
+    rec type t a = Nil | Cons a (t a)
+    include Monad(t)
+    include Container(t).S
+  end
+

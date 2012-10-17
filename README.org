@@ -1,0 +1,75 @@
+#+STARTUP: hidestars
+
+enaml -- a modern functional language
+
+* elisp-like auto-documentation
+* syntax
+** lua-style balanced keywords
+  if ... then ... end
+  if ... then ... else ... end
+  fun (x, y, z) ... end
+** lua-style block comments
+** lua-style string literals
+  syntax as in Lua [=[ ... ]=] or [==[ ... ]==]
+  http://en.wikipedia.org/wiki/Here_document
+** haskell-style type application
+  List a
+  Maybe a
+  Future (Or_error a)
+** haskell-like infix operators
+  for type constructors, functions, functors
+** no currying for function applications
+  still use juxtaposition as the function composition operator,
+  but require fully applied functions
+* ML-style module system
+** type functors -> higher order kinds
+  syntactic sugar for higher kinds like (* -> *) -> *
+    {K1 -> K2} = fun (_ : {K1}) -> {K2}
+** signature functors -> type and constructor classes
+*** e.g. sexpable
+  Sexpable (t : *) = sig
+    to_sexp : t -> Sexp.t
+    of_sexp : Sexp.t -> t
+  end
+  module option : sig
+    t : * -> *
+    ...
+    make_sexpable : Sexpable a -> Sexpable (t a)
+    ...
+  end
+*** e.g. monad
+  monad (t : * -> *) = sig
+    return : a -> t a
+    bind : t a -> (a -> t b) -> t b
+  end
+  sequence (t : * -> *, m : monad t) =
+    let rec loop xs =
+      match xs with
+      | Nil -> m.return nil
+      | Cons (x, xs) ->
+        do(m)
+          v <- x
+          vs <- loop (xs)
+          return (Cons (v, vs))
+      end
+    in
+    loop
+** value functors -> explicitly typed arbitrary rank polymorphism
+  A System-F layer!
+* Haskell-style type classes
+  read "Modular Type Classes"
+    by Dreyer, Harper, and Chakravarty
+    http://www.mpi-sws.org/~dreyer/papers/mtc/main-short.pdf
+  read associated type families
+    http://nattermorphisms.blogspot.com/2008/10/2-minute-intro-to-associated-types-type.html
+    "Associated types with class"
+* Racket-style macros
+  "You Want It When?"
+  use MacroML-style syntax
+* anonymous types
+** anonymous labelled product and sum types a la SML#
+  http://www.pllab.riec.tohoku.ac.jp/smlsharp/docs/1.0/en/Ch4.xhtml
+** iso-recursive types
+ A ::= ... | fix X : K. A
+   unwrap : mu x. f x -> f (mu x. f x)
+   wrap : f (mu x. f x) -> mu x. f x

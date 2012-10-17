@@ -1,0 +1,11 @@
+syntax: glob
+*~
+.*.swp
+*.a
+*.cmi
+*.cmo
+*.cmx
+*.cmxa
+*.exe
+*.o
+.depend
