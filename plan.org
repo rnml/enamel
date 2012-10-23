@@ -23,9 +23,6 @@ enamel -- a functional language with
   Future (Or_error a)
 ** haskell-like infix operators
   for type constructors, functions, functors
-** no currying for function applications
-  still use juxtaposition as the function composition operator,
-  but require fully applied functions
 * module system
 ** type functors -> higher order kinds
   syntactic sugar for higher kinds like (* -> *) -> *
