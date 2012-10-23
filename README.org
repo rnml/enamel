@@ -1,6 +1,13 @@
 #+STARTUP: hidestars
 
-enaml -- a modern functional language
+enamel -- a language that is
+
+  (E)valuation based
+  (N)
+  (A)nonymous (i.e. first class) variant/record/recursive types
+  (M)L-style modules
+  (E)
+  (L)isp-style macros
 
 * elisp-like auto-documentation
 * syntax
@@ -21,7 +28,7 @@ enaml -- a modern functional language
 ** no currying for function applications
   still use juxtaposition as the function composition operator,
   but require fully applied functions
-* ML-style module system
+* module system
 ** type functors -> higher order kinds
   syntactic sugar for higher kinds like (* -> *) -> *
     {K1 -> K2} = fun (_ : {K1}) -> {K2}
@@ -56,20 +63,320 @@ enaml -- a modern functional language
     loop
 ** value functors -> explicitly typed arbitrary rank polymorphism
   A System-F layer!
-* Haskell-style type classes
+* macro system
+  "You Want It When?"
+  use MacroML-style syntax
+* anonymous record/variant types a la SML#
+A brief overview:
+  http://www.pllab.riec.tohoku.ac.jp/smlsharp/docs/1.0/en/Ch4.xhtml
+
+The paper
+  http://www.pllab.riec.tohoku.ac.jp/~ohori/research/toplas95.pdf
+says how to compile this stuff efficiently
+
+E ::= ... | { L1 = E1; ... ; LN = EN } | !L | {E with L1 = E1; ...; LN = EN}
+P ::= ... | { L1 = P1; ... ; LN = PN } | { L1 = P1; ... ; LN = PN; _ }
+T ::= ... | { L1 : T1; ... ; LN : TN }
+
+examples
+
+  !X                        : forall a b. a <: {X:b} => a -> b
+  (fun {X; Y} -> (X, Y))    : forall a b. {X:a, Y:b} -> a * b
+  (fun {X; Y; _} -> (X, Y)) : forall a b c. a <: {X:b, Y:c} => a -> b * c
+
+Pairs are just records with special labels: fst and snd.  No higher
+N-tuples are given special support.
+
+  ("yo", 33) = {fst = "yo"; snd = 33}
+
+This gives us some of the nice features of labeled arguments!
+
+  let fix ~side ~quantity ~symbol ~price =
+    sprintf "%s,%d,%s,%g\n" side quantity symbol price
+
+  let foo () =
+    ...
+    let fix = fix ~side:Buy in
+    ...
+    let fix = fix ~quantity:100 in
+    ...
+    fix ~symbol:s ~price:p
+
+becomes
+
+  let fix {side; quantity; symbol; price} =
+    sprintf "%s,%d,%s,%g\n" side quantity symbol price
+
+  let foo () =
+    ...
+    let fix x = fix {x with side=Buy} in
+    ...
+    let fix x = fix {x with quantity=100} in
+    ...
+    fix {symbol=s; price=p}
+
+Labelled sum types are dealt with analogously
+
+  E ::= ... | @L | match E with L1 => E1 | ... | LN => EN
+  K ::= ... | [ L1 of T1 | ... | LN of TN ]
+
+  @X                        : forall a b. [X of a] <: b => a -> b
+  (fun {X; Y} -> (X, Y))    : forall a b. {X:a, Y:b} -> a * b
+  (fun {X; Y; _} -> (X, Y)) : forall a::{X:b, Y:c} b c. => a -> b * c
+
+* anonymous (iso-)recursive types
+ A ::= ... | fix X : K. A
+ unwrap : mu x. f x -> f (mu x. f x)
+ wrap : f (mu x. f x) -> mu x. f x
+ this way, one does not run into the rec/nonrec nonsense b/c we're
+ always being explicit about it.
+* Haskell-style type classes (?)
   read "Modular Type Classes"
     by Dreyer, Harper, and Chakravarty
     http://www.mpi-sws.org/~dreyer/papers/mtc/main-short.pdf
   read associated type families
     http://nattermorphisms.blogspot.com/2008/10/2-minute-intro-to-associated-types-type.html
     "Associated types with class"
-* Racket-style macros
-  "You Want It When?"
-  use MacroML-style syntax
-* anonymous types
-** anonymous labelled product and sum types a la SML#
-  http://www.pllab.riec.tohoku.ac.jp/smlsharp/docs/1.0/en/Ch4.xhtml
-** iso-recursive types
- A ::= ... | fix X : K. A
-   unwrap : mu x. f x -> f (mu x. f x)
-   wrap : f (mu x. f x) -> mu x. f x
+* NOTES FROM IPHONE
+** Plan
+> Get building under core 108.07
+> Add a source syntax: Lex and yacc
+> Add a base language:
+> ref + pair + int + function
+> Explicitly typed at first
+> Define syntax and type checker and
+> evaluator for tgt language
+> Compile from mod+src to tgt
+> Add polymorphic
+> generalization and instantiation
+
+** No curried functions by default
+> This is a mistake. It makes labeled and optional arguments more difficult to
+> deal with type inference-wise,and those are very important.
+>
+> The only place you really want it is in printf style combinator libraries,
+> and perhaps macros can get around the problems there more easily anyway --
+> Printf, McBride's overloaded idiom trick, the command library.
+>
+> Incrementally applying a function with labeled arguments is useful, however,
+> so it would be nice if some coercive subtyping were used to fill in the
+> gaps. Probably this gets hairy pretty fast, so perhaps it's not worth it.
+
+** Deprecation support
+> Some way to mark a definition as deprecated until some future date when it
+> will go away. In the meantime, uses of it trigger warnings in the compiler.
+>
+> It would be very nice to be able to attach instructions about how to inline
+> the deprecated export's redefinition in terms of a replacement
+> implementation.
+> Perhaps redefining it as a macro is enough if there is good tool support for
+> targeted inlining.
+
+** F omega
+> Finished syntax nearly (pretty printers)
+> Do module syntax
+> Elaborate!!!
+> Run time for F
+> Functions
+> Records
+> Add variants
+
+** Single executable
+> Prompt (repl)
+> Compile
+> Build (omake -P)
+> Debug
+> Graph
+> Module dependencies
+> Library dependencies
+> File dependencies
+> Use sites of a name
+> Unused variables
+> Unused bindings
+> Unused modules
+> Unused files
+> Prune!
+> Traverse in build system, debugger
+> Syntax
+> Pretty
+> Parse
+> Tokens
+> Upgrade (syntax)
+
+** Type error slicer
+> Support type annotations
+
+** Refactoring tools
+> Scriptable -> tie to build system?
+> Alpha conversion
+> Lambda lifting/dropping
+> Beta reduction
+> Add/drop parameters for function/functor
+
+** Versioned syntax
+> Bundle upgrader with implementation
+> Tied to pretty printer
+> Must preserve comments (annotations)
+
+** Compiler
+> In phases, Each with a type system, parser, and reference interpreter
+>
+> Scriptable
+>
+> -i flag as in ocamlc
+>
+> Separate compilation!
+>
+> 1. Modules plus base language
+> 2. System F +
+> Records + variants +
+> exists +
+> Constants
+> 3. Bytecode?
+> 4. Native code
+
+** Structured comments
+> Embed documentation, as in so many other tools
+>
+> Make literate programming painless
+>
+> (% ... %)
+>
+> Allow for escapes in comments that show code that must type check in this
+> context, but which is otherwise ignored (elided) by the compiler. (Conor
+> McBride's idea)
+
+** Module system
+> Elaboration of base language to System F
+> First class modules for existentials
+> Types, terms, signatures as module atoms
+
+** Build dependency language
+> Model this on MLB files
+>
+> Ask Sean about the one he was so keen on
+>
+> Something like a filesystem-aware module language to stitch together Modules
+> found in directories and files --> a module system that transcends the
+> filesystem!
+>
+> Treat some files as string literals
+> Treat others as base modules
+> Others as functor bodies
+> Others as functor argument signatures
+
+** Macro system
+> Phase separation a la "you want it when"
+> Integration with module system
+> Type-conv stuff via annotations
+> Access to source locations
+> Access to types
+> pa_ounit style unit tests
+
+** Build system
+> Hooks for version-util style reflection -> extract a string constant!
+>
+> Derive build dependencies from language dependencies as expressed in build
+> language
+>
+> Daemonizes, like jomake
+>
+> Multiple concurrent targets
+>
+> Talk to sean about the SML build system he liked so well
+
+** Debugger
+> Instrumented interpreters, native code
+>
+> Breakpoints on expressions, between declarations
+>
+> Inspection of data structures as graphs
+
+** Interpreter
+> Freely mix compiled and interpreted code!
+>
+> Do this by trivially "compiling" uncompiled code into a form that just calls
+> a compiled interpreter.
+
+** Editor support
+> Dump something friendly for an editor
+> Editors need to know:
+> * is this a "word" (i.e. token) boundary?
+> * give me the next largest enclosing
+> expression, declaration, module, etc.
+> * what is the type of this expression?
+> this declaration sequence
+> * what is the definition site of this
+> variable? What are the use sites
+> of this definition?
+
+** User defined types
+> Record types and variant types
+> Both are problematic for type inference
+> (fun x -> x.foo)
+> Foo x
+> Common hack: labels refer to most recently introduced type
+>
+> Translation to system f requires either making these types anonymous in
+> target language (and adding annotations) OR, if I can see how, dealing with
+> them as first class modules.
+
+** Parser
+> Ability to bail after parsing
+> Dump something friendly for a tree diff (like ydiff)
+
+** Type checker unit tests
+> TEST style macros that allow one to say
+>
+> This type checks. This doesn't
+> This parses. This doesn't
+
+** Semantics
+> Eager evaluation with Okasaki's $ syntax
+>
+> Operational semantics
+>
+> Language definition a la SML
+>
+> Typing rules
+
+** Tool methodology
+> Every component of the language implementation is as clean as possible, with
+> a well defined API, so that other tools can easily reuse them.
+>
+> The implementation should be extensible and scriptable, like lua.
+> But with a statically typed language
+
+** Session type compiler
+> As a macro!!!
+
+** Record type
+> type t = {
+> foo : int;
+> bar : t option;
+> }
+>
+> M : sig
+> type t
+> val create : int -> t option -> t
+> val foo : t -> int
+> val bar : t -> t option
+> end
+>
+> let {foo = x; bar = y} = in ...
+> --->
+> let m = in
+> let x = M.foo m in
+> let y = M.bar m in
+> ...
+
+** Can fancier syntax literals come packaged as macros?
+> Lua string constants: and [=[........]=] and [==[...........]==],
+> etc.
+
+** Learn about Erlang OS
+> The stuff for process management and fault tolerance (supervisors restarting
+> workers) and hot swapping (upgrade hooks)
+
+** Read up on associated type families in Haskell
+> Also read the dreyer, chakravarty, Harper paper
