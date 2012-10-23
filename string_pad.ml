@@ -1,4 +1,3 @@
-
 open Core.Std
 
 type t = string list
@@ -9,10 +8,9 @@ let rec add t x =
   match t with
   | [] -> [x]
   | y :: ys ->
-      if String.length x < String.length y then
-        x :: t
-      else
-        add ys (y ^ x)
+    if String.length x < String.length y
+    then x :: t
+    else add ys (y ^ x)
 
 let concat t t' = List.fold ~f:add ~init:t t'
 
