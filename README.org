@@ -1,13 +1,11 @@
 #+STARTUP: hidestars
 
-enamel -- a language that is
+enamel -- a functional language with
 
-  (E)valuation based
-  (N)
-  (A)nonymous (i.e. first class) variant/record/recursive types
-  (M)L-style modules
-  (E)
-  (L)isp-style macros
+  Anonymous (i.e. first class) variant/record/recursive types
+  ML-style modules, but streamlined
+  Type-error slicing
+  Lisp-style macros
 
 * elisp-like auto-documentation
 * syntax
