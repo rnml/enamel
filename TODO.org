@@ -1,0 +1,3 @@
+#+STARTUP: hidestars
+* DONE set up on bitbucket
+* TODO get running with a tiny base language: fun + pair + int + ref

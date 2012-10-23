@@ -57,11 +57,16 @@ module Term : sig
   val type_mod : Type.t -> Kind.t -> t
   val sig_mod : Type.t -> t
 
-  val pack : (Type.t * Type.Name.t * Kind.t) list -> t -> Type.t -> t
+  val pack :
+    (Type.t * Type.Name.t * Kind.t) list -> t -> Type.t -> t
+
   val unpack : Type.Name.t list -> Name.t -> t -> t -> t
 
 end
 
 val subtype :
-  Type.Context.t -> src:Type.t -> dst:Type.t -> [`Coerce of Term.t -> Term.t]
+  Type.Context.t
+  -> src:Type.t
+  -> dst:Type.t
+  -> [`Coerce of Term.t -> Term.t]
 
