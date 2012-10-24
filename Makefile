@@ -14,6 +14,7 @@ MODULES=\
   systemf \
   target \
   module_system \
+  base \
   main \
 
 B=
