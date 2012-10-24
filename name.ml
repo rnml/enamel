@@ -53,14 +53,19 @@ end = struct
 
   let create ~name ~stamp =
     let t = {name; stamp} in
-    try Weak.find global t with Not_found -> Weak.add global t; t
+    try Weak.find global t
+    with Not_found -> Weak.add global t; t
 
   let succ t =
-    let stamp = Some (1 + match t.stamp with None -> 0 | Some n -> n) in
+    let stamp =
+      Some (1 + match t.stamp with None -> 0 | Some n -> n)
+    in
     create ~name:t.name ~stamp
 
   let rec freshen t =
-    if Weak.mem global t then Weak.find global t else freshen (succ t)
+    if Weak.mem global t
+    then Weak.find global t
+    else freshen (succ t)
 
 end
 
