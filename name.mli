@@ -1,7 +1,7 @@
 open Std_internal
 
 module type T = sig
-  type t
+  type t with sexp
 
   include Comparable.S with type t := t
 

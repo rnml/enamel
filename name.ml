@@ -1,7 +1,7 @@
 open Std_internal
 
 module type T = sig
-  type t
+  type t with sexp
 
   include Comparable.S with type t := t
 
@@ -85,14 +85,27 @@ module T = struct
   let to_string t =
     match t.stamp with
     | None ->
-        (match t.name with
-        | None -> sep
-        | Some x -> x)
+      (match t.name with
+      | None -> sep
+      | Some x -> x)
     | Some i ->
-        let suffix = sep ^ Int.to_string i in
-        (match t.name with
-        | None -> suffix
-        | Some x -> x ^ suffix)
+      let suffix = sep ^ Int.to_string i in
+      (match t.name with
+      | None -> suffix
+      | Some x -> x ^ suffix)
+
+  let of_string x =
+    let stamp = None in
+    let name = None in
+    if String.equal x sep then create ~stamp ~name else
+    match String.rsplit2 x ~on:'_' with
+    | None -> create ~stamp ~name:(Some x)
+    | Some (name, stamp) ->
+      let stamp = Some (Int.of_string stamp)  in
+      let name =
+        if String.is_empty name then None else Some name
+      in
+      create ~name ~stamp
 
   let pretty t = Pretty.text (to_string t)
 
