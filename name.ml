@@ -24,7 +24,7 @@ module M : sig
   type t = private {
     name : string option;
     stamp : int option;
-  }
+  } with sexp
   include Comparable.S with type t := t
   include Hashable.S with type t := t
   val create : name:string option -> stamp:int option -> t
