@@ -62,6 +62,7 @@ module Expr = struct
 
   type 'a t =
     | Mod of 'a
+(*
     | Lam of Name.t * 'a t
     | App of 'a t * 'a t
     | Pair of 'a t * 'a t
@@ -75,6 +76,7 @@ module Expr = struct
     | Ref of 'a t
     | Deref of 'a t
     | Assign of 'a t * 'a t
+*)
   with sexp
 
   type 'a check = Ctx.t -> 'a -> F.Term.t * F.Type.t
