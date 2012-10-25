@@ -17,6 +17,7 @@ module Ty = struct
   let ref_ = name "ref"
   let fun_ = name "fun"
   let pair = name "pair"
+  let unit = name "unit"
 
   let a = name "a"
   let b = name "b"
@@ -27,6 +28,7 @@ let ctx = Ctx.add_ty ctx Ty.fun_  K.(star @-> star @-> star)
 let ctx = Ctx.add_ty ctx Ty.pair  K.(star @-> star @-> star)
 let ctx = Ctx.add_ty ctx Ty.ref_  K.(star @-> star)
 let ctx = Ctx.add_ty ctx Ty.int   K.(star)
+let ctx = Ctx.add_ty ctx Ty.unit  K.(star)
 
 module Tm = struct
   let name x = F.Term.Name.freshen (F.Term.Name.raw x)
@@ -39,9 +41,10 @@ module Tm = struct
   let plus  = name "+"
   let minus = name "-"
   let times = name "*"
-  let cell  = name "cell"
+  let ref_  = name "ref"
   let get   = name "get"
   let set   = name "set"
+  let nil   = name "nil"
 end
 
 let add_tm ctx name ty = Ctx.add_tm ctx name (Target.Csig.Val ty)
@@ -55,6 +58,9 @@ module T : sig
   val a : t
   val b : t
   val pair : t -> t -> t
+  val ref_ : t -> t
+  val int : t
+  val unit : t
 end = struct
   type t = Target.Csig.t
 
@@ -84,11 +90,26 @@ end = struct
     ) t
 
   let pair a b = nm Ty.pair +$ a +$ b
+  let ref_ a   = nm Ty.ref_ +$ a
+  let int      = nm Ty.int
+  let unit     = nm Ty.unit
 
 end
 
 let ctx =
-  Ctx.add_tm ctx Tm.cons
-    T.(forall [a; b] (a @-> b @-> pair a b))
-
-(* val add_tm  : t -> Term.Name.t -> Csig.t -> t *)
+  List.fold
+    ~f:(fun ctx (x, ty) -> Ctx.add_tm ctx x ty)
+    ~init:ctx [
+      (Tm.cons,  T.(forall [a; b] (a @-> b @-> pair a b)));
+      (Tm.fst,   T.(forall [a; b] (pair a b @-> a)));
+      (Tm.snd,   T.(forall [a; b] (pair a b @-> b)));
+      (Tm.zero,  T.(int));
+      (Tm.one,   T.(int));
+      (Tm.plus,  T.(int @-> int @-> int));
+      (Tm.minus, T.(int @-> int @-> int));
+      (Tm.times, T.(int @-> int @-> int));
+      (Tm.ref_,  T.(forall [a] (a @-> ref_ a)));
+      (Tm.get,   T.(forall [a] (ref_ a @-> a)));
+      (Tm.set,   T.(forall [a] (ref_ a @-> a @-> unit)));
+      (Tm.nil,   T.(unit));
+    ]
