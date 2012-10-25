@@ -13,8 +13,8 @@ module Type : sig
 end
 
 module Expr : sig
-  type 'a t
+  type ('a, 'b) t
   type 'a check =
     Target.Context.t -> 'a -> Systemf.Term.t * Systemf.Type.t
-  val ok : 'a check -> 'a t check
+  val ok : 'a Type.check -> 'b check -> ('a, 'b) t check
 end

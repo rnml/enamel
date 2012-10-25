@@ -60,29 +60,29 @@ end
 
 module Expr = struct
 
-  type 'a t =
-    | Mod of 'a
-(*
-    | Lam of Name.t * 'a t
-    | App of 'a t * 'a t
-    | Pair of 'a t * 'a t
-    | Fst of 'a t
-    | Snd of 'a t
+  type ('a, 'b) t =
+    | Mod of 'b
+    | Lam of Name.t * 'a Type.t * ('a, 'b) t
+    | App of ('a, 'b) t * ('a, 'b) t
+    | Pair of ('a, 'b) t * ('a, 'b) t
+    | Fst of ('a, 'b) t
+    | Snd of ('a, 'b) t
     | Zero
     | One
-    | Plus of 'a t * 'a t
-    | Minus of 'a t * 'a t
-    | Times of 'a t * 'a t
-    | Ref of 'a t
-    | Deref of 'a t
-    | Assign of 'a t * 'a t
-*)
+    | Plus of ('a, 'b) t * ('a, 'b) t
+    | Minus of ('a, 'b) t * ('a, 'b) t
+    | Times of ('a, 'b) t * ('a, 'b) t
+    | Ref of ('a, 'b) t
+    | Deref of ('a, 'b) t
+    | Assign of ('a, 'b) t * ('a, 'b) t
   with sexp
 
   type 'a check = Ctx.t -> 'a -> F.Term.t * F.Type.t
 
-  let rec ok check_a ctx = function
-    | Mod a -> check_a ctx a
+  let rec ok _ _ _ = assert false
+  (* let rec ok check_a check_ty ctx = function
+   *   | Mod a -> check_a ctx a
+   *   | Lam (x, typ, b) -> *)
 
 end
 
