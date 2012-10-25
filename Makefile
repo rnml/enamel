@@ -14,6 +14,7 @@ MODULES=\
   systemf \
   target \
   module_system \
+  initial_context \
   base \
   main \
 
