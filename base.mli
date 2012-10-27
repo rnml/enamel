@@ -18,3 +18,11 @@ module Expr : sig
     Target.Context.t -> 'a -> Systemf.Term.t * Systemf.Type.t
   val ok : 'a Type.check -> 'b check -> ('a, 'b) t check
 end
+
+module Fix : sig
+  module Type : sig
+    type t with sexp
+    val ok : t Type.check
+  end
+end
+

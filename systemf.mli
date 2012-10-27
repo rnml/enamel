@@ -3,6 +3,7 @@ module Kind : sig
   type t =
     | Star
     | Arr of t * t
+  with sexp
   val equal : t -> t -> bool
 end
 
@@ -27,6 +28,7 @@ module Type : sig
     | Exists of Name.t * Kind.t * t
     | Fun of Name.t * Kind.t * t
     | App of t * t
+  with sexp
 
   val fvs : t -> Name.Set.t
   val swap : Name.t * Name.t -> t -> t

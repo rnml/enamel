@@ -1,7 +1,7 @@
 open Std_internal
 
 module Kind = struct
-  type t = Star | Arr of t * t
+  type t = Star | Arr of t * t with sexp
   let rec equal k k' =
     match (k, k') with
     | (Star, Star) -> true
@@ -30,6 +30,7 @@ module Type = struct
     | Exists of Name.t * Kind.t * t
     | Fun of Name.t * Kind.t * t
     | App of t * t
+  with sexp
 
   let rec fvs =
     let open Names in

@@ -11,8 +11,8 @@ end
 
 module Type = struct
   type 'a t =
-    | Mod of 'a
-    | App of 'a t * 'a t
+  | Mod of 'a
+  | App of 'a t * 'a t
   with sexp
 
   type 'a check = Ctx.t -> 'a -> F.Type.t * F.Kind.t
@@ -31,6 +31,19 @@ module Type = struct
         then (F.Type.App (tf, tx), k_rng)
         else failwith "kind mismatch"
       | _ -> failwith "applied type of non-arrow kind"
+
+end
+
+module Fix = struct
+  module Type = struct
+    type t = Fix of t Type.t | Name of F.Type.Name.t with sexp
+    let rec ok ctx = function
+      | Fix o -> Type.ok ok ctx o
+      | Name x ->
+        match Ctx.find_ty ctx x with
+        | None -> failwith "free type var"
+        | Some k -> (F.Type.Name x, k)
+  end
 end
 
 module Expr = struct

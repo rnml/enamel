@@ -1,12 +1,4 @@
 #+STARTUP: hidestars
-
-enamel -- a functional language with
-
-  Anonymous (i.e. first class) variant/record/recursive types
-  ML-style modules, but streamlined
-  Type-error slicing
-  Lisp-style macros
-
 * elisp-like auto-documentation
 * syntax
 ** lua-style balanced keywords
@@ -133,18 +125,6 @@ Labelled sum types are dealt with analogously
     http://nattermorphisms.blogspot.com/2008/10/2-minute-intro-to-associated-types-type.html
     "Associated types with class"
 * NOTES FROM IPHONE
-** Plan
-> Get building under core 108.07
-> Add a source syntax: Lex and yacc
-> Add a base language:
-> ref + pair + int + function
-> Explicitly typed at first
-> Define syntax and type checker and
-> evaluator for tgt language
-> Compile from mod+src to tgt
-> Add polymorphic
-> generalization and instantiation
-
 ** No curried functions by default
 > This is a mistake. It makes labeled and optional arguments more difficult to
 > deal with type inference-wise,and those are very important.

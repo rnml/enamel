@@ -1,3 +1,10 @@
 #+STARTUP: hidestars
 * DONE set up on bitbucket
-* TODO get running with a tiny base language: fun + pair + int + ref
+* TODO get a monomorphic base language to run
+** TODO source syntax = sexp
+** TODO define type checker
+** TODO apply module_system functor
+* TODO evaluator for tgt language
+* TODO Compile from mod+src to tgt
+* TODO Add let-polymorphism
+
