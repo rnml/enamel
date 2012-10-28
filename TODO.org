@@ -1,8 +1,9 @@
 #+STARTUP: hidestars
 * DONE set up on bitbucket
 * TODO get a monomorphic base language to run
-** TODO source syntax = sexp
-** TODO define type checker
+** DONE source syntax = sexp
+** DONE define type checker
+** TODO add separate commands for checking self-contained types and terms
 ** TODO apply module_system functor
 * TODO evaluator for tgt language
 * TODO Compile from mod+src to tgt
