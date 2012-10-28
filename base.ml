@@ -17,9 +17,6 @@ module Type = struct
 
   type 'a check = Ctx.t -> 'a -> F.Type.t * F.Kind.t
 
-  let ref_name = F.Type.Name.freshen (F.Type.Name.raw "ref")
-  let int_name = F.Type.Name.freshen (F.Type.Name.raw "int")
-
   let rec ok check_a ctx = function
     | Mod a -> check_a ctx a
     | App (tf, tx) ->
@@ -50,16 +47,42 @@ module Expr = struct
 
   type ('a, 'b) t =
     | Mod of 'b
-    | Lam of Name.t * 'a Type.t * ('a, 'b) t
+    | Lam of F.Term.Name.t * 'a Type.t * ('a, 'b) t
     | App of ('a, 'b) t * ('a, 'b) t
   with sexp
 
   type 'a check = Ctx.t -> 'a -> F.Term.t * F.Type.t
 
-  let rec ok _ _ _ = assert false
-  (* let rec ok check_a check_ty ctx = function
-   *   | Mod a -> check_a ctx a
-   *   | Lam (x, typ, b) -> *)
+  let rec ok : 'a. 'a Type.check -> 'b check -> ('a, 'b) t check = fun check_ty check_a ctx -> function
+    | Mod a -> check_a ctx a
+    | App (f, x) ->
+      let (f, tf) = ok check_ty check_a ctx f in
+      let (x, tx) = ok check_ty check_a ctx x in
+      begin
+        match tf with
+        | F.Type.Arr (ty_dom, ty_rng) ->
+          if F.Type.equal ty_dom tx
+          then (F.Term.App (f, x), ty_rng)
+          else failwith "type mismatch"
+        | _ -> failwith "applied term of non-arrow type"
+      end
+    | Lam (x, dom, body) ->
+      (* CR: freshen! *)
+      begin
+        match Type.ok check_ty ctx dom with
+        | (dom, F.Kind.Star) ->
+          let (body, rng) =
+            ok check_ty check_a
+              (Ctx.add_tm ctx x (Target.Csig.Val dom))
+              body
+          in
+          ( Systemf.Term.Fun (x, dom, body)
+          , Systemf.Type.Arr (dom, rng)
+          )
+        | _ ->
+          failwith "lambda argument type annotation of non-star kind"
+      end
+
 
 end
 
