@@ -12,10 +12,10 @@ module type T = sig
   val succ : t -> t
   val preferred : t -> t
   val freshen : t -> t
-
   val next : t -> not_in:Set.t -> t
 
   val to_string : t -> string
+  val of_string : string -> t
   val pretty : t -> Pretty.doc
   val swap : t * t -> t -> t
 end
@@ -24,7 +24,7 @@ module M : sig
   type t = private {
     name : string option;
     stamp : int option;
-  } with sexp
+  }
   include Comparable.S with type t := t
   include Hashable.S with type t := t
   val create : name:string option -> stamp:int option -> t
@@ -121,6 +121,7 @@ module T = struct
 
 end
 include T
+include Sexpable.Of_stringable (T)
 
 module type S = sig
   include T
@@ -132,6 +133,7 @@ end
 
 module Make (X : sig end) : S = struct
   include T
+  include Sexpable.Of_stringable (T)
   let to_name x = x
   let of_name x = x
 end

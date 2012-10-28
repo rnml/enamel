@@ -15,6 +15,7 @@ module type T = sig
   val next : t -> not_in:Set.t -> t
 
   val to_string : t -> string
+  val of_string : string -> t
   val pretty : t -> Pretty.doc
   val swap : t * t -> t -> t
 end
