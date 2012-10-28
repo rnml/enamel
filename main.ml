@@ -12,12 +12,12 @@ include struct
 end
 
 let main () =
-  let ty = Sexp.input_sexp stdin |! Base.Fix.Type.t_of_sexp in
-  let (ty, ki) = Base.Fix.Type.ok Initial_context.ctx ty in
+  let tm = Sexp.input_sexp stdin |! Base.Fix.Term.t_of_sexp in
+  let (tm, ty) = Base.Fix.Term.ok Initial_context.ctx tm in
   Sexp.List [
-    Systemf.Type.sexp_of_t ty;
+    Systemf.Term.sexp_of_t tm;
     Sexp.Atom ":";
-    Systemf.Kind.sexp_of_t ki;
+    Systemf.Type.sexp_of_t ty;
   ]
   |! Sexp.to_string_hum
   |! print_endline

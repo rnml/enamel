@@ -55,6 +55,7 @@ module Term : sig
     | Pack of Type.t * t * Type.Name.t * Type.t
     | Unpack of Type.Name.t * Name.t * t * t
     | Let of Name.t * t * t
+  with sexp
 
   val type_mod : Type.t -> Kind.t -> t
   val sig_mod : Type.t -> t

@@ -12,7 +12,7 @@ module Type : sig
   val ok : 'a check -> 'a t check
 end
 
-module Expr : sig
+module Term : sig
   type ('a, 'b) t
   type 'a check =
     Target.Context.t -> 'a -> Systemf.Term.t * Systemf.Type.t
@@ -23,6 +23,10 @@ module Fix : sig
   module Type : sig
     type t with sexp
     val ok : t Type.check
+  end
+  module Term : sig
+    type t with sexp
+    val ok : t Term.check
   end
 end
 

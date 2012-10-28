@@ -174,6 +174,7 @@ module Term = struct
         Type.t * t * Type.Name.t * Type.t
     | Unpack of Type.Name.t * Name.t * t * t
     | Let of Name.t * t * t
+  with sexp
 
   module Context : sig
     type t

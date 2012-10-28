@@ -31,19 +31,7 @@ module Type = struct
 
 end
 
-module Fix = struct
-  module Type = struct
-    type t = Fix of t Type.t | Name of F.Type.Name.t with sexp
-    let rec ok ctx = function
-      | Fix o -> Type.ok ok ctx o
-      | Name x ->
-        match Ctx.find_ty ctx x with
-        | None -> failwith "free type var"
-        | Some k -> (F.Type.Name x, k)
-  end
-end
-
-module Expr = struct
+module Term = struct
 
   type ('a, 'b) t =
     | Mod of 'b
@@ -84,6 +72,30 @@ module Expr = struct
       end
 
 
+end
+
+module Fix = struct
+  module Type = struct
+    type t = Fix of t Type.t | Name of F.Type.Name.t with sexp
+    let rec ok ctx = function
+      | Fix o -> Type.ok ok ctx o
+      | Name x ->
+        match Ctx.find_ty ctx x with
+        | None -> failwith "free type var"
+        | Some k -> (F.Type.Name x, k)
+  end
+  module Term = struct
+    type t =
+      | Fix of (Type.t, t) Term.t
+      | Name of F.Term.Name.t with sexp
+    let rec ok ctx = function
+      | Fix e -> Term.ok Type.ok ok ctx e
+      | Name x ->
+        match Ctx.find_tm ctx x with
+        | None -> failwith "free type var"
+        | Some (Target.Csig.Val ty) -> (F.Term.Name x, ty)
+        | Some _ -> failwith "huh?"
+  end
 end
 
 
