@@ -12,10 +12,10 @@ EOF
 $(fun "(name int)" "(name int)")
 EOF
 
-./main.exe check-term <<EOF
+./main.exe check-expr <<EOF
 (name cons)
 EOF
 
-./main.exe check-term <<EOF
+./main.exe check-expr <<EOF
 (name 0)
 EOF
