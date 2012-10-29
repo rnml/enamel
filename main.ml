@@ -11,14 +11,16 @@ include struct
   open Module_system
 end
 
-let check_term_command =
-  Command.basic ~summary:"type check a term (from stdin)"
+module Enamel = Module_system.Source (Base)
+
+let check_expr_command =
+  Command.basic ~summary:"type check a expr (from stdin)"
     Command.Spec.(empty +> const ())
     (fun () ->
-      let tm = Sexp.input_sexp stdin |! Base.Fix.Term.t_of_sexp in
-      let (tm, ty) = Base.Fix.Term.ok Initial_context.ctx tm in
+      let tm = Sexp.input_sexp stdin |! Base.Fix.Expr.t_of_sexp in
+      let (tm, ty) = Base.Fix.Expr.ok Initial_context.ctx tm in
       Sexp.List [
-        Systemf.Term.sexp_of_t tm;
+        Systemf.Expr.sexp_of_t tm;
         Sexp.Atom ":";
         Systemf.Type.sexp_of_t ty;
       ]
@@ -43,7 +45,7 @@ let check_type_command =
 
 let command =
   Command.group ~summary:"enamel: my little language" [
-    ("check-term", check_term_command);
+    ("check-expr", check_expr_command);
     ("check-type", check_type_command);
   ]
 

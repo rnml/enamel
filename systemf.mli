@@ -36,7 +36,7 @@ module Type : sig
   val equal : t -> t -> bool
 end
 
-module Term : sig
+module Expr : sig
 
   module Name : sig
     include Name.S
@@ -71,5 +71,5 @@ val subtype :
   Type.Context.t
   -> src:Type.t
   -> dst:Type.t
-  -> [`Coerce of Term.t -> Term.t]
+  -> [`Coerce of Expr.t -> Expr.t]
 

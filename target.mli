@@ -13,7 +13,7 @@ module rec Csig : sig
   val subst : t -> (Type.Name.t * Type.t) -> t
   val matches :
     Type.Context.t -> t -> Asig.t ->
-      (Type.t * Kind.t) list * [`Coerce of Term.t -> Term.t]
+      (Type.t * Kind.t) list * [`Coerce of Expr.t -> Expr.t]
 end
 
 and Asig : sig
@@ -29,8 +29,8 @@ module Context : sig
      take it in *)
   val add_ty  : t -> Type.Name.t -> Kind.t -> t
   val find_ty : t -> Type.Name.t -> Kind.t option
-  val add_tm  : t -> Term.Name.t -> Csig.t -> t
-  val find_tm : t -> Term.Name.t -> Csig.t option
+  val add_tm  : t -> Expr.Name.t -> Csig.t -> t
+  val find_tm : t -> Expr.Name.t -> Csig.t option
   val ty_ctx  : t -> Type.Context.t
 end
 

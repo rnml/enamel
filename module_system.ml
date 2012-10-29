@@ -8,28 +8,28 @@ module Ctx = Target.Context
 
 module Source (Base : sig
   module Kind : sig
-    type t
+    type t with sexp
     val ok : Ctx.t -> t -> F.Kind.t
   end
   module Type : sig
-    type 'a t
+    type 'a t with sexp
     type 'a check = Ctx.t -> 'a -> F.Type.t * F.Kind.t
     val ok : 'a check -> 'a t check
   end
   module Expr : sig
-    type 'a t
-    type 'a check = Ctx.t -> 'a -> F.Term.t * F.Type.t
-    val ok : 'a check -> 'a t check
+    type ('a, 'b) t with sexp
+    type 'b check = Ctx.t -> 'b -> F.Expr.t * F.Type.t
+    val ok : 'a Type.check -> 'b check -> ('a, 'b) t check
   end
 end) = struct
 
   module Kind = Base.Kind
 
   module rec Path : sig
-    type t = Mod.t
-    val ok : Ctx.t -> t -> F.Term.t * Target.Csig.t
+    type t = Mod.t with sexp
+    val ok : Ctx.t -> t -> F.Expr.t * Target.Csig.t
   end = struct
-    type t = Mod.t
+    type t = Mod.t with sexp
     let ok ctx m =
       let (Target.Asig.Exists (alphas, csig), e) = Mod.ok ctx m in
       if
@@ -38,9 +38,9 @@ end) = struct
       then
          failwith "path projection lets type variable escape"
       else begin
-        let x = F.Term.Name.raw "path.project" in
+        let x = F.Expr.Name.raw "path.project" in
         ( List.fold alphas ~init:e ~f:(fun acc (a, _) ->
-            F.Term.Unpack (a, x, acc, F.Term.Name x))
+            F.Expr.Unpack (a, x, acc, F.Expr.Name x))
         , csig )
       end
   end
@@ -50,6 +50,7 @@ end) = struct
       | Wrap of t Base.Type.t
       | Path of Path.t
       | Let of Bnd.t * t
+    with sexp
     val ok : t Base.Type.check
   end = struct
 
@@ -57,6 +58,7 @@ end) = struct
       | Wrap of t Base.Type.t
       | Path of Path.t
       | Let of Bnd.t * t
+    with sexp
 
     let rec ok ctx t =
       match t with
@@ -67,8 +69,8 @@ end) = struct
         | Target.Csig.Type (t, k) -> (t, k)
         | _ -> failwith "non-type module embedded in type expression")
       | Let (b, t) -> (* derived form *)
-        let x = F.Term.Name.raw "local.type" in
-        let lx = F.Term.Name.to_label x in
+        let x = F.Expr.Name.raw "local.type" in
+        let lx = F.Expr.Name.to_label x in
         ok ctx
           (Path (Mod.Dot (Mod.Struct (Bnd.Cat (b, Bnd.let_typ x t)), lx)))
 
@@ -76,28 +78,30 @@ end) = struct
 
   and Expr : sig
     type t =
-      | Wrap of t Base.Expr.t
+      | Wrap of (Type.t, t) Base.Expr.t
       | Path of Path.t
       | Let of Bnd.t * t
+    with sexp
     val ok : t Base.Expr.check
   end = struct
 
     type t =
-      | Wrap of t Base.Expr.t
+      | Wrap of (Type.t, t) Base.Expr.t
       | Path of Path.t
       | Let of Bnd.t * t
+    with sexp
 
     let rec ok ctx e =
       match e with
-      | Wrap exp -> Base.Expr.ok ok ctx exp
+      | Wrap exp -> Base.Expr.ok Type.ok ok ctx exp
       | Path p ->
         let (e, csig) = Path.ok ctx p in
         (match csig with
         | Target.Csig.Val t -> (e, t)
         | _ -> failwith "non-term module embedded in term expression")
       | Let (b, e) -> (* derived form *)
-        let x = F.Term.Name.raw "local.expr" in
-        let lx = F.Term.Name.to_label x in
+        let x = F.Expr.Name.raw "local.expr" in
+        let lx = F.Expr.Name.to_label x in
         ok ctx (Path (Mod.Dot (Mod.Struct (Bnd.Cat (b, Bnd.let_val x e)), lx)))
 
   end
@@ -110,9 +114,10 @@ end) = struct
       | Abstype of Kind.t
       | Sig of Sig.t
       | Struct of Decl.t
-      | Fun of F.Term.Name.t * t * t
+      | Fun of F.Expr.Name.t * t * t
       | Where of t * F.Label.t list * Type.t
       | Let of Bnd.t * t
+    with sexp
     val ok : Ctx.t -> t -> Target.Asig.t
   end = struct
 
@@ -123,9 +128,10 @@ end) = struct
       | Abstype of Kind.t
       | Sig of Sig.t
       | Struct of Decl.t
-      | Fun of F.Term.Name.t * t * t
+      | Fun of F.Expr.Name.t * t * t
       | Where of t * F.Label.t list * Type.t
       | Let of Bnd.t * t
+    with sexp
 
     let rec ok ctx = function
       | Path p ->
@@ -199,8 +205,8 @@ end) = struct
         loop csig_orig path
 
       | Let (b, e) -> (* derived form *)
-        let x = F.Term.Name.raw "local.sig" in
-        let lx = F.Term.Name.to_label x in
+        let x = F.Expr.Name.raw "local.sig" in
+        let lx = F.Expr.Name.to_label x in
         ok ctx
           (Path (Mod.Dot (Mod.Struct (Bnd.Cat (b, Bnd.let_sig x e)), lx)))
   end
@@ -208,11 +214,12 @@ end) = struct
   and Decl : sig
 
     type t =
-      | Decl of F.Term.Name.t * Sig.t
+      | Decl of F.Expr.Name.t * Sig.t
       | Nil
       | Cat of t * t
       | Include of Sig.t
       | Local of Bnd.t * t
+    with sexp
 
     val ok :
       Ctx.t
@@ -223,16 +230,17 @@ end) = struct
   end = struct
 
     type t =
-      | Decl of F.Term.Name.t * Sig.t
+      | Decl of F.Expr.Name.t * Sig.t
       | Nil
       | Cat of t * t
       | Include of Sig.t
       | Local of Bnd.t * t
+    with sexp
 
     let rec ok ctx = function
       | Decl (x, s) ->
         let (Target.Asig.Exists (aks, csig)) = Sig.ok ctx s in
-        let lx = F.Term.Name.to_label x in
+        let lx = F.Expr.Name.to_label x in
         ( aks
         , F.Label.Map.singleton lx csig )
       | Nil ->
@@ -247,7 +255,7 @@ end) = struct
         let ctx =
           Map.fold ~init:ctx map1
             ~f:(fun ~key:lx ~data:csig ctx ->
-              let x = F.Term.Name.of_label lx in
+              let x = F.Expr.Name.of_label lx in
               Ctx.add_tm ctx x csig)
         in
         let (alphas2, map2) = ok ctx d2 in
@@ -272,30 +280,32 @@ end) = struct
 
   and Mod : sig
     type t =
-      | Name of F.Term.Name.t
+      | Name of F.Expr.Name.t
       | Val of Expr.t
       | Type of Type.t
       | Sig of Sig.t
       | Struct of Bnd.t
       | Dot of t * F.Label.t
-      | Fun of F.Term.Name.t * Sig.t * t
+      | Fun of F.Expr.Name.t * Sig.t * t
       | App of t * t
       | Seal of t * Sig.t
       | Let of Bnd.t * t
-    val ok : Ctx.t -> t -> Target.Asig.t * Systemf.Term.t
+    with sexp
+    val ok : Ctx.t -> t -> Target.Asig.t * F.Expr.t
   end = struct
 
     type t =
-      | Name of F.Term.Name.t
+      | Name of F.Expr.Name.t
       | Val of Expr.t
       | Type of Type.t
       | Sig of Sig.t
       | Struct of Bnd.t
       | Dot of t * F.Label.t
-      | Fun of F.Term.Name.t * Sig.t * t
+      | Fun of F.Expr.Name.t * Sig.t * t
       | App of t * t
       | Seal of t * Sig.t
       | Let of Bnd.t * t
+    with sexp
 
     let lookup ctx x =
       match Ctx.find_tm ctx x with
@@ -307,7 +317,7 @@ end) = struct
       | Name x ->
         (match Ctx.find_tm ctx x with
         | None -> assert false
-        | Some csig -> (Target.Asig.Exists ([], csig), F.Term.Name x))
+        | Some csig -> (Target.Asig.Exists ([], csig), F.Expr.Name x))
       | Val e ->
         let (e, t) = Expr.ok ctx e in
         ( Target.Asig.Exists ([], Target.Csig.Val t)
@@ -315,20 +325,20 @@ end) = struct
       | Type t ->
         let (t, k) = Type.ok ctx t in
         ( Target.Asig.Exists ([], Target.Csig.Type (t, k))
-        , F.Term.type_mod t k )
+        , F.Expr.type_mod t k )
       | Sig s ->
         let asig = Sig.ok ctx s in
         ( Target.Asig.Exists ([], Target.Csig.Sig asig)
-        , F.Term.sig_mod (Target.Asig.to_f asig) )
+        , F.Expr.sig_mod (Target.Asig.to_f asig) )
       | Struct bnd ->
         let (aks, map, bnd) = Bnd.ok ctx bnd in
         let asig =
           Target.Asig.Exists (aks, Target.Csig.Struct map)
         in
         ( asig
-        , bnd (F.Term.Record
+        , bnd (F.Expr.Record
             (Map.mapi map ~f:(fun ~key:x ~data:_ ->
-              F.Term.Name (F.Term.Name.of_label x)))) )
+              F.Expr.Name (F.Expr.Name.of_label x)))) )
       | Dot (m, x) ->
         let (Target.Asig.Exists (alphas, csig), e) = ok ctx m in
         begin
@@ -337,7 +347,7 @@ end) = struct
             (match F.Label.Map.find map x with
             | None -> failwith "unknown field"
             | Some xsig ->
-              (Target.Asig.Exists (alphas, xsig), F.Term.Dot (e, x)))
+              (Target.Asig.Exists (alphas, xsig), F.Expr.Dot (e, x)))
           | _ -> failwith "field projection from non-struct"
         end
       | Fun (x, s, m) ->
@@ -350,8 +360,8 @@ end) = struct
         let (asig, e) = ok ctx m in
         ( Target.Asig.Exists ([], Target.Csig.Fun (aks, csig, asig))
         , List.fold_right aks
-            ~f:(fun (a, k) acc -> F.Term.Ty_fun (a, k, acc))
-            ~init:(F.Term.Fun (x, Target.Csig.to_f csig, e)) )
+            ~f:(fun (a, k) acc -> F.Expr.Ty_fun (a, k, acc))
+            ~init:(F.Expr.Fun (x, Target.Csig.to_f csig, e)) )
       | App (Name x1, Name x2) ->
         let (aks, csig', asig) =
           match lookup ctx x1 with
@@ -368,10 +378,10 @@ end) = struct
         in
         (* CR: does this require simultaneous substitution? *)
         ( List.fold ~f:Target.Asig.subst ~init:asig subs
-        , F.Term.App
-            ( List.fold ~init:(F.Term.Name x1) tks
-                ~f:(fun acc (t, _k) -> F.Term.Ty_app (acc, t))
-            , f (F.Term.Name x2)) )
+        , F.Expr.App
+            ( List.fold ~init:(F.Expr.Name x1) tks
+                ~f:(fun acc (t, _k) -> F.Expr.Ty_app (acc, t))
+            , f (F.Expr.Name x2)) )
       | Seal (Name x, s) ->
         let csig = lookup ctx x in
         let asig = Sig.ok ctx s in
@@ -386,15 +396,15 @@ end) = struct
           in
           (* CR: something is wrong, we never unpack! *)
           ( asig
-          , F.Term.pack taks (f (F.Term.Name x)) (Target.Csig.to_f csig') ))
+          , F.Expr.pack taks (f (F.Expr.Name x)) (Target.Csig.to_f csig') ))
       | Let (b, m) -> (* derived form *)
-        let x = F.Term.Name.dummy in
-        let lx = F.Term.Name.to_label x in
+        let x = F.Expr.Name.dummy in
+        let lx = F.Expr.Name.to_label x in
         let m =  Dot (Struct (Bnd.Cat (b, Bnd.Let (x, m))), lx) in
         ok ctx m
       | App (m1, m2) -> (* derived form *)
-        let x1 = F.Term.Name.raw "fun" in
-        let x2 = F.Term.Name.raw "arg" in
+        let x1 = F.Expr.Name.raw "fun" in
+        let x2 = F.Expr.Name.raw "arg" in
         let m =
           Let
             ( Bnd.Cat (Bnd.Let (x1, m1), Bnd.Let (x2, m2))
@@ -402,7 +412,7 @@ end) = struct
         in
         ok ctx m
       | Seal (m, s) -> (* derived form *)
-        let x = F.Term.Name.raw "conc" in
+        let x = F.Expr.Name.raw "conc" in
         let m = Let (Bnd.Let (x, m), Seal (Name x, s)) in
         ok ctx m
   end
@@ -410,31 +420,33 @@ end) = struct
   and Bnd : sig
 
     type t =
-      | Let of F.Term.Name.t * Mod.t
+      | Let of F.Expr.Name.t * Mod.t
       | Nil
       | Cat of t * t
       | Include of Mod.t
       | Local of t * t
+    with sexp
 
-    val let_val : F.Term.Name.t -> Expr.t -> t
-    val let_typ : F.Term.Name.t -> Type.t -> t
-    val let_sig : F.Term.Name.t -> Sig.t -> t
+    val let_val : F.Expr.Name.t -> Expr.t -> t
+    val let_typ : F.Expr.Name.t -> Type.t -> t
+    val let_sig : F.Expr.Name.t -> Sig.t -> t
 
     val ok :
       Ctx.t
       -> t
       -> (F.Type.Name.t * F.Kind.t) list
        * Target.Csig.t F.Label.Map.t
-       * (F.Term.t -> F.Term.t)
+       * (F.Expr.t -> F.Expr.t)
 
   end = struct
 
     type t =
-      | Let of F.Term.Name.t * Mod.t
+      | Let of F.Expr.Name.t * Mod.t
       | Nil
       | Cat of t * t
       | Include of Mod.t
       | Local of t * t
+    with sexp
 
     let let_val x e = Let (x, Mod.Val e)
     let let_typ x t = Let (x, Mod.Type t)
@@ -443,11 +455,11 @@ end) = struct
     let rec ok ctx t =
       match t with
       | Let (x, m) ->
-        let lx = F.Term.Name.to_label x in
+        let lx = F.Expr.Name.to_label x in
         let (Target.Asig.Exists (alphas, csig), e) = Mod.ok ctx m in
         ( alphas
         , F.Label.Map.singleton lx csig
-        , fun acc -> F.Term.Let (x, e, acc) )
+        , fun acc -> F.Expr.Let (x, e, acc) )
       | Nil ->
         ( []
         , F.Label.Map.empty
@@ -461,7 +473,7 @@ end) = struct
         let ctx =
           Map.fold ~init:ctx map1
             ~f:(fun ~key:lx ~data:csig ctx ->
-              let x = F.Term.Name.of_label lx in
+              let x = F.Expr.Name.of_label lx in
               Ctx.add_tm ctx x csig)
         in
         let (alphas2, map2, b2) = ok ctx b2 in
@@ -479,19 +491,19 @@ end) = struct
           | Target.Csig.Struct map ->
             let (m, intro_m) =
               match e with
-              | F.Term.Name m -> (m, (fun x -> x))
+              | F.Expr.Name m -> (m, (fun x -> x))
               | _ ->
-                let m = F.Term.Name.raw "mod" in
-                (m, fun body -> F.Term.Let (m, e, body))
+                let m = F.Expr.Name.raw "mod" in
+                (m, fun body -> F.Expr.Let (m, e, body))
             in
             ( alphas
             , map
             , fun acc -> intro_m begin
                 Map.fold map ~init:acc
                   ~f:(fun ~key:lx ~data:_ acc ->
-                    let x = F.Term.Name.of_label lx in
+                    let x = F.Expr.Name.of_label lx in
                     (* CR: only introduce the binding if x is free in acc *)
-                    F.Term.Let (x, F.Term.Dot (F.Term.Name m, lx), acc))
+                    F.Expr.Let (x, F.Expr.Dot (F.Expr.Name m, lx), acc))
               end)
           | _ -> failwith "included non-struct"
         end

@@ -18,11 +18,11 @@ module rec Csig : sig
 
   val swap : Type.Name.t * Type.Name.t -> t -> t
 
-  val sub : Type.Context.t -> t -> t -> [`Coerce of Term.t -> Term.t]
+  val sub : Type.Context.t -> t -> t -> [`Coerce of Expr.t -> Expr.t]
 
   val matches :
     Type.Context.t -> t -> Asig.t ->
-      (Type.t * Kind.t) list * [`Coerce of Term.t -> Term.t]
+      (Type.t * Kind.t) list * [`Coerce of Expr.t -> Expr.t]
 
 end = struct
   type t =
@@ -107,7 +107,7 @@ end = struct
     | (Csig.Sig s1, Csig.Sig s2) ->
       let `Coerce _ = Asig.sub ctx s1 s2 in
       let `Coerce _ = Asig.sub ctx s2 s1 in
-      `Coerce (fun _ -> Term.sig_mod (Asig.to_f s2))
+      `Coerce (fun _ -> Expr.sig_mod (Asig.to_f s2))
     | (Csig.Struct map1, Csig.Struct map2) ->
       let map =
         Label.Map.merge map1 map2 (fun ~key:_ cs ->
@@ -119,9 +119,9 @@ end = struct
             Some f)
       in
       `Coerce (fun e ->
-        Term.Record
+        Expr.Record
           (Map.mapi map
-            ~f:(fun ~key:lx ~data:f -> f (Term.Dot (e, lx)))))
+            ~f:(fun ~key:lx ~data:f -> f (Expr.Dot (e, lx)))))
     | (Fun (aks1, csig1, asig1), Fun (aks2, csig2, asig2)) ->
       let ctx =
         (* CR: this must be wrong -- we should be freshening as
@@ -140,15 +140,15 @@ end = struct
         Asig.sub ctx (List.fold ~f:Asig.subst ~init:asig1 sub) asig2
       in
       `Coerce (fun f ->
-        List.fold_right ~f:(fun (a, k) e -> Term.Ty_fun (a, k, e)) aks2
+        List.fold_right ~f:(fun (a, k) e -> Expr.Ty_fun (a, k, e)) aks2
           ~init:begin
-            let x = Term.Name.dummy in
-            Term.Fun (x, Csig.to_f csig2,
+            let x = Expr.Name.dummy in
+            Expr.Fun (x, Csig.to_f csig2,
               frng begin
-                Term.App
+                Expr.App
                   ( List.fold tks ~init:f
-                      ~f:(fun e (t, _k) -> Term.Ty_app (e, t))
-                  , fdom (Term.Name x) )
+                      ~f:(fun e (t, _k) -> Expr.Ty_app (e, t))
+                  , fdom (Expr.Name x) )
               end
             )
           end
@@ -169,7 +169,7 @@ and Asig : sig
 
   val to_f : t -> Type.t
 
-  val sub : Type.Context.t -> t -> t -> [`Coerce of Term.t -> Term.t]
+  val sub : Type.Context.t -> t -> t -> [`Coerce of Expr.t -> Expr.t]
 
   val subst : t -> Type.Name.t * Type.t -> t
 
@@ -215,25 +215,25 @@ end = struct
     | (Exists (aks1, csig1), (Exists (aks2, csig2) as asig2)) ->
       let (ts, `Coerce f) = Csig.matches ctx csig1 asig2 in
       `Coerce (fun x ->
-        let y = Term.Name.dummy in
+        let y = Expr.Name.dummy in
         let taks =
           List.map ~f:(fun ((a, k), (t, _)) -> (t, a, k))
             (List.zip_exn aks2 ts)
         in
-        Term.unpack (List.map ~f:fst aks1) y x
-          (Term.pack taks (f (Term.Name y)) (Csig.to_f csig2)))
+        Expr.unpack (List.map ~f:fst aks1) y x
+          (Expr.pack taks (f (Expr.Name y)) (Csig.to_f csig2)))
 
 end
 
 module Context = struct
   type t = {
     ty_ctx : Type.Context.t;
-    tm_ctx : Csig.t Term.Name.Map.t;
+    tm_ctx : Csig.t Expr.Name.Map.t;
   }
 
   let empty = {
     ty_ctx = Type.Context.empty;
-    tm_ctx = Term.Name.Map.empty;
+    tm_ctx = Expr.Name.Map.empty;
   }
 
   let add_ty g a k = {g with ty_ctx = Type.Context.add g.ty_ctx a k}

@@ -31,7 +31,7 @@ let ctx = Ctx.add_ty ctx Ty.int   K.(star)
 let ctx = Ctx.add_ty ctx Ty.unit  K.(star)
 
 module Tm = struct
-  let name x = F.Term.Name.freshen (F.Term.Name.raw x)
+  let name x = F.Expr.Name.freshen (F.Expr.Name.raw x)
 
   let cons  = name "cons"
   let fst   = name "fst"

@@ -150,7 +150,7 @@ module Type = struct
 
 end
 
-module Term = struct
+module Expr = struct
 
   module Name : sig
     include Name.S
