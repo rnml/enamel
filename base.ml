@@ -93,8 +93,7 @@ module Fix = struct
       | Name x ->
         match Ctx.find_tm ctx x with
         | None -> failwith "free type var"
-        | Some (Target.Csig.Val ty) -> (F.Term.Name x, ty)
-        | Some _ -> failwith "huh?"
+        | Some csig -> (F.Term.Name x, Target.Csig.to_f csig)
   end
 end
 
