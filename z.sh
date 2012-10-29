@@ -13,9 +13,9 @@ $(fun "(name int)" "(name int)")
 EOF
 
 ./main.exe check-expr <<EOF
-(name cons)
+(path (name 0))
 EOF
 
 ./main.exe check-expr <<EOF
-(name 0)
+(path (app (name cons) (type (path (name int)))))
 EOF

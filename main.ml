@@ -6,23 +6,23 @@ include struct
   open Constant
   open Initial_context
   open Uid
-  open Systemf
   open Target
   open Module_system
 end
 
+module F = Systemf
 module Enamel = Module_system.Source (Base)
 
 let check_expr_command =
   Command.basic ~summary:"type check a expr (from stdin)"
     Command.Spec.(empty +> const ())
     (fun () ->
-      let tm = Sexp.input_sexp stdin |! Base.Fix.Expr.t_of_sexp in
-      let (tm, ty) = Base.Fix.Expr.ok Initial_context.ctx tm in
+      let tm = Sexp.input_sexp stdin |! Enamel.Expr.t_of_sexp in
+      let (tm, ty) = Enamel.Expr.ok Initial_context.ctx tm in
       Sexp.List [
-        Systemf.Expr.sexp_of_t tm;
+        F.Expr.sexp_of_t tm;
         Sexp.Atom ":";
-        Systemf.Type.sexp_of_t ty;
+        F.Type.sexp_of_t ty;
       ]
       |! Sexp.to_string_hum
       |! print_endline

@@ -34,7 +34,8 @@ end) : sig
       | Path of Path.t
       | Let of Bnd.t * t
     with sexp
-    val ok : t Base.Type.check
+    val ok :
+      Target.Context.t -> t -> Systemf.Type.t * Systemf.Kind.t
   end
 
   and Expr : sig
@@ -43,7 +44,8 @@ end) : sig
       | Path of Path.t
       | Let of Bnd.t * t
     with sexp
-    val ok : t Base.Expr.check
+    val ok :
+      Target.Context.t -> t -> Systemf.Expr.t * Systemf.Type.t
   end
 
   and Sig : sig

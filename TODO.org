@@ -3,8 +3,9 @@
 * TODO get a monomorphic base language to run
 ** DONE source syntax = sexp
 ** DONE define type checker
-** TODO add separate commands for checking self-contained types and terms
-** TODO apply module_system functor
+** DONE add separate commands for checking self-contained types and terms
+** DONE apply module_system functor
+** TODO bind type variables as FML encoded term variables (fixing z.sh)
 * TODO evaluator for tgt language
 * TODO Compile from mod+src to tgt
 * TODO Add let-polymorphism

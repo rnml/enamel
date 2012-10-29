@@ -316,7 +316,8 @@ end) = struct
       match t with
       | Name x ->
         (match Ctx.find_tm ctx x with
-        | None -> assert false
+        | None ->
+          failwithf "unbound var %s" (F.Expr.Name.to_string x) ()
         | Some csig -> (Target.Asig.Exists ([], csig), F.Expr.Name x))
       | Val e ->
         let (e, t) = Expr.ok ctx e in
