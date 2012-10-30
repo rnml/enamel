@@ -61,9 +61,9 @@ let elaborate_command =
 
 let command =
   Command.group ~summary:"enamel: my little language" [
-    ("check-expr",   check_expr_command);
-    ("check-type",   check_type_command);
-    ("elaborate", elaborate_command);
+    ("check-expr", check_expr_command);
+    ("check-type", check_type_command);
+    ("elaborate",  elaborate_command);
   ]
 
 let main () = Command.run command
