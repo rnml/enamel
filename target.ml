@@ -26,11 +26,11 @@ module rec Csig : sig
 
 end = struct
   type t =
-    | Val of Type.t
-    | Type of Type.t * Kind.t
-    | Sig of Asig.t
-    | Struct of t Label.Map.t
-    | Fun of (Type.Name.t * Kind.t) list * t * Asig.t
+  | Val of Type.t
+  | Type of Type.t * Kind.t
+  | Sig of Asig.t
+  | Struct of t Label.Map.t
+  | Fun of (Type.Name.t * Kind.t) list * t * Asig.t
 
   let rec to_f = function
     | Val t -> t
@@ -38,10 +38,10 @@ end = struct
       let p = Type.Name.next (Type.Name.raw "p") ~not_in:(Type.fvs t) in
       Type.Forall
         ( p
-        , Kind.Arr (k, Kind.Star)
-        , Type.Arr
-            ( Type.App (Type.Name p, t)
-            , Type.App (Type.Name p, t)))
+            , Kind.Arr (k, Kind.Star)
+              , Type.Arr
+                ( Type.App (Type.Name p, t)
+                    , Type.App (Type.Name p, t)))
     | Sig asig ->
       let asig = Asig.to_f asig in
       Type.Arr (asig, asig)
@@ -52,21 +52,21 @@ end = struct
         ~f:(fun (a, k) acc -> Type.Exists (a, k, acc))
         ~init:(Type.Arr (to_f csig, Asig.to_f asig))
 
-    let fvs t = Type.fvs (to_f t)
+  let fvs t = Type.fvs (to_f t)
 
-    let swap p =
-      let rec swap = function
-        | Val t -> Val (Type.swap p t)
-        | Type (t, k) -> Type (Type.swap p t, k)
-        | Sig asig -> Sig (Asig.swap p asig)
-        | Struct map -> Struct (Label.Map.map map ~f:swap)
-        | Fun (aks, csig, asig) ->
-          Fun
-            ( List.map aks ~f:(fun (a, k) -> (Type.Name.swap p a, k))
-            , swap csig
-            , Asig.swap p asig )
-      in
-      swap
+  let swap p =
+    let rec swap = function
+      | Val t -> Val (Type.swap p t)
+      | Type (t, k) -> Type (Type.swap p t, k)
+      | Sig asig -> Sig (Asig.swap p asig)
+      | Struct map -> Struct (Label.Map.map map ~f:swap)
+      | Fun (aks, csig, asig) ->
+        Fun
+          ( List.map aks ~f:(fun (a, k) -> (Type.Name.swap p a, k))
+              , swap csig
+                , Asig.swap p asig )
+    in
+    swap
 
   let subst t sub =
     let rec subst = function
@@ -85,9 +85,9 @@ end = struct
               let (aks, csig, asig, fvs) = freshen aks csig asig fvs in
               let a' = Type.Name.next a ~not_in:fvs in
               ( (a', k) :: aks
-              , swap (a, a') csig
-              , Asig.swap (a, a') asig
-              , Set.add (fvs - a) a' )
+                  , swap (a, a') csig
+                    , Asig.swap (a, a') asig
+                      , Set.add (fvs - a) a' )
           in
           freshen aks csig asig begin
             fvs csig + Asig.fvs asig + Type.fvs (snd sub)
@@ -121,7 +121,7 @@ end = struct
       `Coerce (fun e ->
         Expr.Record
           (Map.mapi map
-            ~f:(fun ~key:lx ~data:f -> f (Expr.Dot (e, lx)))))
+             ~f:(fun ~key:lx ~data:f -> f (Expr.Dot (e, lx)))))
     | (Fun (aks1, csig1, asig1), Fun (aks2, csig2, asig2)) ->
       let ctx =
         (* CR: this must be wrong -- we should be freshening as
@@ -144,18 +144,21 @@ end = struct
           ~init:begin
             let x = Expr.Name.dummy in
             Expr.Fun (x, Csig.to_f csig2,
-              frng begin
-                Expr.App
-                  ( List.fold tks ~init:f
-                      ~f:(fun e (t, _k) -> Expr.Ty_app (e, t))
-                  , fdom (Expr.Name x) )
-              end
+                      frng begin
+                        Expr.App
+                          ( List.fold tks ~init:f
+                              ~f:(fun e (t, _k) -> Expr.Ty_app (e, t))
+                              , fdom (Expr.Name x) )
+                      end
             )
           end
       )
     | _ -> failwith "signature mismatch"
 
-  and matches _ _ = failwith "UNIMPLEMENTED Csig.matches"
+  and matches ctx csig (Asig.Exists (alphas, csig')) =
+    ignore (ctx, csig, alphas, csig');
+    assert false
+    (* (Type.t * Kind.t) list * [`Coerce of Expr.t -> Expr.t] *)
 
 end
 
