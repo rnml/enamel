@@ -43,10 +43,27 @@ let check_type_command =
       |! print_endline
     )
 
+let elaborate_command =
+  Command.basic ~summary:"elaborate a module (from stdin)"
+    Command.Spec.(empty +> const ())
+    (fun () ->
+      let m = Sexp.input_sexp stdin |! Enamel.Mod.t_of_sexp in
+      let (t, e) = Enamel.Mod.ok Initial_context.ctx m in
+      let t = Target.Asig.to_f t in
+      Sexp.List [
+        F.Expr.sexp_of_t e;
+        Sexp.Atom ":";
+        F.Type.sexp_of_t t;
+      ]
+      |! Sexp.to_string_hum
+      |! print_endline
+    )
+
 let command =
   Command.group ~summary:"enamel: my little language" [
-    ("check-expr", check_expr_command);
-    ("check-type", check_type_command);
+    ("check-expr",   check_expr_command);
+    ("check-type",   check_type_command);
+    ("elaborate", elaborate_command);
   ]
 
 let main () = Command.run command
