@@ -137,5 +137,3 @@ module Make (X : sig end) : S = struct
   let to_name x = x
   let of_name x = x
 end
-
-

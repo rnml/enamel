@@ -68,9 +68,9 @@ module Expr = struct
           , Systemf.Type.Arr (dom, rng)
           )
         | _ ->
-          failwith "lambda argument type annotation of non-star kind"
+          failwith "lambda argument type annotation of non-star \
+            kind"
       end
-
 
 end
 

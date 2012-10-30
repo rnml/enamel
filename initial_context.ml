@@ -24,11 +24,20 @@ module Ty = struct
   let c = name "c"
 end
 
-let ctx = Ctx.add_ty ctx Ty.fun_  K.(star @-> star @-> star)
-let ctx = Ctx.add_ty ctx Ty.pair  K.(star @-> star @-> star)
-let ctx = Ctx.add_ty ctx Ty.ref_  K.(star @-> star)
-let ctx = Ctx.add_ty ctx Ty.int   K.(star)
-let ctx = Ctx.add_ty ctx Ty.unit  K.(star)
+let add_ty ctx ty_var kind =
+  let ctx = Ctx.add_ty ctx ty_var kind in
+  let tm_var = F.Expr.Name.of_name (F.Type.Name.to_name ty_var) in
+  let ctx =
+    Ctx.add_tm ctx tm_var
+      (Target.Csig.Type (F.Type.Name ty_var, kind))
+  in
+  ctx
+
+let ctx = add_ty ctx Ty.fun_  K.(star @-> star @-> star)
+let ctx = add_ty ctx Ty.pair  K.(star @-> star @-> star)
+let ctx = add_ty ctx Ty.ref_  K.(star @-> star)
+let ctx = add_ty ctx Ty.int   K.(star)
+let ctx = add_ty ctx Ty.unit  K.(star)
 
 module Tm = struct
   let name x = F.Expr.Name.freshen (F.Expr.Name.raw x)
