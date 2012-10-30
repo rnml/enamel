@@ -1,15 +1,17 @@
 #!/bin/bash
+set -e -u -o pipefail
 
-function app  { echo "(fix (app (mod $1) (mod $2)))"; }
-function pair { app "$(app "(name pair)" "$1")" "$2"; }
-function fun  { app "$(app "(name fun)" "$1")" "$2"; }
+function int  { echo "(path (name int))"; }
+function app  { echo "(wrap (app (mod $1) (mod $2)))"; }
+function pair { app "$(app "(path (name pair))" "$1")" "$2"; }
+function fun  { app "$(app "(path (name fun))" "$1")" "$2"; }
 
 ./main.exe check-type <<EOF
-$(pair "(name int)" "(name int)")
+$(pair "$(int)" "$(int)")
 EOF
 
 ./main.exe check-type <<EOF
-$(fun "(name int)" "(name int)")
+$(fun "$(int)" "$(int)")
 EOF
 
 ./main.exe check-expr <<EOF

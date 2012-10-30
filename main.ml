@@ -32,12 +32,12 @@ let check_type_command =
   Command.basic ~summary:"kind check a type (from stdin)"
     Command.Spec.(empty +> const ())
     (fun () ->
-      let ty = Sexp.input_sexp stdin |! Base.Fix.Type.t_of_sexp in
-      let (ty, ki) = Base.Fix.Type.ok Initial_context.ctx ty in
+      let ty = Sexp.input_sexp stdin |! Enamel.Type.t_of_sexp in
+      let (ty, ki) = Enamel.Type.ok Initial_context.ctx ty in
       Sexp.List [
-        Systemf.Type.sexp_of_t ty;
+        F.Type.sexp_of_t ty;
         Sexp.Atom ":";
-        Systemf.Kind.sexp_of_t ki;
+        F.Kind.sexp_of_t ki;
       ]
       |! Sexp.to_string_hum
       |! print_endline
