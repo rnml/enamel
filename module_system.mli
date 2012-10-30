@@ -91,7 +91,9 @@ end) : sig
       | Seal of t * Sig.t
       | Let of Bnd.t * t
     with sexp
-    val ok : Target.Context.t -> t -> Target.Asig.t * Systemf.Expr.t
+    val ok :
+      (* CR: flip order of returned pair *)
+      Target.Context.t -> t -> Target.Asig.t * Systemf.Expr.t
   end
 
   and Bnd : sig
