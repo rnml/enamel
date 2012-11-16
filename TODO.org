@@ -6,7 +6,7 @@
 ** DONE add separate commands for checking self-contained types and terms
 ** DONE apply module_system functor
 ** DONE bind type variables as FML encoded term variables (fixing z.sh)
-** TODO implement signature matching
+** DONE implement signature matching
 ** TODO get several examples to elaborate/check in z.sh
 ** TODO erasure phase from F-omega to a dynamically typed language
 ** TODO interpreter for dynamically typed language

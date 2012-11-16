@@ -349,6 +349,8 @@ module Expr = struct
 
 end
 
-let rec subtype _ctx ~src:_ ~dst:_ =
-  failwith "UNIMPLEMENTED: Systemf.subtype"
+let rec subtype _ctx ~src ~dst =
+  match (src, dst) with
+  | (Type.Name a, Type.Name b) when Type.Name.equal a b -> `Coerce (fun x -> x)
+  | _ -> failwith "UNIMPLEMENTED: Systemf.subtype"
 

@@ -19,5 +19,5 @@ EOF
 EOF
 
 ./main.exe elaborate <<EOF
-(app (app (name cons) (type $(int))) (type $(int)))
+(app (app (app (app (name cons) (type $(int))) (type $(int))) (name 0)) (name 1))
 EOF
