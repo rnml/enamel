@@ -93,10 +93,14 @@ end = struct
   let b = nm Ty.b
 
   let forall xs t =
-    forall (List.map xs ~f:(function
-      | Target.Csig.Val (F.Type.Name a) -> (a, K.star)
+    List.fold_right xs ~init:t ~f:(fun a t ->
+      match a with
+      | Target.Csig.Val (F.Type.Name a) ->
+        Target.Csig.Fun
+          ( [(a, K.star)]
+          , Target.Csig.Type (F.Type.Name a, K.star)
+          , Target.Asig.Exists ([], t))
       | _ -> assert false)
-    ) t
 
   let pair a b = nm Ty.pair +$ a +$ b
   let ref_ a   = nm Ty.ref_ +$ a

@@ -14,7 +14,7 @@ module Type : sig
   module Name : Name.S
 
   module Context : sig
-    type t
+    type t with sexp
     val empty : t
     val add   : t -> Name.t -> Kind.t -> t
     val find  : t -> Name.t -> Kind.t option

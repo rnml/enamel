@@ -106,13 +106,13 @@ module Type = struct
     | (_, (Name _ | Record _ | App _ | Arr _ | Forall _ | Exists _ | Fun _)) -> false
 
   module Context : sig
-    type t
+    type t with sexp
     val empty : t
     val add   : t -> Name.t -> Kind.t -> t
     val find  : t -> Name.t -> Kind.t option
     val domain : t -> Name.Set.t
   end = struct
-    type t = Kind.t Name.Map.t
+    type t = Kind.t Name.Map.t with sexp
     let empty = Name.Map.empty
     let add t a k =
       assert (not (Map.mem t a));

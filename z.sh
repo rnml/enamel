@@ -18,10 +18,6 @@ EOF
 (path (name 0))
 EOF
 
-#./main.exe check-expr <<EOF
-#(path (app (name cons) (type (path (name int)))))
-#EOF
-
 ./main.exe elaborate <<EOF
-(app (name cons) (type (path (name int))))
+(app (app (name cons) (type $(int))) (type $(int)))
 EOF

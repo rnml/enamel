@@ -59,11 +59,22 @@ let elaborate_command =
       |! print_endline
     )
 
+let init_ctx_command =
+  Command.basic ~summary:"show initial typing context"
+    Command.Spec.(empty +> const ())
+    (fun () ->
+      Target.Context.sexp_of_t Initial_context.ctx
+      |! Sexp.to_string_hum
+      |! print_endline
+    )
+
+
 let command =
   Command.group ~summary:"enamel: my little language" [
-    ("check-expr", check_expr_command);
-    ("check-type", check_type_command);
-    ("elaborate",  elaborate_command);
+    ("check-expr",   check_expr_command);
+    ("check-type",   check_type_command);
+    ("elaborate",    elaborate_command);
+    ("initial-ctx",  init_ctx_command);
   ]
 
 let main () = Command.run command

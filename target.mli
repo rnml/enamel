@@ -23,7 +23,7 @@ and Asig : sig
 end
 
 module Context : sig
-  type t
+  type t with sexp
   val empty : t
   (* CR: change the type of add_ty to return the Type.Name rather than
      take it in *)

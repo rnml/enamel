@@ -164,9 +164,9 @@ end = struct
           match (csig, csig') with
           | (Type (tau, k), Type (Type.Name alpha', k')) when Type.Name.equal alpha alpha' ->
             if Kind.equal k k' && Kind.equal k kind then
-              failwith "kind mismatch"
-            else
               Some (tau, k)
+            else
+              failwith "kind mismatch"
           | (Struct m1, Struct m2) ->
             Map.merge m1 m2 ~f:(fun ~key:_ data ->
               match data with
@@ -179,11 +179,11 @@ end = struct
         in
         match lookup csig csig' with
         | None ->
-          let dump num csig =
-            prerr_endline (Int.to_string num ^ ": " ^ Sexp.to_string_hum (Csig.sexp_of_t csig))
-          in
-          dump 1 csig;
-          dump 2 csig';
+          (* let dump num csig =
+           *   prerr_endline (Int.to_string num ^ ": " ^ Sexp.to_string_hum (Csig.sexp_of_t csig))
+           * in
+           * dump 1 csig;
+           * dump 2 csig'; *)
           failwithf "missing typevar" ()
         | Some x -> x)
     in
@@ -266,7 +266,7 @@ module Context = struct
   type t = {
     ty_ctx : Type.Context.t;
     tm_ctx : Csig.t Expr.Name.Map.t;
-  }
+  } with sexp
 
   let empty = {
     ty_ctx = Type.Context.empty;
