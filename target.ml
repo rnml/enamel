@@ -9,6 +9,7 @@ module rec Csig : sig
     | Sig of Asig.t
     | Struct of t Label.Map.t
     | Fun of (Type.Name.t * Kind.t) list * t * Asig.t
+  with sexp
 
   val to_f : t -> Type.t
 
@@ -31,6 +32,7 @@ end = struct
   | Sig of Asig.t
   | Struct of t Label.Map.t
   | Fun of (Type.Name.t * Kind.t) list * t * Asig.t
+  with sexp
 
   let rec to_f = function
     | Val t -> t
@@ -156,15 +158,47 @@ end = struct
     | _ -> failwith "signature mismatch"
 
   and matches ctx csig (Asig.Exists (alphas, csig')) =
-    ignore (ctx, csig, alphas, csig');
-    assert false
-    (* (Type.t * Kind.t) list * [`Coerce of Expr.t -> Expr.t] *)
+    let tks =
+      List.map alphas ~f:(fun (alpha, kind) ->
+        let rec lookup csig csig' =
+          match (csig, csig') with
+          | (Type (tau, k), Type (Type.Name alpha', k')) when Type.Name.equal alpha alpha' ->
+            if Kind.equal k k' && Kind.equal k kind then
+              failwith "kind mismatch"
+            else
+              Some (tau, k)
+          | (Struct m1, Struct m2) ->
+            Map.merge m1 m2 ~f:(fun ~key:_ data ->
+              match data with
+              | `Left _ | `Right _ -> None
+              | `Both (a, b) -> Some (a, b)
+            )
+            |! Map.data
+            |! List.find_map ~f:(fun (csig, csig') -> lookup csig csig')
+          | _ -> None
+        in
+        match lookup csig csig' with
+        | None ->
+          let dump num csig =
+            prerr_endline (Int.to_string num ^ ": " ^ Sexp.to_string_hum (Csig.sexp_of_t csig))
+          in
+          dump 1 csig;
+          dump 2 csig';
+          failwithf "missing typevar" ()
+        | Some x -> x)
+    in
+    let atks = List.zip_exn alphas tks in
+    let csig' =
+      List.fold atks ~init:csig' ~f:(fun acc ((alpha, _k1), (tau, _k2)) -> subst acc (alpha, tau))
+    in
+    let `Coerce f = sub ctx csig csig' in
+    (tks, `Coerce f)
 
 end
 
 and Asig : sig
 
-  type t = Exists of (Type.Name.t * Kind.t) list * Csig.t
+  type t = Exists of (Type.Name.t * Kind.t) list * Csig.t with sexp
 
   val fvs : t -> Type.Name.Set.t
 
@@ -178,7 +212,7 @@ and Asig : sig
 
 end = struct
 
-  type t = Exists of (Type.Name.t * Kind.t) list * Csig.t
+  type t = Exists of (Type.Name.t * Kind.t) list * Csig.t with sexp
 
   let rec to_f = function
     | Exists (aks, csig) ->
