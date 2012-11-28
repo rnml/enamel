@@ -1,6 +1,6 @@
 open Std_internal
 
-type t
+type t with sexp
 
 include Comparable.S with type t := t
 

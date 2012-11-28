@@ -69,7 +69,6 @@ let init_ctx_command =
       |! print_endline
     )
 
-
 let command =
   Command.group ~summary:"enamel: my little language" [
     ("check-expr",   check_expr_command);
@@ -81,4 +80,3 @@ let command =
 let main () = Command.run command
 
 let () = Exn.handle_uncaught ~exit:true main
-
