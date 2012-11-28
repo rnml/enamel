@@ -1,13 +1,14 @@
 #+STARTUP: hidestars
-* DONE set up on bitbucket
-* TODO get a monomorphic base language to run
-** DONE source syntax = sexp
-** DONE define type checker
-** DONE add separate commands for checking self-contained types and terms
-** DONE apply module_system functor
-** DONE bind type variables as FML encoded term variables (fixing z.sh)
-** DONE implement signature matching
-** TODO get several examples to elaborate/check in z.sh
-** TODO erasure phase from F-omega to a dynamically typed language
-** TODO interpreter for dynamically typed language
-* TODO Add let-polymorphism
+* == done =========================================================
+* DONE source syntax = sexp
+* DONE type checker / module elaborator
+* == active =======================================================
+* TODO erasure phase from F-omega to a dynamically typed language
+* TODO interpreter for dynamically typed language
+* == projects =====================================================
+* binders unbound
+* get a monomorphic base language to run
+* let-polymorphism
+* macros
+* type error slicer
+* polymorphic records/variants

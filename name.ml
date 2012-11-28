@@ -47,7 +47,7 @@ end = struct
   include Comparable.Make (T)
   include Hashable.Make (T)
 
-  module Weak = Weak.Make (T)
+  module Weak = Caml.Weak.Make (T)
 
   let global = Weak.create 100
 

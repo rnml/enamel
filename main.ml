@@ -8,6 +8,7 @@ include struct
   open Uid
   open Target
   open Module_system
+  open Unbound
 end
 
 module F = Systemf
@@ -15,7 +16,7 @@ module Enamel = Module_system.Source (Base)
 
 let check_expr_command =
   Command.basic ~summary:"type check a expr (from stdin)"
-    Command.Spec.(empty +> const ())
+    Command.Spec.(empty)
     (fun () ->
       let tm = Sexp.input_sexp stdin |! Enamel.Expr.t_of_sexp in
       let (tm, ty) = Enamel.Expr.ok Initial_context.ctx tm in
@@ -30,7 +31,7 @@ let check_expr_command =
 
 let check_type_command =
   Command.basic ~summary:"kind check a type (from stdin)"
-    Command.Spec.(empty +> const ())
+    Command.Spec.(empty)
     (fun () ->
       let ty = Sexp.input_sexp stdin |! Enamel.Type.t_of_sexp in
       let (ty, ki) = Enamel.Type.ok Initial_context.ctx ty in
@@ -45,7 +46,7 @@ let check_type_command =
 
 let elaborate_command =
   Command.basic ~summary:"elaborate a module (from stdin)"
-    Command.Spec.(empty +> const ())
+    Command.Spec.(empty)
     (fun () ->
       let m = Sexp.input_sexp stdin |! Enamel.Mod.t_of_sexp in
       let (t, e) = Enamel.Mod.ok Initial_context.ctx m in
@@ -61,7 +62,7 @@ let elaborate_command =
 
 let init_ctx_command =
   Command.basic ~summary:"show initial typing context"
-    Command.Spec.(empty +> const ())
+    Command.Spec.(empty)
     (fun () ->
       Target.Context.sexp_of_t Initial_context.ctx
       |! Sexp.to_string_hum
