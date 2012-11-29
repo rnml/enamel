@@ -3,6 +3,7 @@
 * DONE source syntax = sexp
 * DONE type checker / module elaborator
 * == active =======================================================
+* TODO compiler: unbound spec -> type + type class instances
 * TODO erasure phase from F-omega to a dynamically typed language
 * TODO interpreter for dynamically typed language
 * == projects =====================================================
