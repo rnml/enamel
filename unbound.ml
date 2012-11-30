@@ -4,6 +4,7 @@ module Def = struct
   type 'a t = [
   | `Synonym of 'a
   | `Variant of 'a list Constant.Map.t
+  | `Record  of 'a list Constant.Map.t
   ] with sexp
 end
 
