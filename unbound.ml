@@ -1,11 +1,16 @@
 open Core.Std
 
+module Def = struct
+  type 'a t = [
+  | `Synonym of 'a
+  | `Variant of 'a list Constant.Map.t
+  ] with sexp
+end
+
 module Regular = struct
   type 'a t = [
   | `Option of 'a
   | `List   of 'a
-  | `Sum    of 'a list Constant.Map.t
-  | `Prod   of 'a list Constant.Map.t
   | `Pair   of 'a * 'a
   | `Ref    of String.t
   ] with sexp
@@ -27,14 +32,13 @@ module Pattern = struct
   ] with sexp
 end
 
-type tm = [ tm Regular.t | (tm, pt) Term.t ]
- and pt = [ pt Regular.t | (pt, tm) Pattern.t ]
+type term = [ term Regular.t | (term, pattern) Term.t ]
+ and pattern = [ pattern Regular.t | (pattern, term) Pattern.t ]
 with sexp
 
 module Env = struct
   type t = {
-    tms : tm String.Map.t;
-    pts : pt String.Map.t;
+    terms : term Def.t String.Map.t;
+    patterns : pattern Def.t String.Map.t;
   } with sexp
 end
-
