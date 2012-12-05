@@ -17,7 +17,7 @@ module Compile_time : sig
     | `Pair   of 'a * 'a
     | `Triple of 'a * 'a * 'a
     | `Ref    of string
-    | `Map    of 'a * 'a
+    | `Map    of string * 'a
     ] with sexp
     (* val type_def : ('a -> Text_block.t) -> 'a t -> Text_block.t *)
   end

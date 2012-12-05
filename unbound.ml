@@ -12,6 +12,7 @@ module Compile_time = struct
     | `Synonym of 'a
     | `Variant of 'a list Constant.Map.t
     ] with sexp
+
     let type_def a_def = function
       | `Synonym a -> a_def a
       | `Variant map ->
@@ -39,8 +40,18 @@ module Compile_time = struct
     | `Pair   of 'a * 'a
     | `Triple of 'a * 'a * 'a
     | `Ref    of string
-    | `Map    of 'a * 'a
+    | `Map    of string * 'a
     ] with sexp
+
+      (*
+    let type_def a_def = function
+      | `Option of 'a
+      | `List   of 'a
+      | `Pair   of 'a * 'a
+      | `Triple of 'a * 'a * 'a
+      | `Ref    of string
+      | `Map    of string * 'a
+      *)
   end
 
   module Term = struct
