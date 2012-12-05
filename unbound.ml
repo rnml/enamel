@@ -75,7 +75,7 @@ module Compile_time = struct
     | `Bind of 'p * 't
     ] with sexp
     let type_def t_def p_def = function
-    | `Var x -> Text_block.text (String.capitalize x ^ ".Name.t")
+    | `Var x       -> type_apply [] (String.capitalize x ^ ".Name.t")
     | `Bind (p, t) -> type_apply [p_def p; t_def t] "Bind.t"
   end
 
@@ -86,6 +86,12 @@ module Compile_time = struct
     | `Rebind of 'p * 'p
     | `Rec    of 'p
     ] with sexp
+
+    let type_def p_def t_def = function
+    | `Var x           -> type_apply [] (String.capitalize x ^ ".Name.t")
+    | `Embed t         -> type_apply [t_def t]            "Embed.t"
+    | `Rebind (p1, p2) -> type_apply [p_def p1; p_def p2] "Rebind.t"
+    | `Rec p           -> type_apply [p_def p]            "Rec.t"
   end
 
   type tm = [ tm Regular.t | (tm, pt) Term.t ]

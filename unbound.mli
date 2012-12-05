@@ -37,7 +37,7 @@ module Compile_time : sig
     | `Rebind of 'p * 'p
     | `Rec    of 'p
     ] with sexp
-    (* val type_def : ('a -> Text_block.t) -> ('b -> Text_block.t) -> ('a, 'b) t -> Text_block.t *)
+    val type_def : ('a -> Text_block.t) -> ('b -> Text_block.t) -> ('a, 'b) t -> Text_block.t
   end
 
   type tm = [ tm Regular.t | (tm, pt) Term.t ]
