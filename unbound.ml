@@ -14,20 +14,22 @@ module Compile_time = struct
     | `Option of 'a
     | `List   of 'a
     | `Pair   of 'a * 'a
+    | `Triple of 'a * 'a * 'a
     | `Ref    of string
+    | `Map    of 'a * 'a
     ] with sexp
   end
 
   module Term = struct
     type ('t, 'p) t = [
-    | `Var (* use site *)
+    | `Var of string (* use site *)
     | `Bind of 'p * 't
     ] with sexp
   end
 
   module Pattern = struct
     type ('p, 't) t = [
-    | `Var (* binding site *)
+    | `Var of string (* binding site *)
     | `Embed  of 't
     | `Rebind of 'p * 'p
     | `Rec    of 'p

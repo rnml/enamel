@@ -1,0 +1,32 @@
+(
+  (tms (
+    (Kind (Variant (
+      (Star ())
+      (Arr ((Ref Kind) (Ref Kind)))
+    )))
+    (Type (Variant (
+      (Name   ((Var Type)))
+      (Arr    ((Ref Type) (Ref Type)))
+      (Record ((Map ((Ref Label) (Ref Type)))))
+      (Forall ((Bind ((Ref Ty_bnd) (Ref Type)))))
+      (Exists ((Bind ((Ref Ty_bnd) (Ref Type)))))
+      (Fun    ((Bind ((Ref Ty_bnd) (Ref Type)))))
+      (App    ((Ref Type) (Ref Type)))
+    )))
+    (Term (Variant (
+      (Name   ((Var Term)))
+      (Fun    ((Bind ((Pair ((Var Term) (Ref Type))) (Ref Term)))))
+      (App    ((Ref Term) (Ref Term)))
+      (Record ((Map ((Ref Label) (Ref Term)))))
+      (Dot    ((Ref Term) (Ref Label)))
+      (Ty_fun ((Bind ((Ref Ty_bnd) (Ref Term)))))
+      (Ty_app ((Ref Term) (Ref Type)))
+      (Pack   ((Bind ((Pair ((Var Type) (Embed (Ref Type)))) (Pair ((Ref Term) (Ref Type)))))))
+      (Unack  ((Bind ((Triple ((Var Type) (Var Term) (Embed (Ref Term)))) (Ref Term)))))
+      (Let    ((Bind ((Pair ((Var Term) (Embed (Ref Term)))) (Ref Term)))))
+    )))
+  ))
+  (pts (
+    (Ty_bnd (Synonym (Pair ((Var Type) (Ref Kind)))))
+  ))
+)
