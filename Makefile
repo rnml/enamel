@@ -16,6 +16,7 @@ MODULES=\
   module_system \
   initial_context \
   base \
+  text_block \
   unbound \
   main \
 
