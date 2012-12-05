@@ -8,9 +8,12 @@ val text : ?align:halign -> string -> t
 (* assumes width and height are non-negative *)
 val span : ?ch:char -> width:int -> height:int -> unit -> t
 
+val hstrut : int -> t (* zero height *)
+val vstrut : int -> t (* zero width *)
+
 (* horizontal and vertical concatenation with alignment *)
-val hcat : ?align:valign -> t -> t -> t
-val vcat : ?align:halign -> t -> t -> t
+val hcat : ?align:valign -> ?sep:t -> t list -> t
+val vcat : ?align:halign -> ?sep:t -> t list -> t
 
 (* the empty block. a left and right unit to both hcat and vcat *)
 val nil : t

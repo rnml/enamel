@@ -31,6 +31,9 @@ let span ?ch ~width ~height () =
   assert (height >= 0);
   Span (ch, {width; height})
 
+let hstrut width  = span ~width ~height:0 ()
+let vstrut height = span ~width:0 ~height ()
+
 let nil = span ~width:0 ~height:0 ()
 
 let height = function
@@ -97,7 +100,7 @@ let vcat ?(align = `Left) t1 t2 =
     | `Right  -> `Bottom
     | `Center -> `Center
   in
-  flip (hcat (flip t1) (flip t2) ~align:align)
+  flip (hcat (flip t1) (flip t2) ~align)
 
 let text ?(align = `Left) str =
   match String.split str ~on:'\n' with
@@ -113,6 +116,28 @@ let text ?(align = `Left) str =
     in
     List.fold_left lines ~init:(pad line)
       ~f:(fun t line -> vcat ~align t (pad line))
+
+let hcat ?align ?sep = function
+  | [] -> nil
+  | t :: ts ->
+    let (+) t1 t2 = hcat ?align t1 t2 in
+    let f =
+      match sep with
+      | None     -> (fun acc t -> acc + t)
+      | Some sep -> (fun acc t -> acc + sep + t)
+    in
+    List.fold ts ~init:t ~f
+
+let vcat ?align ?sep = function
+  | [] -> nil
+  | t :: ts ->
+    let (+) t1 t2 = vcat ?align t1 t2 in
+    let f =
+      match sep with
+      | None     -> (fun acc t -> acc + t)
+      | Some sep -> (fun acc t -> acc + sep + t)
+    in
+    List.fold ts ~init:t ~f
 
 let valign align ts =
   let max_height =
@@ -159,3 +184,4 @@ let render t =
   in
   aux t {width = 0; height = 0} write_direct write_flipped;
   buf
+
