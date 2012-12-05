@@ -5,7 +5,19 @@ let intersperse x = function
   | y :: ys ->
     y :: List.fold_right ys ~init:[] ~f:(fun y xys -> x :: y :: xys)
 
-let paren x = Text_block.hcat [Text_block.text "("; x; Text_block.text ")"]
+let paren x =
+  let open Text_block in
+  hcat [text "("; x; text ")"]
+
+let type_apply xs foo =
+  let open Text_block in
+  match xs with
+  | [] -> text foo
+  | xs ->
+    hcat ~sep:(hstrut 1) [
+      paren (hcat ~sep:(text ", ") xs);
+      text foo
+    ]
 
 module Compile_time = struct
 
@@ -45,14 +57,10 @@ module Compile_time = struct
     | `Map    of string * 'a
     ] with sexp
 
-    let type_apply a_def a foo =
-      let open Text_block in
-      hcat [paren (a_def a); text foo]
-
     let type_def a_def = function
-      | `Option a -> type_apply a_def a "option"
-      | `List a -> type_apply a_def a "list"
-      | `Map (key, a) -> type_apply a_def a (String.capitalize key ^ ".Map.t")
+      | `Option a -> type_apply [a_def a] "option"
+      | `List a -> type_apply [a_def a] "list"
+      | `Map (key, a) -> type_apply [a_def a] (String.capitalize key ^ ".Map.t")
       | `Pair (a, b) -> Text_block.(hcat [paren (a_def a); text "*"; paren (a_def b)])
       | `Triple (a, b, c) -> Text_block.(hcat [paren (a_def a); text "*"; paren (a_def b); text "*"; paren (a_def c)])
       | `Ref "" -> assert false
@@ -66,6 +74,9 @@ module Compile_time = struct
     | `Var of string (* use site *)
     | `Bind of 'p * 't
     ] with sexp
+    let type_def t_def p_def = function
+    | `Var x -> Text_block.text (String.capitalize x ^ ".Name.t")
+    | `Bind (p, t) -> type_apply [p_def p; t_def t] "Bind.t"
   end
 
   module Pattern = struct

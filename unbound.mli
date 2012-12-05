@@ -27,7 +27,7 @@ module Compile_time : sig
     | `Var of string (* use site *)
     | `Bind of 'p * 't
     ] with sexp
-    (* val type_def : ('a -> Text_block.t) -> ('b -> Text_block.t) -> ('a, 'b) t -> Text_block.t *)
+    val type_def : ('a -> Text_block.t) -> ('b -> Text_block.t) -> ('a, 'b) t -> Text_block.t
   end
 
   module Pattern : sig
