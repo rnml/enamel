@@ -8,7 +8,7 @@ include struct
   open Uid
   open Target
   open Module_system
-  open Unbound
+  open Unbound_intf
 end
 
 module F = Systemf

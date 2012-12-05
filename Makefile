@@ -16,7 +16,7 @@ MODULES=\
   module_system \
   initial_context \
   base \
-  unbound \
+  unbound_intf \
   main \
 
 B=
