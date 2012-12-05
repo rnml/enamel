@@ -49,7 +49,7 @@ module Compile_time : sig
       tms : tm Def.t String.Map.t;
       pts : pt Def.t String.Map.t;
     } with sexp
-    (* val signature : t -> Text_block.t *)
+    val type_defs : t -> Text_block.t
   end
 
 end

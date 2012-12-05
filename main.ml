@@ -74,8 +74,8 @@ let unbound_gen_command =
     Command.Spec.(empty +> anon ("SPEC" %: file))
     (fun path () ->
       Sexp.load_sexp_conv_exn path Unbound.Compile_time.Env.t_of_sexp
-      |! Unbound.Compile_time.Env.sexp_of_t
-      |! Sexp.to_string_hum
+      |! Unbound.Compile_time.Env.type_defs
+      |! Text_block.render
       |! print_endline
     )
 

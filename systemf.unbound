@@ -22,7 +22,7 @@
       (Ty_fun ((Bind ((Ref Ty_bnd) (Ref Term)))))
       (Ty_app ((Ref Term) (Ref Type)))
       (Pack   ((Bind ((Pair ((Var Type) (Embed (Ref Type)))) (Pair ((Ref Term) (Ref Type)))))))
-      (Unack  ((Bind ((Triple ((Var Type) (Var Term) (Embed (Ref Term)))) (Ref Term)))))
+      (Unpack ((Bind ((Triple ((Var Type) (Var Term) (Embed (Ref Term)))) (Ref Term)))))
       (Let    ((Bind ((Pair ((Var Term) (Embed (Ref Term)))) (Ref Term)))))
     )))
   ))

@@ -9,12 +9,14 @@ let paren x =
   let open Text_block in
   hcat [text "("; x; text ")"]
 
+let space = Text_block.text " "
+
 let type_apply xs foo =
   let open Text_block in
   match xs with
   | [] -> text foo
   | xs ->
-    hcat ~sep:(hstrut 1) [
+    hcat ~sep:space [
       paren (hcat ~sep:(text ", ") xs);
       text foo
     ]
@@ -32,14 +34,14 @@ module Compile_time = struct
       | `Variant map ->
         Map.to_alist map
         |! List.map ~f:(fun (constr, args) ->
-          Text_block.hcat ~sep:(Text_block.hstrut 1) [
+          Text_block.hcat ~sep:space [
             Text_block.text "|";
             Text_block.text (Constant.to_string constr);
             begin
               if List.is_empty args then
                 Text_block.nil
               else
-                Text_block.hcat ~sep:(Text_block.hstrut 1)
+                Text_block.hcat ~sep:space
                   (Text_block.text "of" :: intersperse (Text_block.text "*") (List.map args ~f:a_def))
             end;
           ]
@@ -95,14 +97,39 @@ module Compile_time = struct
   end
 
   type tm = [ tm Regular.t | (tm, pt) Term.t ]
-  and pt = [ pt Regular.t | (pt, tm) Pattern.t ]
-    with sexp
+   and pt = [ pt Regular.t | (pt, tm) Pattern.t ]
+  with sexp
+
+  let rec tm_def : tm -> Text_block.t = function
+    | #Regular.t as x -> Regular.type_def tm_def x
+    | #Term.t    as x -> Term.type_def tm_def pt_def x
+  and pt_def : pt -> Text_block.t = function
+    | #Regular.t as x -> Regular.type_def pt_def x
+    | #Pattern.t as x -> Pattern.type_def pt_def tm_def x
 
   module Env = struct
     type t = {
       tms : tm Def.t String.Map.t;
       pts : pt Def.t String.Map.t;
     } with sexp
+
+    let type_defs t =
+      let open Text_block in
+      let gen a_def map =
+        Map.to_alist map
+        |! List.map ~f:(fun (foo, def) ->
+          vcat [
+            text ("type " ^ foo ^ " =");
+            hpad (Def.type_def a_def def) ~align:`Right 2;
+          ]
+        )
+        |! vcat ~sep:space
+      in
+      vcat ~sep:space [
+        gen tm_def t.tms;
+        gen pt_def t.pts;
+      ]
+
   end
 
 end
