@@ -5,6 +5,8 @@ let intersperse x = function
   | y :: ys ->
     y :: List.fold_right ys ~init:[] ~f:(fun y xys -> x :: y :: xys)
 
+let paren x = Text_block.hcat [Text_block.text "("; x; Text_block.text ")"]
+
 module Compile_time = struct
 
   module Def = struct
@@ -43,15 +45,20 @@ module Compile_time = struct
     | `Map    of string * 'a
     ] with sexp
 
-      (*
+    let type_apply a_def a foo =
+      let open Text_block in
+      hcat [paren (a_def a); text foo]
+
     let type_def a_def = function
-      | `Option of 'a
-      | `List   of 'a
-      | `Pair   of 'a * 'a
-      | `Triple of 'a * 'a * 'a
-      | `Ref    of string
-      | `Map    of string * 'a
-      *)
+      | `Option a -> type_apply a_def a "option"
+      | `List a -> type_apply a_def a "list"
+      | `Map (key, a) -> type_apply a_def a (String.capitalize key ^ ".Map.t")
+      | `Pair (a, b) -> Text_block.(hcat [paren (a_def a); text "*"; paren (a_def b)])
+      | `Triple (a, b, c) -> Text_block.(hcat [paren (a_def a); text "*"; paren (a_def b); text "*"; paren (a_def c)])
+      | `Ref "" -> assert false
+      | `Ref x ->
+        let capitalized = let c0 = x.[0] in Char.equal c0 (Char.uppercase c0) in
+        if capitalized then Text_block.text (x ^ ".t") else Text_block.text x
   end
 
   module Term = struct

@@ -19,7 +19,7 @@ module Compile_time : sig
     | `Ref    of string
     | `Map    of string * 'a
     ] with sexp
-    (* val type_def : ('a -> Text_block.t) -> 'a t -> Text_block.t *)
+    val type_def : ('a -> Text_block.t) -> 'a t -> Text_block.t
   end
 
   module Term : sig
