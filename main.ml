@@ -8,7 +8,7 @@ include struct
   open Uid
   open Target
   open Module_system
-  open Unbound_intf
+  open Unbound
 end
 
 module F = Systemf
@@ -69,23 +69,23 @@ let init_ctx_command =
       |! print_endline
     )
 
-    (*
 let unbound_gen_command =
   Command.basic ~summary:"generate unbound typing context"
-    Command.Spec.(empty)
-    (fun () ->
-      Unbound.sexp_of_t Initial_context.ctx
+    Command.Spec.(empty +> anon ("SPEC" %: file))
+    (fun path () ->
+      Sexp.load_sexp_conv_exn path Unbound.Compile_time.Env.t_of_sexp
+      |! Unbound.Compile_time.Env.sexp_of_t
       |! Sexp.to_string_hum
       |! print_endline
     )
-  *)
+
 let command =
   Command.group ~summary:"enamel: my little language" [
     ("check-expr",   check_expr_command);
     ("check-type",   check_type_command);
     ("elaborate",    elaborate_command);
     ("initial-ctx",  init_ctx_command);
-    (* ("unbound-gen",  unbound_gen_command); *)
+    ("unbound-gen",  unbound_gen_command);
   ]
 
 let main () = Command.run command

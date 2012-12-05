@@ -16,7 +16,7 @@ MODULES=\
   module_system \
   initial_context \
   base \
-  unbound_intf \
+  unbound \
   main \
 
 B=
@@ -24,7 +24,6 @@ T=main.exe
 FOR_PACK_OPT=
 
 ### RULES ##########################################################
-
 
 SYNTAX_PACKAGES=$(addsuffix .syntax, $(SYNTAX))
 
