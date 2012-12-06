@@ -2,14 +2,12 @@
 * == done =========================================================
 * DONE source syntax = sexp
 * DONE type checker / module elaborator
+* DONE better unbound spec sexp syntax
 * == active =======================================================
-* TODO better unbound spec sexp syntax
-  better syntax for variable names (layer this functionality on top)
-    (Ref Foo) -> $Foo
-  back out of polymorphic variants decision
-    (Bind (a b)) -> (Bind a b)
-    (Pair (a b)) -> (Pair a b)
-    (Triple (a b)) -> (Triple a b)
+* TODO get unbound compiler output to build proper code
+  one big recursive module (toposort later)
+  one submodule per type
+  prelude (Label)
 * TODO fix Text_block.{hstrut,vstrut}
   Text_block.(hcat ~sep:(hstrut 1) ...) doesn't space out
 * TODO compiler: unbound spec -> type + type class instances
