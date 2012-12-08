@@ -59,6 +59,19 @@ module Compile_time = struct
     | Map    of string * 'a
     with sexp
 
+    let sexp_of_t sexp_of_a = function
+      | Ref x -> Sexp.Atom ("$" ^ x)
+      | t -> sexp_of_t sexp_of_a t
+
+    let t_of_sexp a_of_sexp = function
+      | Sexp.Atom x as sexp ->
+        begin
+          match String.chop_prefix x ~prefix:"$" with
+          | None -> t_of_sexp a_of_sexp sexp
+          | Some var -> Ref var
+        end
+      | sexp -> t_of_sexp a_of_sexp sexp
+
     let map t ~f =
       match t with
       | Option a         -> Option (f a)
@@ -86,19 +99,6 @@ module Compile_time = struct
     | Bind of 'p * 't
     with sexp
 
-    let sexp_of_t sexp_of_a sexp_of_b = function
-      | Var x -> Sexp.Atom ("$" ^ x)
-      | t -> sexp_of_t sexp_of_a sexp_of_b t
-
-    let t_of_sexp a_of_sexp b_of_sexp = function
-      | Sexp.Atom x as sexp ->
-        begin
-          match String.chop_prefix x ~prefix:"$" with
-          | None -> t_of_sexp a_of_sexp b_of_sexp sexp
-          | Some var -> Var var
-        end
-      | sexp -> t_of_sexp a_of_sexp b_of_sexp sexp
-
     let type_def t_def p_def = function
     | Var x       -> type_apply [] (String.capitalize x ^ ".Name.t")
     | Bind (p, t) -> type_apply [p_def p; t_def t] "Bind.t"
@@ -111,19 +111,6 @@ module Compile_time = struct
     | Rebind of 'p * 'p
     | Rec    of 'p
     with sexp
-
-    let sexp_of_t sexp_of_a sexp_of_b = function
-      | Var x -> Sexp.Atom ("$" ^ x)
-      | t -> sexp_of_t sexp_of_a sexp_of_b t
-
-    let t_of_sexp a_of_sexp b_of_sexp = function
-      | Sexp.Atom x as sexp ->
-        begin
-          match String.chop_prefix x ~prefix:"$" with
-          | None -> t_of_sexp a_of_sexp b_of_sexp sexp
-          | Some var -> Var var
-        end
-      | sexp -> t_of_sexp a_of_sexp b_of_sexp sexp
 
     let type_def p_def t_def = function
     | Var x           -> type_apply [] (String.capitalize x ^ ".Name.t")
