@@ -11,6 +11,8 @@ let paren x =
 
 let space = Text_block.text " "
 
+let indent t = Text_block.hpad t ~align:`Right 2
+
 let type_apply xs foo =
   let open Text_block in
   match xs with
@@ -90,7 +92,7 @@ module Compile_time = struct
       | Ref "" -> assert false
       | Ref x ->
         let capitalized = let c0 = x.[0] in Char.equal c0 (Char.uppercase c0) in
-        if capitalized then Text_block.text (x ^ ".t") else Text_block.text x
+        if capitalized then Text_block.text ("Self." ^ x ^ ".t") else Text_block.text x
   end
 
   module Term = struct
@@ -100,7 +102,7 @@ module Compile_time = struct
     with sexp
 
     let type_def t_def p_def = function
-    | Var x       -> type_apply [] (String.capitalize x ^ ".Name.t")
+    | Var x       -> type_apply [] ("Self." ^ String.capitalize x ^ ".Name.t")
     | Bind (p, t) -> type_apply [p_def p; t_def t] "Bind.t"
   end
 
@@ -153,28 +155,56 @@ module Compile_time = struct
       pts : pt Def.t String.Map.t;
     } with sexp
 
-    let type_defs t =
+    let rec type_defs ?mode t =
       let open Text_block in
-      let gen a_def map =
-        Map.to_alist map
-        |! List.map ~f:(fun (foo, def) ->
-          vcat [
-            text ("type " ^ foo ^ " =");
-            hpad (Def.type_def a_def def) ~align:`Right 2;
-          ]
-        )
-        |! vcat ~sep:space
-      in
-      vcat ~sep:space [
-        gen tm_def t.tms;
-        gen pt_def t.pts;
-      ]
+      match mode with
+      | None ->
+        vcat ~sep:space [
+          text "module rec Self : sig";
+          indent (type_defs ~mode:`Signature t);
+          text "end = struct";
+          indent (type_defs ~mode:`Structure t);
+          text "end";
+        ]
+      | Some mode ->
+        let gen a_def map =
+          Map.to_alist map
+          |! List.map ~f:(fun (foo, def) ->
+            vcat [
+              begin
+                match mode with
+                | `Signature -> text ("module " ^ foo ^ " : sig");
+                | `Structure -> text ("module " ^ foo ^ " = struct");
+              end;
+              indent (vcat [
+                text ("type t =");
+                indent (Def.type_def a_def def);
+              ]);
+              text "end";
+            ]
+          )
+          |! vcat ~sep:space
+        in
+        vcat ~sep:space [
+          gen tm_def t.tms;
+          gen pt_def t.pts;
+        ]
+
+    let type_defs t = type_defs t
 
   end
 
 end
 
 module Run_time = struct
+
+  module Bind = struct
+    type ('a, 'b) t
+  end
+
+  module Embed = struct
+    type 'a t
+  end
 
   module Syntax = struct
 

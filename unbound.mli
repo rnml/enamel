@@ -56,6 +56,14 @@ end
 
 module Run_time : sig
 
+  module Bind : sig
+    type ('a, 'b) t
+  end
+
+  module Embed : sig
+    type 'a t
+  end
+
   module Syntax : sig
 
     module Regular : sig
