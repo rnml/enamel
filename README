@@ -3,5 +3,5 @@ enamel -- a functional language with
   [X] ML-style modules, but streamlined
   [ ] Scheme-style macros, but typed
   [ ] Type-error slicing
-  [ ] Anonymous (i.e. first class) variant/record/recursive types
+  [ ] Anonymous (i.e. first class) record & variant types
 
