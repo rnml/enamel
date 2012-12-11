@@ -10,14 +10,14 @@ module rec Self : sig
     type t =
       | App of Self.Term.t * Self.Term.t
       | Dot of Self.Term.t * Label.t
-      | Fun of ((Term.Name.t)*(Self.Type.t), Self.Term.t) Bind.t
-      | Let of ((Term.Name.t)*((Self.Term.t) Embed.t), Self.Term.t) Bind.t
+      | Fun of ((Term.Name.t) * (Self.Type.t), Self.Term.t) Bind.t
+      | Let of ((Term.Name.t) * ((Self.Term.t) Embed.t), Self.Term.t) Bind.t
       | Name of Self.Term.Name.t
-      | Pack of ((Type.Name.t)*((Self.Type.t) Embed.t), (Self.Term.t)*(Self.Type.t)) Bind.t
+      | Pack of ((Type.Name.t) * ((Self.Type.t) Embed.t), (Self.Term.t) * (Self.Type.t)) Bind.t
       | Record of (Self.Term.t) Label.Map.t
       | Ty_app of Self.Term.t * Self.Type.t
       | Ty_fun of (Self.Ty_bnd.t, Self.Term.t) Bind.t
-      | Unpack of ((Type.Name.t)*(Term.Name.t)*((Self.Term.t) Embed.t), Self.Term.t) Bind.t
+      | Unpack of ((Type.Name.t) * (Term.Name.t) * ((Self.Term.t) Embed.t), Self.Term.t) Bind.t
   end
 
   module Type : sig
@@ -33,7 +33,7 @@ module rec Self : sig
 
   module Ty_bnd : sig
     type t =
-      (Type.Name.t)*(Self.Kind.t)
+      (Type.Name.t) * (Self.Kind.t)
   end
 
 end = struct
@@ -48,14 +48,14 @@ end = struct
     type t =
       | App of Self.Term.t * Self.Term.t
       | Dot of Self.Term.t * Label.t
-      | Fun of ((Term.Name.t)*(Self.Type.t), Self.Term.t) Bind.t
-      | Let of ((Term.Name.t)*((Self.Term.t) Embed.t), Self.Term.t) Bind.t
+      | Fun of ((Term.Name.t) * (Self.Type.t), Self.Term.t) Bind.t
+      | Let of ((Term.Name.t) * ((Self.Term.t) Embed.t), Self.Term.t) Bind.t
       | Name of Self.Term.Name.t
-      | Pack of ((Type.Name.t)*((Self.Type.t) Embed.t), (Self.Term.t)*(Self.Type.t)) Bind.t
+      | Pack of ((Type.Name.t) * ((Self.Type.t) Embed.t), (Self.Term.t) * (Self.Type.t)) Bind.t
       | Record of (Self.Term.t) Label.Map.t
       | Ty_app of Self.Term.t * Self.Type.t
       | Ty_fun of (Self.Ty_bnd.t, Self.Term.t) Bind.t
-      | Unpack of ((Type.Name.t)*(Term.Name.t)*((Self.Term.t) Embed.t), Self.Term.t) Bind.t
+      | Unpack of ((Type.Name.t) * (Term.Name.t) * ((Self.Term.t) Embed.t), Self.Term.t) Bind.t
   end
 
   module Type = struct
@@ -71,7 +71,7 @@ end = struct
 
   module Ty_bnd = struct
     type t =
-      (Type.Name.t)*(Self.Kind.t)
+      (Type.Name.t) * (Self.Kind.t)
   end
 
 end

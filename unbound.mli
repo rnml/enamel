@@ -13,8 +13,7 @@ module Compile_time : sig
     type 'a t =
     | Option of 'a
     | List   of 'a
-    | Pair   of 'a * 'a
-    | Triple of 'a * 'a * 'a
+    | Tuple  of 'a list
     | Ref    of string
     | Map    of string * 'a
     with sexp

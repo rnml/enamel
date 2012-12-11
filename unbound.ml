@@ -60,8 +60,7 @@ module Compile_time = struct
     type 'a t =
     | Option of 'a
     | List   of 'a
-    | Pair   of 'a * 'a
-    | Triple of 'a * 'a * 'a
+    | Tuple  of 'a list
     | Ref    of string
     | Map    of string * 'a
     with sexp
@@ -81,20 +80,20 @@ module Compile_time = struct
 
     let map t ~f =
       match t with
-      | Option a         -> Option (f a)
-      | List a           -> List (f a)
-      | Pair (a, b)      -> Pair (f a, f b)
-      | Triple (a, b, c) -> Triple (f a, f b, f c)
-      | Ref x            -> Ref x
-      | Map (x, a)       -> Map (x, f a)
+      | Option a   -> Option (f a)
+      | List a     -> List (f a)
+      | Tuple bs   -> Tuple (List.map ~f bs)
+      | Ref x      -> Ref x
+      | Map (x, a) -> Map (x, f a)
 
     let type_def ctx a_def = function
       | Option a -> type_apply [a_def ctx a] "option"
       | List a -> type_apply [a_def ctx a] "list"
       | Map (key, a) -> type_apply [a_def ctx a] (String.capitalize key ^ ".Map.t")
-      | Pair (a, b) -> Text_block.(hcat [paren (a_def ctx a); text "*"; paren (a_def ctx b)])
-      | Triple (a, b, c) ->
-        Text_block.(hcat [paren (a_def ctx a); text "*"; paren (a_def ctx b); text "*"; paren (a_def ctx c)])
+      | Tuple bs ->
+        List.map bs ~f:(fun b -> paren (a_def ctx b))
+        |! intersperse (Text_block.text " * ")
+        |! Text_block.hcat
       | Ref "" -> assert false
       | Ref x ->
         let prefix =
