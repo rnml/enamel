@@ -9,7 +9,7 @@ module rec Self : sig
   module Term : sig
     type t =
       | App of Self.Term.t * Self.Term.t
-      | Dot of Self.Term.t * Self.Label.t
+      | Dot of Self.Term.t * Label.t
       | Fun of ((Term.Name.t)*(Self.Type.t), Self.Term.t) Bind.t
       | Let of ((Term.Name.t)*((Self.Term.t) Embed.t), Self.Term.t) Bind.t
       | Name of Self.Term.Name.t
@@ -47,7 +47,7 @@ end = struct
   module Term = struct
     type t =
       | App of Self.Term.t * Self.Term.t
-      | Dot of Self.Term.t * Self.Label.t
+      | Dot of Self.Term.t * Label.t
       | Fun of ((Term.Name.t)*(Self.Type.t), Self.Term.t) Bind.t
       | Let of ((Term.Name.t)*((Self.Term.t) Embed.t), Self.Term.t) Bind.t
       | Name of Self.Term.Name.t

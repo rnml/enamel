@@ -7,7 +7,6 @@ module Compile_time : sig
     | Synonym of 'a
     | Variant of 'a list Constant.Map.t
     with sexp
-    val type_def : ('a -> Text_block.t) -> 'a t -> Text_block.t
   end
 
   module Regular : sig
@@ -19,7 +18,6 @@ module Compile_time : sig
     | Ref    of string
     | Map    of string * 'a
     with sexp
-    val type_def : ('a -> Text_block.t) -> 'a t -> Text_block.t
   end
 
   module Term : sig
@@ -27,7 +25,6 @@ module Compile_time : sig
     | Var of string (* use site *)
     | Bind of 'p * 't
      with sexp
-    val type_def : ('a -> Text_block.t) -> ('b -> Text_block.t) -> ('a, 'b) t -> Text_block.t
   end
 
   module Pattern : sig
@@ -37,7 +34,6 @@ module Compile_time : sig
     | Rebind of 'p * 'p
     | Rec    of 'p
     with sexp
-    val type_def : ('a -> Text_block.t) -> ('b -> Text_block.t) -> ('a, 'b) t -> Text_block.t
   end
 
   type tm = Tm_regular of tm Regular.t | Tm of (tm, pt) Term.t

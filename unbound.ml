@@ -25,14 +25,18 @@ let type_apply xs foo =
 
 module Compile_time = struct
 
+  module Ctx = struct
+    type t = [`Term | `Pattern] String.Map.t
+  end
+
   module Def = struct
     type 'a t =
     | Synonym of 'a
     | Variant of 'a list Constant.Map.t
     with sexp
 
-    let type_def a_def = function
-      | Synonym a -> a_def a
+    let type_def ctx a_def = function
+      | Synonym a -> a_def ctx a
       | Variant map ->
         Map.to_alist map
         |! List.map ~f:(fun (constr, args) ->
@@ -44,7 +48,8 @@ module Compile_time = struct
                 Text_block.nil
               else
                 Text_block.hcat ~sep:space
-                  (Text_block.text "of" :: intersperse (Text_block.text "*") (List.map args ~f:a_def))
+                  (Text_block.text "of"
+                   :: intersperse (Text_block.text "*") (List.map args ~f:(a_def ctx)))
             end;
           ]
         )
@@ -83,16 +88,22 @@ module Compile_time = struct
       | Ref x            -> Ref x
       | Map (x, a)       -> Map (x, f a)
 
-    let type_def a_def = function
-      | Option a -> type_apply [a_def a] "option"
-      | List a -> type_apply [a_def a] "list"
-      | Map (key, a) -> type_apply [a_def a] (String.capitalize key ^ ".Map.t")
-      | Pair (a, b) -> Text_block.(hcat [paren (a_def a); text "*"; paren (a_def b)])
-      | Triple (a, b, c) -> Text_block.(hcat [paren (a_def a); text "*"; paren (a_def b); text "*"; paren (a_def c)])
+    let type_def ctx a_def = function
+      | Option a -> type_apply [a_def ctx a] "option"
+      | List a -> type_apply [a_def ctx a] "list"
+      | Map (key, a) -> type_apply [a_def ctx a] (String.capitalize key ^ ".Map.t")
+      | Pair (a, b) -> Text_block.(hcat [paren (a_def ctx a); text "*"; paren (a_def ctx b)])
+      | Triple (a, b, c) ->
+        Text_block.(hcat [paren (a_def ctx a); text "*"; paren (a_def ctx b); text "*"; paren (a_def ctx c)])
       | Ref "" -> assert false
       | Ref x ->
+        let prefix =
+          match Map.find ctx x with
+          | None -> ""
+          | Some _ -> "Self."
+        in
         let capitalized = let c0 = x.[0] in Char.equal c0 (Char.uppercase c0) in
-        if capitalized then Text_block.text ("Self." ^ x ^ ".t") else Text_block.text x
+        if capitalized then Text_block.text (prefix ^ x ^ ".t") else Text_block.text x
   end
 
   module Term = struct
@@ -101,9 +112,9 @@ module Compile_time = struct
     | Bind of 'p * 't
     with sexp
 
-    let type_def t_def p_def = function
-    | Var x       -> type_apply [] ("Self." ^ String.capitalize x ^ ".Name.t")
-    | Bind (p, t) -> type_apply [p_def p; t_def t] "Bind.t"
+    let type_def ctx t_def p_def = function
+      | Var x       -> type_apply [] ("Self." ^ String.capitalize x ^ ".Name.t")
+      | Bind (p, t) -> type_apply [p_def ctx p; t_def ctx t] "Bind.t"
   end
 
   module Pattern = struct
@@ -114,15 +125,15 @@ module Compile_time = struct
     | Rec    of 'p
     with sexp
 
-    let type_def p_def t_def = function
-    | Var x           -> type_apply [] (String.capitalize x ^ ".Name.t")
-    | Embed t         -> type_apply [t_def t]            "Embed.t"
-    | Rebind (p1, p2) -> type_apply [p_def p1; p_def p2] "Rebind.t"
-    | Rec p           -> type_apply [p_def p]            "Rec.t"
+    let type_def ctx p_def t_def = function
+      | Var x           -> type_apply [] (String.capitalize x ^ ".Name.t")
+      | Embed t         -> type_apply [t_def ctx t]                "Embed.t"
+      | Rebind (p1, p2) -> type_apply [p_def ctx p1; p_def ctx p2] "Rebind.t"
+      | Rec p           -> type_apply [p_def ctx p]                "Rec.t"
   end
 
   type tm = Tm_regular of tm Regular.t | Tm of (tm, pt) Term.t
-   and pt = Pt_regular of pt Regular.t | Pt of (pt, tm) Pattern.t
+  and pt = Pt_regular of pt Regular.t | Pt of (pt, tm) Pattern.t
 
   let rec sexp_of_tm = function
     | Tm_regular r -> Regular.sexp_of_t sexp_of_tm r
@@ -142,12 +153,13 @@ module Compile_time = struct
     | Some r -> Pt_regular (Regular.map r ~f:pt_of_sexp)
     | None -> Pt (Pattern.t_of_sexp pt_of_sexp tm_of_sexp sexp)
 
-  let rec tm_def : tm -> Text_block.t = function
-    | Tm_regular x -> Regular.type_def tm_def x
-    | Tm x -> Term.type_def tm_def pt_def x
-  and pt_def : pt -> Text_block.t = function
-    | Pt_regular x -> Regular.type_def pt_def x
-    | Pt x -> Pattern.type_def pt_def tm_def x
+  let rec tm_def ctx : tm -> Text_block.t = function
+    | Tm_regular x -> Regular.type_def ctx tm_def x
+    | Tm x -> Term.type_def ctx tm_def pt_def x
+
+  and pt_def ctx : pt -> Text_block.t = function
+    | Pt_regular x -> Regular.type_def ctx pt_def x
+    | Pt x -> Pattern.type_def ctx pt_def tm_def x
 
   module Env = struct
     type t = {
@@ -157,6 +169,14 @@ module Compile_time = struct
 
     let rec type_defs ?mode t =
       let open Text_block in
+      let ctx =
+        Map.merge t.tms t.pts ~f:(fun ~key data ->
+          match data with
+          | `Left _ -> Some `Term
+          | `Right _ -> Some `Pattern
+          | `Both _ -> failwithf "multiple types named %s" key ()
+        )
+      in
       match mode with
       | None ->
         vcat ~sep:space [
@@ -178,7 +198,7 @@ module Compile_time = struct
               end);
               indent (vcat [
                 text ("type t =");
-                indent (Def.type_def a_def def);
+                indent (Def.type_def ctx a_def def);
               ]);
               text "end";
             ]
