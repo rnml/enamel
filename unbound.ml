@@ -125,7 +125,7 @@ module Compile_time = struct
     with sexp
 
     let type_def ctx p_def t_def = function
-      | Var x           -> type_apply [] (String.capitalize x ^ ".Name.t")
+      | Var x           -> type_apply [] ("Self." ^ String.capitalize x ^ ".Name.t")
       | Embed t         -> type_apply [t_def ctx t]                "Embed.t"
       | Rebind (p1, p2) -> type_apply [p_def ctx p1; p_def ctx p2] "Rebind.t"
       | Rec p           -> type_apply [p_def ctx p]                "Rec.t"
