@@ -3,10 +3,14 @@
 * DONE source syntax = sexp
 * DONE type checker / module elaborator
 * DONE better unbound spec sexp syntax
+* DONE unbound compiler output that builds
 * == active =======================================================
-* TODO get unbound compiler output to build proper code
-  prelude (Label)
-* TODO toposort unbound output
+* TODO build against generated code
+  inject/project
+  val fvs : t -> Name.Set.t
+  val swap : Name.t * Name.t -> t -> t
+  val subst : t -> Name.t * t -> t
+  val equal : t -> t -> bool
 * TODO fix Text_block.{hstrut,vstrut}
   Text_block.(hcat ~sep:(hstrut 1) ...) doesn't space out
 * TODO compiler: unbound spec -> type + type class instances
@@ -14,6 +18,8 @@
 * TODO interpreter for dynamically typed language
 * == projects =====================================================
 * binders unbound
+  toposort unbound output
+  remove unnecessary parens
 * get a monomorphic base language to run
 * let-polymorphism
 * macros
