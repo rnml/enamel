@@ -1,3 +1,8 @@
+open Core.Std
+open Unbound.Run_time
+
+module Label = String
+
 module rec Self : sig
 
   module Kind : sig

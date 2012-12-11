@@ -1,4 +1,10 @@
 (
+  (prelude (
+    "open Core.Std"
+    "open Unbound.Run_time"
+    " "
+    "module Label = String"
+  ))
   (tms (
     (Kind (Variant (
       (Star ())

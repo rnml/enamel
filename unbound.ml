@@ -191,6 +191,7 @@ module Compile_time = struct
 
   module Env = struct
     type t = {
+      prelude : string list;
       tms : tm Def.t String.Map.t;
       pts : pt Def.t String.Map.t;
     } with sexp
@@ -222,12 +223,16 @@ module Compile_time = struct
       in
       match mode with
       | None ->
+        let prelude = vcat (List.map ~f:text t.prelude) in
         vcat ~sep:space [
-          text "module rec Self : sig";
-          indent (type_defs ~mode:`Signature t);
-          text "end = struct";
-          indent (type_defs ~mode:`Structure t);
-          text "end";
+          prelude;
+          vcat ~sep:space [
+            text "module rec Self : sig";
+            indent (type_defs ~mode:`Signature t);
+            text "end = struct";
+            indent (type_defs ~mode:`Structure t);
+            text "end";
+          ];
         ]
       | Some mode ->
         let gen a_def map =

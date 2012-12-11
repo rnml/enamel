@@ -41,6 +41,7 @@ module Compile_time : sig
 
   module Env : sig
     type t = {
+      prelude : string list;
       tms : tm Def.t String.Map.t;
       pts : pt Def.t String.Map.t;
     } with sexp
