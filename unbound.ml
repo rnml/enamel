@@ -171,11 +171,11 @@ module Compile_time = struct
           Map.to_alist map
           |! List.map ~f:(fun (foo, def) ->
             vcat [
-              begin
+              text ("module " ^ foo ^ begin
                 match mode with
-                | `Signature -> text ("module " ^ foo ^ " : sig");
-                | `Structure -> text ("module " ^ foo ^ " = struct");
-              end;
+                | `Signature -> " : sig"
+                | `Structure -> " = struct"
+              end);
               indent (vcat [
                 text ("type t =");
                 indent (Def.type_def a_def def);
