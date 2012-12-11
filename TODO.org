@@ -5,9 +5,8 @@
 * DONE better unbound spec sexp syntax
 * == active =======================================================
 * TODO get unbound compiler output to build proper code
-  one big recursive module (toposort later)
-  one submodule per type
   prelude (Label)
+* TODO toposort unbound output
 * TODO fix Text_block.{hstrut,vstrut}
   Text_block.(hcat ~sep:(hstrut 1) ...) doesn't space out
 * TODO compiler: unbound spec -> type + type class instances

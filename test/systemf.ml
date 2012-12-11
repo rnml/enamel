@@ -7,6 +7,7 @@ module rec Self : sig
   end
 
   module Term : sig
+    module Name : Name.S
     type t =
       | App of Self.Term.t * Self.Term.t
       | Dot of Self.Term.t * Label.t
@@ -21,6 +22,7 @@ module rec Self : sig
   end
 
   module Type : sig
+    module Name : Name.S
     type t =
       | App of Self.Type.t * Self.Type.t
       | Arr of Self.Type.t * Self.Type.t
@@ -45,6 +47,7 @@ end = struct
   end
 
   module Term = struct
+    module Name = Name.Make (struct end)
     type t =
       | App of Self.Term.t * Self.Term.t
       | Dot of Self.Term.t * Label.t
@@ -59,6 +62,7 @@ end = struct
   end
 
   module Type = struct
+    module Name = Name.Make (struct end)
     type t =
       | App of Self.Type.t * Self.Type.t
       | Arr of Self.Type.t * Self.Type.t

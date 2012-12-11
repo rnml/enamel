@@ -35,6 +35,10 @@ module Compile_time = struct
     | Variant of 'a list Constant.Map.t
     with sexp
 
+    let to_list = function
+      | Synonym x -> [x]
+      | Variant map -> Map.data map |! List.concat
+
     let type_def ctx a_def = function
       | Synonym a -> a_def ctx a
       | Variant map ->
@@ -78,6 +82,13 @@ module Compile_time = struct
         end
       | sexp -> t_of_sexp a_of_sexp sexp
 
+    let to_list = function
+      | Option x -> [x]
+      | List x -> [x]
+      | Tuple  xs -> xs
+      | Ref _ -> []
+      | Map (_, x) -> [x]
+
     let map t ~f =
       match t with
       | Option a   -> Option (f a)
@@ -111,6 +122,10 @@ module Compile_time = struct
     | Bind of 'p * 't
     with sexp
 
+    let names tnames pnames acc = function
+      | Var x -> String.Set.add acc x
+      | Bind (p, t) -> tnames (pnames acc p) t
+
     let type_def ctx t_def p_def = function
       | Var x       -> type_apply [] ("Self." ^ String.capitalize x ^ ".Name.t")
       | Bind (p, t) -> type_apply [p_def ctx p; t_def ctx t] "Bind.t"
@@ -124,6 +139,12 @@ module Compile_time = struct
     | Rec    of 'p
     with sexp
 
+    let names pnames tnames acc = function
+      | Var x -> String.Set.add acc x
+      | Rebind (p1, p2) -> pnames (pnames acc p1) p2
+      | Embed t -> tnames acc t
+      | Rec p -> pnames acc p
+
     let type_def ctx p_def t_def = function
       | Var x           -> type_apply [] ("Self." ^ String.capitalize x ^ ".Name.t")
       | Embed t         -> type_apply [t_def ctx t]                "Embed.t"
@@ -132,7 +153,7 @@ module Compile_time = struct
   end
 
   type tm = Tm_regular of tm Regular.t | Tm of (tm, pt) Term.t
-  and pt = Pt_regular of pt Regular.t | Pt of (pt, tm) Pattern.t
+   and pt = Pt_regular of pt Regular.t | Pt of (pt, tm) Pattern.t
 
   let rec sexp_of_tm = function
     | Tm_regular r -> Regular.sexp_of_t sexp_of_tm r
@@ -152,6 +173,14 @@ module Compile_time = struct
     | Some r -> Pt_regular (Regular.map r ~f:pt_of_sexp)
     | None -> Pt (Pattern.t_of_sexp pt_of_sexp tm_of_sexp sexp)
 
+  let rec tm_names acc = function
+    | Tm_regular rg -> Regular.to_list rg |! List.fold ~init:acc ~f:tm_names
+    | Tm tm -> Term.names tm_names pt_names acc tm
+
+  and pt_names acc = function
+    | Pt_regular rg -> Regular.to_list rg |! List.fold ~init:acc ~f:pt_names
+    | Pt pt -> Pattern.names pt_names tm_names acc pt
+
   let rec tm_def ctx : tm -> Text_block.t = function
     | Tm_regular x -> Regular.type_def ctx tm_def x
     | Tm x -> Term.type_def ctx tm_def pt_def x
@@ -166,13 +195,28 @@ module Compile_time = struct
       pts : pt Def.t String.Map.t;
     } with sexp
 
+    let names acc t =
+      let aux names acc map =
+        List.fold ~init:acc ~f:names begin
+          let open List.Monad_infix in
+          Map.data map
+          >>= fun def ->
+          Def.to_list def
+        end
+      in
+      let acc = aux tm_names acc t.tms in
+      let acc = aux pt_names acc t.pts in
+      acc
+
     let rec type_defs ?mode t =
       let open Text_block in
+      let names = names String.Set.empty t in
       let ctx =
         Map.merge t.tms t.pts ~f:(fun ~key data ->
+          let named = Set.mem names key in
           match data with
-          | `Left _ -> Some `Term
-          | `Right _ -> Some `Pattern
+          | `Left _  -> Some (`Term,    named)
+          | `Right _ -> Some (`Pattern, named)
           | `Both _ -> failwithf "multiple types named %s" key ()
         )
       in
@@ -195,10 +239,23 @@ module Compile_time = struct
                 | `Signature -> " : sig"
                 | `Structure -> " = struct"
               end);
-              indent (vcat [
-                text ("type t =");
-                indent (Def.type_def ctx a_def def);
-              ]);
+              indent (vcat (List.filter_opt [
+                begin
+                  match Map.find ctx foo with
+                  | None -> None
+                  | Some (_, named) ->
+                    if named then
+                      Some (Text_block.text begin
+                        match mode with
+                        | `Signature -> "module Name : Name.S"
+                        | `Structure -> "module Name = Name.Make (struct end)"
+                      end)
+                    else
+                      None
+                end;
+                Some (text ("type t ="));
+                Some (indent (Def.type_def ctx a_def def));
+              ]));
               text "end";
             ]
           )
