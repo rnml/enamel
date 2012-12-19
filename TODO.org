@@ -5,6 +5,7 @@
 * DONE better unbound spec sexp syntax
 * DONE unbound compiler output that builds
 * == active =======================================================
+* TODO typed names (see z.ml in sister directory)
 * TODO build against generated code
   inject/project
   val fvs : t -> Name.Set.t
