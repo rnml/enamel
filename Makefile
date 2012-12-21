@@ -18,6 +18,7 @@ MODULES=\
   initial_context \
   base \
   text_block \
+  scc \
   unbound \
   main \
 

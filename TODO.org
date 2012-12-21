@@ -6,6 +6,8 @@
 * DONE unbound compiler output that builds
 * DONE typed names
 * == active =======================================================
+* TODO toposort unbound output
+* TODO remove unnecessary parens in unbound output
 * TODO build rules for .syntax files
 * TODO build against generated code
   inject/project
@@ -19,9 +21,6 @@
 * TODO erasure phase from F-omega to a dynamically typed language
 * TODO interpreter for dynamically typed language
 * == projects =====================================================
-* binders unbound
-  toposort unbound output
-  remove unnecessary parens
 * get a monomorphic base language to run
 * let-polymorphism
 * macros
