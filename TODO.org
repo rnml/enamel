@@ -6,7 +6,7 @@
 * DONE unbound compiler output that builds
 * DONE typed names
 * == active =======================================================
-* TODO toposort unbound output
+* TODO debug toposort unbound output
 * TODO remove unnecessary parens in unbound output
 * TODO build rules for .syntax files
 * TODO build against generated code

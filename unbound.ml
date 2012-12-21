@@ -234,8 +234,27 @@ module Compile_time = struct
 
     module Ref_sort = Scc.Make (String)
 
+    let sccs t =
+      let open List.Monad_infix in
+      let defined = String.Set.of_list (Map.keys t.tms @ Map.keys t.pts) in
+      let foo map refs =
+        Map.to_alist map
+        >>= fun (x, def) ->
+        Def.to_list def
+        >>= fun e ->
+        refs e
+        >>= fun y ->
+        if Set.mem defined y then [(x, y)] else []
+      in
+      Ref_sort.scc
+        (List.concat [
+          foo t.tms (fun x -> Set.to_list (tm_refs String.Set.empty x));
+          foo t.pts (fun x -> Set.to_list (pt_refs String.Set.empty x));
+        ])
+
     let rec type_defs ?mode t =
       let open Text_block in
+      let sccs = sccs t in
       let names = names String.Set.empty t in
       let ctx =
         Map.merge t.tms t.pts ~f:(fun ~key data ->
@@ -260,41 +279,45 @@ module Compile_time = struct
           ];
         ]
       | Some mode ->
-        let gen a_def map =
-          Map.to_alist map
-          |! List.map ~f:(fun (foo, def) ->
-            vcat [
-              text ("module " ^ foo ^ begin
-                match mode with
-                | `Signature -> " : sig"
-                | `Structure -> " = struct"
-              end);
-              indent (vcat (List.filter_opt [
-                begin
-                  match Map.find ctx foo with
-                  | None -> None
-                  | Some (_, named) ->
-                    if named then
-                      Some (Text_block.text begin
-                        match mode with
-                        | `Signature -> "module Name : Name.S"
-                        | `Structure -> "module Name = Name.Make (struct end)"
-                      end)
-                    else
-                      None
-                end;
-                Some (text ("type t ="));
-                Some (indent (Def.type_def ctx a_def def));
-              ]));
-              text "end";
-            ]
-          )
-          |! vcat ~sep:space
+        let gen a_def foo def =
+          vcat [
+            text ("module " ^ foo ^ begin
+              match mode with
+              | `Signature -> " : sig"
+              | `Structure -> " = struct"
+            end);
+            indent (vcat (List.filter_opt [
+              begin
+                match Map.find ctx foo with
+                | None -> None
+                | Some (_, named) ->
+                  if named then
+                    Some (Text_block.text begin
+                      match mode with
+                      | `Signature -> "module Name : Name.S"
+                      | `Structure -> "module Name = Name.Make (struct end)"
+                    end)
+                  else
+                    None
+              end;
+              Some (text ("type t ="));
+              Some (indent (Def.type_def ctx a_def def));
+            ]));
+            text "end";
+          ]
         in
-        vcat ~sep:space [
-          gen tm_def t.tms;
-          gen pt_def t.pts;
-        ]
+        let w =
+          vcat ~sep:space begin
+            List.concat_map sccs ~f:(fun scc ->
+              List.map scc ~f:(fun name ->
+                match fst (Map.find_exn ctx name) with
+                | `Term    -> gen tm_def name (Map.find_exn t.tms name)
+                | `Pattern -> gen pt_def name (Map.find_exn t.pts name)
+              )
+            )
+          end
+        in
+        w
 
     let type_defs t = type_defs t
 
