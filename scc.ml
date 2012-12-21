@@ -16,11 +16,20 @@ end) = struct
 
   module rec Tree : sig
     type 'a t = Node of 'a * 'a Forest.t Lazy.t
-  end = Tree
+    val post_order : 'a t -> 'a list
+  end = struct
+    type 'a t = Node of 'a * 'a Forest.t Lazy.t
+    let post_order (Node (x, f)) = Forest.post_order (Lazy.force f) @ [x]
+  end
 
   and Forest : sig
     type 'a t = 'a Tree.t list
-  end = Forest
+    val post_order : 'a t -> 'a list
+  end = struct
+    type 'a t = 'a Tree.t list
+    let post_order ts = List.concat_map ts ~f:Tree.post_order
+
+  end
 
   module Graph = struct
     type t = Vertex.t list Vertex.Map.t
@@ -38,7 +47,13 @@ end) = struct
     let out_degree = Map.map ~f:List.length
     let in_degree t = out_degree (transpose t)
 
-    let dfs _ = assert false
+    let dfs _t _vs = assert false
+
+    let dff t = dfs t (vertices t)
+
+    let post_order t = Forest.post_order (dff t)
+
+    let scc t = dfs (transpose t) (List.rev (post_order t))
 
   end
 

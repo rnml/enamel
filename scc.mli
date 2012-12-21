@@ -22,5 +22,7 @@ end) : sig
     val out_degree : t -> int Vertex.Map.t
     val in_degree  : t -> int Vertex.Map.t
     val dfs : t -> Vertex.t list -> Vertex.t Forest.t
+    val dff : t -> Vertex.t Forest.t
+    val scc : t -> Vertex.t Forest.t
   end
 end
