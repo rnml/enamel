@@ -1,23 +1,33 @@
 open Core.Std
 
-type t = string list
+type t =
+| Nil
+| Snoc of t * string
 
-let empty = []
+let to_list t =
+  let rec loop t acc =
+    match t with
+    | Nil -> acc
+    | Snoc (t, x) -> loop t (x :: acc)
+  in
+  loop t []
+
+let empty = Nil
 
 let rec add t x =
   match t with
-  | [] -> [x]
-  | y :: ys ->
+  | Nil -> Snoc (t, x)
+  | Snoc (ys, y) ->
     if String.length x < String.length y
-    then x :: t
+    then Snoc (t, x)
     else add ys (y ^ x)
 
-let concat t t' = List.fold ~f:add ~init:t t'
+let concat t1 t2 = List.fold ~f:add ~init:t1 (to_list t2)
 
 let rec dump_aux acc = function
-  | [] -> acc
-  | x :: t -> dump_aux (x ^ acc) t
+  | Nil -> acc
+  | Snoc (t, x) -> dump_aux (x ^ acc) t
 
 let rec dump = function
-  | [] -> ""
-  | x :: t -> dump_aux x t
+  | Nil -> ""
+  | Snoc (t, x) -> dump_aux x t
