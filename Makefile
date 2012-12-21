@@ -11,6 +11,7 @@ MODULES=\
   std_internal \
   constant \
   name \
+  new_name \
   systemf \
   target \
   module_system \
