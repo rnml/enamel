@@ -14,8 +14,12 @@ end) : sig
   end
   module rec Tree : sig
     type 'a t = Node of 'a * 'a Forest.t
+    val post_order : 'a t -> 'a list
+    val pre_order : 'a t -> 'a list
   end and Forest : sig
     type 'a t = 'a Tree.t list
+    val post_order : 'a t -> 'a list
+    val pre_order : 'a t -> 'a list
   end
   module Graph : sig
     type t
@@ -25,8 +29,10 @@ end) : sig
     val transpose  : t -> t
     val out_degree : t -> int Vertex.Map.t
     val in_degree  : t -> int Vertex.Map.t
+    val outgoing   : t -> Vertex.t -> Vertex.t list
     val dfs : t -> Vertex.t list -> Vertex.t Forest.t
     val dff : t -> Vertex.t Forest.t
     val scc : t -> Vertex.t Forest.t
   end
+  val scc : Edge.t list -> Vertex.t list list (* simple interface version *)
 end

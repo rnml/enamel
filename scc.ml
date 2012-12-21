@@ -21,18 +21,21 @@ end) = struct
   module rec Tree : sig
     type 'a t = Node of 'a * 'a Forest.t
     val post_order : 'a t -> 'a list
+    val pre_order : 'a t -> 'a list
   end = struct
     type 'a t = Node of 'a * 'a Forest.t
     let post_order (Node (x, f)) = Forest.post_order f @ [x]
+    let pre_order  (Node (x, f)) = x :: Forest.pre_order f
   end
 
   and Forest : sig
     type 'a t = 'a Tree.t list
     val post_order : 'a t -> 'a list
+    val pre_order : 'a t -> 'a list
   end = struct
     type 'a t = 'a Tree.t list
     let post_order ts = List.concat_map ts ~f:Tree.post_order
-
+    let pre_order  ts = List.concat_map ts ~f:Tree.pre_order
   end
 
   module Graph = struct
@@ -44,7 +47,7 @@ end) = struct
       let open List.Monad_infix in
       Map.to_alist t >>= fun (v, ws) -> ws >>| fun w -> (v, w)
 
-    let build = Vertex.Map.of_alist_multi
+    let build es = Vertex.Map.of_alist_multi es
 
     let transpose t = edges t |! List.map ~f:Edge.flip |! build
 
@@ -74,8 +77,10 @@ end) = struct
 
     let post_order t = Forest.post_order (dff t)
 
-    let scc t = dfs (transpose t) (List.rev (post_order t))
+    let scc t = dfs t (List.rev (post_order (transpose t)))
 
   end
+
+  let scc es = Graph.build es |! Graph.scc |! List.map ~f:Tree.pre_order
 
 end
