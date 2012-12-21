@@ -3,6 +3,7 @@ open Std_internal
 module type T = sig
   type t with sexp
 
+  include Stringable.S with type t := t
   include Comparable.S with type t := t
 
   val map_domain : _ Map.t -> Set.t
@@ -14,8 +15,6 @@ module type T = sig
   val freshen : t -> t
   val next : t -> not_in:Set.t -> t
 
-  val to_string : t -> string
-  val of_string : string -> t
   val pretty : t -> Pretty.doc
   val swap : t * t -> t -> t
 end
