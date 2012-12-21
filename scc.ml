@@ -4,7 +4,11 @@ open Core.Std
    by King and Launchbury *)
 
 module Make (X : sig
-  module Vertex : Comparable.S
+  module Vertex : sig
+    type t
+    include Comparable.S with type t := t
+    include Hashable.S with type t := t
+  end
 end) = struct
 
   open X
@@ -15,11 +19,11 @@ end) = struct
   end
 
   module rec Tree : sig
-    type 'a t = Node of 'a * 'a Forest.t Lazy.t
+    type 'a t = Node of 'a * 'a Forest.t
     val post_order : 'a t -> 'a list
   end = struct
-    type 'a t = Node of 'a * 'a Forest.t Lazy.t
-    let post_order (Node (x, f)) = Forest.post_order (Lazy.force f) @ [x]
+    type 'a t = Node of 'a * 'a Forest.t
+    let post_order (Node (x, f)) = Forest.post_order f @ [x]
   end
 
   and Forest : sig
@@ -47,7 +51,24 @@ end) = struct
     let out_degree = Map.map ~f:List.length
     let in_degree t = out_degree (transpose t)
 
-    let dfs _t _vs = assert false
+    let outgoing t v = Option.value ~default:[] (Map.find t v)
+
+    let dfs t vs =
+      let visited = Vertex.Hash_set.create ~size:(Map.length t) () in
+      let rec loop = function
+        | [] -> []
+        | v :: vs ->
+          if Hash_set.mem visited v then
+            loop vs
+          else begin
+            Hash_set.add visited v;
+            let ws = outgoing t v in
+            let ws = loop ws in
+            let vs = loop vs in
+            Tree.Node (v, ws) :: vs
+          end
+      in
+      loop vs
 
     let dff t = dfs t (vertices t)
 
