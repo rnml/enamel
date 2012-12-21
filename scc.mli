@@ -1,13 +1,10 @@
 open Core.Std
 
-module Make (X : sig
-  module Vertex : sig
-    type t
-    include Comparable.S with type t := t
-    include Hashable.S with type t := t
-  end
+module Make (Vertex : sig
+  type t
+  include Comparable.S with type t := t
+  include Hashable.S with type t := t
 end) : sig
-  open X
   module Edge : sig
     type t = Vertex.t * Vertex.t
     val flip : t -> t

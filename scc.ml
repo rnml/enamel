@@ -3,15 +3,11 @@ open Core.Std
 (* See "Lazy depth first search and Linear Graph Algorithms in Haskell"
    by King and Launchbury *)
 
-module Make (X : sig
-  module Vertex : sig
-    type t
-    include Comparable.S with type t := t
-    include Hashable.S with type t := t
-  end
+module Make (Vertex : sig
+  type t
+  include Comparable.S with type t := t
+  include Hashable.S with type t := t
 end) = struct
-
-  open X
 
   module Edge = struct
     type t = Vertex.t * Vertex.t

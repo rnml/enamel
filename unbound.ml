@@ -82,6 +82,11 @@ module Compile_time = struct
         end
       | sexp -> t_of_sexp a_of_sexp sexp
 
+    let rec refs arefs acc = function
+      | Option x | List x | Map (_, x) -> arefs acc x
+      | Tuple xs -> List.fold xs ~init:acc ~f:(fun acc x -> arefs acc x)
+      | Ref x -> String.Set.add acc x
+
     let to_list = function
       | Option x -> [x]
       | List x -> [x]
@@ -126,6 +131,10 @@ module Compile_time = struct
       | Var x -> String.Set.add acc x
       | Bind (p, t) -> tnames (pnames acc p) t
 
+    let refs tm_refs pt_refs acc = function
+      | Var _ -> acc
+      | Bind (p, t) -> tm_refs (pt_refs acc p) t
+
     let type_def ctx t_def p_def = function
       | Var x       -> type_apply [] ("Self." ^ String.capitalize x ^ ".Name.t")
       | Bind (p, t) -> type_apply [p_def ctx p; t_def ctx t] "Bind.t"
@@ -145,6 +154,12 @@ module Compile_time = struct
       | Embed t -> tnames acc t
       | Rec p -> pnames acc p
 
+    let refs pt_refs tm_refs acc = function
+      | Var _ -> acc
+      | Embed t -> tm_refs acc t
+      | Rebind (p, p') -> pt_refs (pt_refs acc p) p'
+      | Rec p -> pt_refs acc p
+
     let type_def ctx p_def t_def = function
       | Var x           -> type_apply [] ("Self." ^ String.capitalize x ^ ".Name.t")
       | Embed t         -> type_apply [t_def ctx t]                "Embed.t"
@@ -153,7 +168,7 @@ module Compile_time = struct
   end
 
   type tm = Tm_regular of tm Regular.t | Tm of (tm, pt) Term.t
-   and pt = Pt_regular of pt Regular.t | Pt of (pt, tm) Pattern.t
+  and pt = Pt_regular of pt Regular.t | Pt of (pt, tm) Pattern.t
 
   let rec sexp_of_tm = function
     | Tm_regular r -> Regular.sexp_of_t sexp_of_tm r
@@ -180,6 +195,14 @@ module Compile_time = struct
   and pt_names acc = function
     | Pt_regular rg -> Regular.to_list rg |! List.fold ~init:acc ~f:pt_names
     | Pt pt -> Pattern.names pt_names tm_names acc pt
+
+  let rec tm_refs acc = function
+    | Tm_regular rg -> Regular.refs tm_names acc rg
+    | Tm tm -> Term.refs tm_refs pt_refs acc tm
+
+  and pt_refs acc = function
+    | Pt_regular rg -> Regular.refs pt_names acc rg
+    | Pt pt -> Pattern.refs pt_refs tm_refs acc pt
 
   let rec tm_def ctx : tm -> Text_block.t = function
     | Tm_regular x -> Regular.type_def ctx tm_def x
@@ -208,6 +231,8 @@ module Compile_time = struct
       let acc = aux tm_names acc t.tms in
       let acc = aux pt_names acc t.pts in
       acc
+
+    module Ref_sort = Scc.Make (String)
 
     let rec type_defs ?mode t =
       let open Text_block in
