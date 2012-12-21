@@ -4,8 +4,9 @@
 * DONE type checker / module elaborator
 * DONE better unbound spec sexp syntax
 * DONE unbound compiler output that builds
+* DONE typed names
 * == active =======================================================
-* TODO typed names (see z.ml in sister directory)
+* TODO build rules for .syntax files
 * TODO build against generated code
   inject/project
   val fvs : t -> Name.Set.t
