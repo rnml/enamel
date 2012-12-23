@@ -1,6 +1,6 @@
 open Core.Std
 
-module Make (Vertex : sig
+module Graph (Vertex : sig
   type t
   include Comparable.S with type t := t
   include Hashable.S with type t := t
@@ -32,4 +32,12 @@ end) : sig
     val scc : t -> Vertex.t Forest.t
   end
   val scc : Edge.t list -> Vertex.t list list (* simple interface version *)
+end
+
+module Make (Vertex : sig
+  type t
+  include Comparable.S with type t := t
+  include Hashable.S with type t := t
+end) : sig
+  val scc : (Vertex.t * Vertex.t) list -> Vertex.t list list
 end

@@ -3,7 +3,7 @@ open Core.Std
 (* See "Lazy depth first search and Linear Graph Algorithms in Haskell"
    by King and Launchbury *)
 
-module Make (Vertex : sig
+module Graph (Vertex : sig
   type t
   include Comparable.S with type t := t
   include Hashable.S with type t := t
@@ -80,3 +80,5 @@ end) = struct
   let scc es = Graph.build es |! Graph.scc |! List.map ~f:Tree.pre_order
 
 end
+
+module Make = Graph
