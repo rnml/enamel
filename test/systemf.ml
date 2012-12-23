@@ -11,6 +11,23 @@ module rec Self : sig
       | Star
   end
 
+  module Ty_bnd : sig
+    type t =
+      (Self.Type.Name.t) * (Self.Kind.t)
+  end
+
+  module Type : sig
+    module Name : Name.S
+    type t =
+      | App of Self.Type.t * Self.Type.t
+      | Arr of Self.Type.t * Self.Type.t
+      | Exists of (Self.Ty_bnd.t, Self.Type.t) Bind.t
+      | Forall of (Self.Ty_bnd.t, Self.Type.t) Bind.t
+      | Fun of (Self.Ty_bnd.t, Self.Type.t) Bind.t
+      | Name of Self.Type.Name.t
+      | Record of (Self.Type.t) Label.Map.t
+  end
+
   module Term : sig
     module Name : Name.S
     type t =
@@ -26,8 +43,21 @@ module rec Self : sig
       | Unpack of ((Self.Type.Name.t) * (Self.Term.Name.t) * ((Self.Term.t) Embed.t), Self.Term.t) Bind.t
   end
 
-  module Type : sig
-    module Name : Name.S
+end = struct
+
+  module Kind = struct
+    type t =
+      | Arr of Self.Kind.t * Self.Kind.t
+      | Star
+  end
+
+  module Ty_bnd = struct
+    type t =
+      (Self.Type.Name.t) * (Self.Kind.t)
+  end
+
+  module Type = struct
+    module Name = Name.Make (struct end)
     type t =
       | App of Self.Type.t * Self.Type.t
       | Arr of Self.Type.t * Self.Type.t
@@ -36,19 +66,6 @@ module rec Self : sig
       | Fun of (Self.Ty_bnd.t, Self.Type.t) Bind.t
       | Name of Self.Type.Name.t
       | Record of (Self.Type.t) Label.Map.t
-  end
-
-  module Ty_bnd : sig
-    type t =
-      (Self.Type.Name.t) * (Self.Kind.t)
-  end
-
-end = struct
-
-  module Kind = struct
-    type t =
-      | Arr of Self.Kind.t * Self.Kind.t
-      | Star
   end
 
   module Term = struct
@@ -64,23 +81,6 @@ end = struct
       | Ty_app of Self.Term.t * Self.Type.t
       | Ty_fun of (Self.Ty_bnd.t, Self.Term.t) Bind.t
       | Unpack of ((Self.Type.Name.t) * (Self.Term.Name.t) * ((Self.Term.t) Embed.t), Self.Term.t) Bind.t
-  end
-
-  module Type = struct
-    module Name = Name.Make (struct end)
-    type t =
-      | App of Self.Type.t * Self.Type.t
-      | Arr of Self.Type.t * Self.Type.t
-      | Exists of (Self.Ty_bnd.t, Self.Type.t) Bind.t
-      | Forall of (Self.Ty_bnd.t, Self.Type.t) Bind.t
-      | Fun of (Self.Ty_bnd.t, Self.Type.t) Bind.t
-      | Name of Self.Type.Name.t
-      | Record of (Self.Type.t) Label.Map.t
-  end
-
-  module Ty_bnd = struct
-    type t =
-      (Self.Type.Name.t) * (Self.Kind.t)
   end
 
 end

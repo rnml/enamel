@@ -244,7 +244,7 @@ module Compile_time = struct
         >>= fun e ->
         refs e
         >>= fun y ->
-        if Set.mem defined y then [(x, y)] else []
+        if Set.mem defined y then [(y, x)] else []
       in
       Ref_sort.scc
         (List.concat [
