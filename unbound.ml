@@ -136,7 +136,7 @@ module Compile_time = struct
       | Bind (p, t) -> tm_refs (pt_refs acc p) t
 
     let type_def ctx t_def p_def = function
-      | Var x       -> type_apply [] ("Self." ^ String.capitalize x ^ ".Name.t")
+      | Var x       -> type_apply [] ("Self." ^ String.capitalize x ^ ".t New_name.t")
       | Bind (p, t) -> type_apply [p_def ctx p; t_def ctx t] "Bind.t"
   end
 
@@ -161,7 +161,7 @@ module Compile_time = struct
       | Rec p -> pt_refs acc p
 
     let type_def ctx p_def t_def = function
-      | Var x           -> type_apply [] ("Self." ^ String.capitalize x ^ ".Name.t")
+      | Var x           -> type_apply [] ("Self." ^ String.capitalize x ^ ".t New_name.t")
       | Embed t         -> type_apply [t_def ctx t]                "Embed.t"
       | Rebind (p1, p2) -> type_apply [p_def ctx p1; p_def ctx p2] "Rebind.t"
       | Rec p           -> type_apply [p_def ctx p]                "Rec.t"
@@ -294,8 +294,8 @@ module Compile_time = struct
                   if named then
                     Some (Text_block.text begin
                       match mode with
-                      | `Signature -> "module Name : Name.S"
-                      | `Structure -> "module Name = Name.Make (struct end)"
+                      | `Signature -> "module Name : New_name.S with type a = t"
+                      | `Structure -> "module Name = New_name.Make (struct end)"
                     end)
                   else
                     None

@@ -6,9 +6,9 @@
 * DONE unbound compiler output that builds
 * DONE typed names
 * DONE debug toposort unbound output
+* DONE use new polymorphic names in unbound output
 * == active =======================================================
 * TODO remove unnecessary Self references in unbound output
-* TODO use new polymorphic names in unbound output
 * TODO remove unnecessary parens in unbound output
 * TODO build rules for .syntax files
 * TODO build against generated code
