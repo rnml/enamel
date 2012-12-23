@@ -31,7 +31,6 @@ end) : sig
     val dff : t -> Vertex.t Forest.t
     val scc : t -> Vertex.t Forest.t
   end
-  val scc : Edge.t list -> Vertex.t list list (* simple interface version *)
 end
 
 module Make (Vertex : sig

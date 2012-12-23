@@ -73,12 +73,16 @@ end) = struct
 
     let post_order t = Forest.post_order (dff t)
 
-    let scc t = dfs t (List.rev (post_order (transpose t)))
-
   end
-
-  let scc es = Graph.build es |! Graph.scc |! List.map ~f:Tree.pre_order
 
 end
 
-module Make = Graph
+module Make (Vertex : sig
+  type t
+  include Comparable.S with type t := t
+  include Hashable.S with type t := t
+end) = struct
+  include Graph (Vertex)
+  let scc es =
+    Graph.build es |! Graph.scc |! List.map ~f:Tree.pre_order
+end
