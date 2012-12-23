@@ -73,6 +73,8 @@ end) = struct
 
     let post_order t = Forest.post_order (dff t)
 
+    let scc t =
+      transpose t |! post_order |! List.rev |! dfs t |! List.rev
   end
 
 end
