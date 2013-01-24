@@ -17,7 +17,6 @@ module rec Self : sig
   end
 
   module Type : sig
-    module Name : New_name.S with type a = t
     type t =
       | App of Self.Type.t * Self.Type.t
       | Arr of Self.Type.t * Self.Type.t
@@ -26,10 +25,10 @@ module rec Self : sig
       | Fun of (Self.Ty_bnd.t, Self.Type.t) Bind.t
       | Name of Self.Type.t New_name.t
       | Record of (Self.Type.t) Label.Map.t
+    module Name : New_name.S with type a := t
   end
 
   module Term : sig
-    module Name : New_name.S with type a = t
     type t =
       | App of Self.Term.t * Self.Term.t
       | Dot of Self.Term.t * Label.t
@@ -41,6 +40,7 @@ module rec Self : sig
       | Ty_app of Self.Term.t * Self.Type.t
       | Ty_fun of (Self.Ty_bnd.t, Self.Term.t) Bind.t
       | Unpack of ((Self.Type.t New_name.t) * (Self.Term.t New_name.t) * ((Self.Term.t) Embed.t), Self.Term.t) Bind.t
+    module Name : New_name.S with type a := t
   end
 
 end = struct
@@ -57,7 +57,6 @@ end = struct
   end
 
   module Type = struct
-    module Name = New_name.Make (struct end)
     type t =
       | App of Self.Type.t * Self.Type.t
       | Arr of Self.Type.t * Self.Type.t
@@ -66,10 +65,10 @@ end = struct
       | Fun of (Self.Ty_bnd.t, Self.Type.t) Bind.t
       | Name of Self.Type.t New_name.t
       | Record of (Self.Type.t) Label.Map.t
+    module Name = New_name.Make (struct type a = t end)
   end
 
   module Term = struct
-    module Name = New_name.Make (struct end)
     type t =
       | App of Self.Term.t * Self.Term.t
       | Dot of Self.Term.t * Label.t
@@ -81,6 +80,7 @@ end = struct
       | Ty_app of Self.Term.t * Self.Type.t
       | Ty_fun of (Self.Ty_bnd.t, Self.Term.t) Bind.t
       | Unpack of ((Self.Type.t New_name.t) * (Self.Term.t New_name.t) * ((Self.Term.t) Embed.t), Self.Term.t) Bind.t
+    module Name = New_name.Make (struct type a = t end)
   end
 
 end

@@ -16,4 +16,5 @@ function build {
     test/"$1"
 }
 
+build systemf.ml
 build systemf_desired.ml

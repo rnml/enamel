@@ -287,6 +287,8 @@ module Compile_time = struct
               | `Structure -> " = struct"
             end);
             indent (vcat (List.filter_opt [
+              Some (text ("type t ="));
+              Some (indent (Def.type_def ctx a_def def));
               begin
                 match Map.find ctx foo with
                 | None -> None
@@ -294,14 +296,14 @@ module Compile_time = struct
                   if named then
                     Some (Text_block.text begin
                       match mode with
-                      | `Signature -> "module Name : New_name.S with type a = t"
-                      | `Structure -> "module Name = New_name.Make (struct end)"
+                      | `Signature ->
+                        "module Name : New_name.S with type a := t"
+                      | `Structure ->
+                        "module Name = New_name.Make (struct type a = t end)"
                     end)
                   else
                     None
               end;
-              Some (text ("type t ="));
-              Some (indent (Def.type_def ctx a_def def));
             ]));
             text "end";
           ]
