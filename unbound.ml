@@ -309,13 +309,12 @@ module Compile_time = struct
           ]
         in
         let w =
+          let names = List.concat sccs in
           vcat ~sep:space begin
-            List.concat_map sccs ~f:(fun scc ->
-              List.map scc ~f:(fun name ->
-                match fst (Map.find_exn ctx name) with
-                | `Term    -> gen tm_def name (Map.find_exn t.tms name)
-                | `Pattern -> gen pt_def name (Map.find_exn t.pts name)
-              )
+            List.map names ~f:(fun name ->
+              match fst (Map.find_exn ctx name) with
+              | `Term    -> gen tm_def name (Map.find_exn t.tms name)
+              | `Pattern -> gen pt_def name (Map.find_exn t.pts name)
             )
           end
         in
