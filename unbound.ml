@@ -31,19 +31,49 @@ module Compile_time = struct
     val mem     : t -> string -> bool
     val type_of : t -> string -> [`Term | `Pattern] option
     val defined : t -> string -> bool
+    val while_visiting : t -> string -> (t -> 'r) -> t * 'r
+    val visit_status : t -> string -> [`Not_yet_visited|`Visiting|`Already_visited]
   end = struct
+
     type t = {
-      type_of : ([`Term | `Pattern] * bool) String.Map.t
+      type_of : ([`Term | `Pattern] * bool) String.Map.t;
+      visited : String.Set.t;
+      visiting : string option;
     }
-    let create type_of = {type_of}
+
+    let visit_status t key =
+      match t.visiting with
+      | Some key' when String.equal key key' -> `Visiting
+      | _ -> if Set.mem t.visited key then `Already_visited else `Not_yet_visited
+
+    let create type_of =
+      {type_of; visited = String.Set.empty; visiting = None}
+
     let find {type_of} key = Map.find type_of key
+
     let type_of t key = Option.map ~f:fst (find t key)
+
     let mem (t:t) (key:string) = String.Map.mem t.type_of key
+
     let defined t key =
       match find t key with
       | None -> false
       | Some (_, def'd) -> def'd
+
+    let while_visiting {type_of; visited; visiting = _} key f =
+      let ctx = {type_of; visited; visiting = Some key} in
+      let r = f ctx in
+      let ctx = {type_of; visited = String.Set.add visited key; visiting = None} in
+      (ctx, r)
+
   end
+
+  let type_name ctx x =
+    let m = String.capitalize x in
+    match Ctx.visit_status ctx x with
+    | `Visiting -> "t"
+    | `Already_visited -> m ^ ".t"
+    | `Not_yet_visited -> "Self." ^ m ^ ".t"
 
   module Def = struct
     type 'a t =
@@ -128,9 +158,10 @@ module Compile_time = struct
         |! Text_block.hcat
       | Ref "" -> assert false
       | Ref x ->
-        let prefix = if Ctx.mem ctx x then "Self." else "" in
         let capitalized = let c0 = x.[0] in Char.equal c0 (Char.uppercase c0) in
-        if capitalized then Text_block.text (prefix ^ x ^ ".t") else Text_block.text x
+        if capitalized then Text_block.text begin
+          if Ctx.mem ctx x then type_name ctx x else x ^ ".t"
+        end else Text_block.text x
   end
 
   module Term = struct
@@ -148,8 +179,8 @@ module Compile_time = struct
       | Bind (p, t) -> tm_refs (pt_refs acc p) t
 
     let type_def ctx t_def p_def = function
-      | Var x       -> type_apply [] ("Self." ^ String.capitalize x ^ ".t New_name.t")
       | Bind (p, t) -> type_apply [p_def ctx p; t_def ctx t] "Bind.t"
+      | Var x -> type_apply [] (type_name ctx x ^ " New_name.t")
   end
 
   module Pattern = struct
@@ -173,7 +204,7 @@ module Compile_time = struct
       | Rec p -> pt_refs acc p
 
     let type_def ctx p_def t_def = function
-      | Var x           -> type_apply [] ("Self." ^ String.capitalize x ^ ".t New_name.t")
+      | Var x           -> type_apply [] (type_name ctx x ^ " New_name.t")
       | Embed t         -> type_apply [t_def ctx t]                "Embed.t"
       | Rebind (p1, p2) -> type_apply [p_def ctx p1; p_def ctx p2] "Rebind.t"
       | Rec p           -> type_apply [p_def ctx p]                "Rec.t"
@@ -293,7 +324,7 @@ module Compile_time = struct
           ];
         ]
       | Some mode ->
-        let gen a_def foo def =
+        let gen ctx a_def foo def =
           vcat [
             text ("module " ^ foo ^ begin
               match mode with
@@ -318,12 +349,19 @@ module Compile_time = struct
         let w =
           let names = List.concat sccs in
           vcat ~sep:space begin
-            List.map names ~f:(fun name ->
-              match Ctx.type_of ctx name with
-              | Some `Term    -> gen tm_def name (Map.find_exn t.tms name)
-              | Some `Pattern -> gen pt_def name (Map.find_exn t.pts name)
-              | None -> assert false
+            List.fold names ~init:(ctx, []) ~f:(fun (ctx, ws) name ->
+              let (ctx, w) =
+                Ctx.while_visiting ctx name (fun ctx ->
+                  match Ctx.type_of ctx name with
+                  | Some `Term    -> gen ctx tm_def name (Map.find_exn t.tms name)
+                  | Some `Pattern -> gen ctx pt_def name (Map.find_exn t.pts name)
+                  | None -> assert false
+                )
+              in
+              (ctx, w :: ws)
             )
+            |! snd
+            |! List.rev
           end
         in
         w
