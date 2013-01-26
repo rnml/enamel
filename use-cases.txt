@@ -16,6 +16,11 @@
     val equal : Poly_kind(eq).T1(t)
   end
 
+  module Bar : sig
+    type t : * -> * -> *
+    val equal : Poly_kind(eq).T2(t)
+  end
+
 (* signature functors *)
 
   let Eq (type t : *) = sig
