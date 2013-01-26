@@ -25,8 +25,24 @@ let type_apply xs foo =
 
 module Compile_time = struct
 
-  module Ctx = struct
-    type t = [`Term | `Pattern] String.Map.t
+  module Ctx : sig
+    type t
+    val create : ([`Term | `Pattern] * bool) String.Map.t -> t
+    val mem     : t -> string -> bool
+    val type_of : t -> string -> [`Term | `Pattern] option
+    val defined : t -> string -> bool
+  end = struct
+    type t = {
+      type_of : ([`Term | `Pattern] * bool) String.Map.t
+    }
+    let create type_of = {type_of}
+    let find {type_of} key = Map.find type_of key
+    let type_of t key = Option.map ~f:fst (find t key)
+    let mem (t:t) (key:string) = String.Map.mem t.type_of key
+    let defined t key =
+      match find t key with
+      | None -> false
+      | Some (_, def'd) -> def'd
   end
 
   module Def = struct
@@ -112,11 +128,7 @@ module Compile_time = struct
         |! Text_block.hcat
       | Ref "" -> assert false
       | Ref x ->
-        let prefix =
-          match Map.find ctx x with
-          | None -> ""
-          | Some _ -> "Self."
-        in
+        let prefix = if Ctx.mem ctx x then "Self." else "" in
         let capitalized = let c0 = x.[0] in Char.equal c0 (Char.uppercase c0) in
         if capitalized then Text_block.text (prefix ^ x ^ ".t") else Text_block.text x
   end
@@ -257,13 +269,15 @@ module Compile_time = struct
       let sccs = sccs t in
       let names = names String.Set.empty t in
       let ctx =
-        Map.merge t.tms t.pts ~f:(fun ~key data ->
-          let named = Set.mem names key in
-          match data with
-          | `Left _  -> Some (`Term,    named)
-          | `Right _ -> Some (`Pattern, named)
-          | `Both _ -> failwithf "multiple types named %s" key ()
-        )
+        Ctx.create begin
+          Map.merge t.tms t.pts ~f:(fun ~key data ->
+            let named = Set.mem names key in
+            match data with
+            | `Left _  -> Some (`Term,    named)
+            | `Right _ -> Some (`Pattern, named)
+            | `Both _ -> failwithf "multiple types named %s" key ()
+          )
+        end
       in
       match mode with
       | None ->
@@ -290,19 +304,12 @@ module Compile_time = struct
               Some (text ("type t ="));
               Some (indent (Def.type_def ctx a_def def));
               begin
-                match Map.find ctx foo with
-                | None -> None
-                | Some (_, named) ->
-                  if named then
-                    Some (Text_block.text begin
-                      match mode with
-                      | `Signature ->
-                        "module Name : New_name.S with type a := t"
-                      | `Structure ->
-                        "module Name = New_name.Make (struct type a = t end)"
-                    end)
-                  else
-                    None
+                if not (Ctx.defined ctx foo) then None else
+                  Some (Text_block.text begin
+                    match mode with
+                    | `Signature -> "module Name : New_name.S with type a := t"
+                    | `Structure -> "module Name = New_name.Make (struct type a = t end)"
+                  end)
               end;
             ]));
             text "end";
@@ -312,9 +319,10 @@ module Compile_time = struct
           let names = List.concat sccs in
           vcat ~sep:space begin
             List.map names ~f:(fun name ->
-              match fst (Map.find_exn ctx name) with
-              | `Term    -> gen tm_def name (Map.find_exn t.tms name)
-              | `Pattern -> gen pt_def name (Map.find_exn t.pts name)
+              match Ctx.type_of ctx name with
+              | Some `Term    -> gen tm_def name (Map.find_exn t.tms name)
+              | Some `Pattern -> gen pt_def name (Map.find_exn t.pts name)
+              | None -> assert false
             )
           end
         in
