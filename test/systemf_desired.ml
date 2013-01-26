@@ -13,7 +13,7 @@ module rec Self : sig
 
   module Ty_bnd : sig
     type t =
-      (Self.Type.t New_name.t) * (Kind.t)
+      (Self.Type.t New_name.t) * Kind.t
   end
 
   module Type : sig
@@ -24,7 +24,7 @@ module rec Self : sig
       | Forall of (Ty_bnd.t, t) Bind.t
       | Fun of (Ty_bnd.t, t) Bind.t
       | Name of t New_name.t
-      | Record of (t) Label.Map.t
+      | Record of t Label.Map.t
     module Name : New_name.S with type a := t
   end
 
@@ -32,14 +32,14 @@ module rec Self : sig
     type t =
       | App of t * t
       | Dot of t * Label.t
-      | Fun of ((t New_name.t) * (Type.t), t) Bind.t
-      | Let of ((t New_name.t) * ((t) Embed.t), t) Bind.t
+      | Fun of ((t New_name.t) * Type.t, t) Bind.t
+      | Let of ((t New_name.t) * (t Embed.t), t) Bind.t
       | Name of t New_name.t
-      | Pack of ((Type.t New_name.t) * ((Type.t) Embed.t), (t) * (Type.t)) Bind.t
-      | Record of (t) Label.Map.t
+      | Pack of ((Type.t New_name.t) * (Type.t Embed.t), t * Type.t) Bind.t
+      | Record of t Label.Map.t
       | Ty_app of t * Type.t
       | Ty_fun of (Ty_bnd.t, t) Bind.t
-      | Unpack of ((Type.t New_name.t) * (t New_name.t) * ((t) Embed.t), t) Bind.t
+      | Unpack of ((Type.t New_name.t) * (t New_name.t) * (t Embed.t), t) Bind.t
     module Name : New_name.S with type a := t
   end
 
@@ -53,7 +53,7 @@ end = struct
 
   module Ty_bnd = struct
     type t =
-      (Self.Type.t New_name.t) * (Kind.t)
+      (Self.Type.t New_name.t) * Kind.t
   end
 
   module Type = struct
@@ -64,7 +64,7 @@ end = struct
       | Forall of (Ty_bnd.t, t) Bind.t
       | Fun of (Ty_bnd.t, t) Bind.t
       | Name of t New_name.t
-      | Record of (t) Label.Map.t
+      | Record of t Label.Map.t
     module Name = New_name.Make (struct type a = t end)
   end
 
@@ -72,14 +72,14 @@ end = struct
     type t =
       | App of t * t
       | Dot of t * Label.t
-      | Fun of ((t New_name.t) * (Type.t), t) Bind.t
-      | Let of ((t New_name.t) * ((t) Embed.t), t) Bind.t
+      | Fun of ((t New_name.t) * Type.t, t) Bind.t
+      | Let of ((t New_name.t) * (t Embed.t), t) Bind.t
       | Name of t New_name.t
-      | Pack of ((Type.t New_name.t) * ((Type.t) Embed.t), (t) * (Type.t)) Bind.t
-      | Record of (t) Label.Map.t
+      | Pack of (Type.t New_name.t * Type.t Embed.t, t * Type.t) Bind.t
+      | Record of t Label.Map.t
       | Ty_app of t * Type.t
       | Ty_fun of (Ty_bnd.t, t) Bind.t
-      | Unpack of ((Type.t New_name.t) * (t New_name.t) * ((t) Embed.t), t) Bind.t
+      | Unpack of ((Type.t New_name.t) * (t New_name.t) * (t Embed.t), t) Bind.t
     module Name = New_name.Make (struct type a = t end)
   end
 
