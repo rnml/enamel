@@ -1,12 +1,14 @@
 open Core.Std
 
 (* we want
-   (1) typed names, so that [term name] and [type name] are distinguishable by the type
-       system,
-   (2) the ability to "cast" a name from one type to another.  This is particularly useful
-       in translations from a source language to a target language when you want to
-       preserve identifiers,
-   (3) a universal name type, so that we may abstract over
+   (1) typed names, so that [term name] and [type name] are
+       distinguishable by the type system,
+   (2) the ability to "cast" a name from one type to another.
+       This is particularly useful in translations from a source
+       language to a target language when you want to preserve
+       identifiers,
+   (3) a universal name type, so that we may abstract over names
+       of arbitrary things.
 *)
 
 module type T = sig

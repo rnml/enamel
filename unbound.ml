@@ -75,37 +75,6 @@ module Compile_time = struct
     | `Already_visited -> m ^ ".t"
     | `Not_yet_visited -> "Self." ^ m ^ ".t"
 
-  module Def = struct
-    type 'a t =
-    | Synonym of 'a
-    | Variant of 'a list Constant.Map.t
-    with sexp
-
-    let to_list = function
-      | Synonym x -> [x]
-      | Variant map -> Map.data map |! List.concat
-
-    let type_def ctx a_def = function
-      | Synonym a -> a_def ctx a
-      | Variant map ->
-        Map.to_alist map
-        |! List.map ~f:(fun (constr, args) ->
-          Text_block.hcat ~sep:space [
-            Text_block.text "|";
-            Text_block.text (Constant.to_string constr);
-            begin
-              if List.is_empty args then
-                Text_block.nil
-              else
-                Text_block.hcat ~sep:space
-                  (Text_block.text "of"
-                   :: intersperse (Text_block.text "*") (List.map args ~f:(a_def ctx)))
-            end;
-          ]
-        )
-        |! Text_block.vcat
-  end
-
   module Regular = struct
     type 'a t =
     | Option of 'a
@@ -114,6 +83,19 @@ module Compile_time = struct
     | Ref    of string
     | Map    of string * 'a
     with sexp
+
+    (* fvs : t:TYPE -> {t -> Name.Univ.Set.t} *)
+    let rec fvs f = function
+      | Option x ->
+        "(function \
+        \ | None -> Name.Univ.Set.empty \
+        \ | Some x -> (" ^ f x ^ ") x)"
+      | List x ->
+        "(fun ts -> \
+           \ List.fold ts ~init:Name.Univ.Set.empty \
+           \   ~f:(fun acc t ->
+           \     Name.Univ.Set.union ((" ^ f x ^ ") t)))"
+      | Tuple _ | Ref _ | Map _ -> assert false
 
     let sexp_of_t sexp_of_a = function
       | Ref x -> Sexp.Atom ("$" ^ x)
@@ -254,6 +236,37 @@ module Compile_time = struct
   and pt_def ctx : pt -> Text_block.t = function
     | Pt_regular x -> Regular.type_def ctx pt_def x
     | Pt x -> Pattern.type_def ctx pt_def tm_def x
+
+  module Def = struct
+    type 'a t =
+    | Synonym of 'a
+    | Variant of 'a list Constant.Map.t
+    with sexp
+
+    let to_list = function
+      | Synonym x -> [x]
+      | Variant map -> Map.data map |! List.concat
+
+    let type_def ctx a_def = function
+      | Synonym a -> a_def ctx a
+      | Variant map ->
+        Map.to_alist map
+        |! List.map ~f:(fun (constr, args) ->
+          Text_block.hcat ~sep:space [
+            Text_block.text "|";
+            Text_block.text (Constant.to_string constr);
+            begin
+              if List.is_empty args then
+                Text_block.nil
+              else
+                Text_block.hcat ~sep:space
+                  (Text_block.text "of"
+                   :: intersperse (Text_block.text "*") (List.map args ~f:(a_def ctx)))
+            end;
+          ]
+        )
+        |! Text_block.vcat
+  end
 
   module Env = struct
     type t = {
