@@ -20,6 +20,7 @@ MODULES=\
   text_block \
   scc \
   unbound \
+  codegen \
   main \
 
 B=

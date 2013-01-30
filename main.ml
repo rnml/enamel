@@ -81,38 +81,16 @@ let unbound_gen_command =
 
 module Z = struct
 
-  (* example from http://www.columbia.edu/~cs2035/courses/csor4231.F11/scc.pdf *)
-  let a = [
-    (1, 2); (2, 3); (3, 4);
-    (6, 5); (5, 1); (1, 6);
-    (2, 6);
-    (6, 7);
-    (7, 3); (3, 7);
-    (8, 7);
-  ]
-
-  (* example from http://www.cs.berkeley.edu/~vazirani/s99cs170/notes/lec12.pdf *)
-  let b = [
-    (1, 2); (2, 3);
-    (2, 4);
-    (2, 5); (5, 2);
-    (3, 6); (6, 3);
-    (4, 5); (5, 6);
-    (4, 7);
-    (5, 7);
-    (6, 8);
-    (7, 8); (8, 7);
-    (9, 7); (7, 10); (10, 9);
-    (10, 11); (11, 12); (12, 10);
-  ]
-
   let command =
     Command.basic ~summary:"scratch work command"
       Command.Spec.(empty)
       (fun () ->
-        let module Scc = Scc.Make (Int) in
-        Scc.scc a
-        |! <:sexp_of< int list list>>
+        let open Codegen.Quasi_quotation in
+        { closed =
+            fun () ->
+              lam3 (fun f g x ->
+                App (Var f, [App (Var g, [Var x])])) }
+        |! <:sexp_of<t>>
         |! Sexp.to_string_hum
         |! print_endline
       )
