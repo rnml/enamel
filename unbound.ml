@@ -84,17 +84,11 @@ module Compile_time = struct
     | Map    of string * 'a
     with sexp
 
-    (* fvs : t:TYPE -> {t -> Name.Univ.Set.t} *)
-    let rec fvs f = function
-      | Option x ->
-        "(function \
-        \ | None -> Name.Univ.Set.empty \
-        \ | Some x -> (" ^ f x ^ ") x)"
-      | List x ->
-        "(fun ts -> \
-           \ List.fold ts ~init:Name.Univ.Set.empty \
-           \   ~f:(fun acc t ->
-           \     Name.Univ.Set.union ((" ^ f x ^ ") t)))"
+    (* fvs : t:TYPE -> {t -> Name.Univ.Set.t -> Name.Univ.Set.t} *)
+    let rec fvs f t v acc =
+      match t with
+      | Option a -> Codegen.(App (Ref "Option.fold", [("", v); ("init", acc); ("f", lam2 (fun acc x -> f a x acc))]))
+      | List   a -> Codegen.(App (Ref "List.fold",   [("", v); ("init", acc); ("f", lam2 (fun acc x -> f a x acc))]))
       | Tuple _ | Ref _ | Map _ -> assert false
 
     let sexp_of_t sexp_of_a = function

@@ -85,11 +85,11 @@ module Z = struct
     Command.basic ~summary:"scratch work command"
       Command.Spec.(empty)
       (fun () ->
-        let open Codegen.Quasi_quotation in
+        let open Codegen in
         { closed =
             fun () ->
               lam3 (fun f g x ->
-                App (Var f, [App (Var g, [Var x])])) }
+                app (Var f, [app (Var g, [Var x])])) }
         |! <:sexp_of<t>>
         |! Sexp.to_string_hum
         |! print_endline

@@ -19,8 +19,8 @@ MODULES=\
   base \
   text_block \
   scc \
-  unbound \
   codegen \
+  unbound \
   main \
 
 B=

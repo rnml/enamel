@@ -1,23 +1,15 @@
 open Core.Std
 
-type sexp = Sexp.t = Atom of string | List of sexp list
+type 'v s =
+| Ref of string (* free var *)
+| Var of 'v    (* bound var *)
+| Lam of ('v -> 'v s)
+| App of 'v s * (string * 'v s) list
 
-module Void : sig
-  type t
-  val absurd : t -> _
-end
+val lam2 : ('v -> 'v -> 'v s) -> 'v s
+val lam3 : ('v -> 'v -> 'v -> 'v s) -> 'v s
+val lam4 : ('v -> 'v -> 'v -> 'v -> 'v s) -> 'v s
 
-module Quasi_quotation : sig
+val app : 'v s * 'v s list -> 'v s
 
-  type 'v s =
-  | Var of 'v
-  | Lam of ('v -> 'v s)
-  | App of 'v s * 'v s list
-
-  val lam2 : ('v -> 'v -> 'v s) -> 'v s
-  val lam3 : ('v -> 'v -> 'v -> 'v s) -> 'v s
-  val lam4 : ('v -> 'v -> 'v -> 'v -> 'v s) -> 'v s
-
-  type t = { closed : 'a. unit -> 'a s } with sexp_of
-
-end
+type t = { closed : 'a. unit -> 'a s } with sexp_of
