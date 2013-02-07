@@ -9,14 +9,16 @@
 * DONE use new polymorphic names in unbound output
 * DONE remove unnecessary Self references in unbound output
 * == active =======================================================
-* TODO remove unnecessary parens in unbound output
-* TODO build rules for .syntax files
+* TODO generated code [val fvs : t -> Name.Set.t]
 * TODO build against generated code
-  inject/project
-  val fvs : t -> Name.Set.t
+
+  inject/project (?)
   val swap : Name.t * Name.t -> t -> t
   val subst : t -> Name.t * t -> t
   val equal : t -> t -> bool
+
+* TODO remove unnecessary parens in unbound output
+* TODO build rules for .syntax files
 * TODO fix Text_block.{hstrut,vstrut}
   Text_block.(hcat ~sep:(hstrut 1) ...) doesn't space out
 * TODO compiler: unbound spec -> type + type class instances

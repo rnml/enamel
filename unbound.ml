@@ -84,12 +84,20 @@ module Compile_time = struct
     | Map    of string * 'a
     with sexp
 
+    type code = Sexp.t Codegen.s
+    type 'a fvs = 'a -> code -> code -> code
+
     (* fvs : t:TYPE -> {t -> Name.Univ.Set.t -> Name.Univ.Set.t} *)
-    let rec fvs f t v acc =
+    let rec fvs (type a) (f : a fvs) (t : a t) (v : code) (acc : code) : code =
       match t with
-      | Option a -> Codegen.(App (Ref "Option.fold", [("", v); ("init", acc); ("f", lam2 (fun acc x -> f a x acc))]))
-      | List   a -> Codegen.(App (Ref "List.fold",   [("", v); ("init", acc); ("f", lam2 (fun acc x -> f a x acc))]))
-      | Tuple _ | Ref _ | Map _ -> assert false
+      | Option a ->
+        Codegen.(App (Ref "Option.fold", [("", v); ("init", acc); ("f", lam2 (fun acc x -> f a (Codegen.Var x) (Codegen.Var acc)))]))
+      | List a ->
+        Codegen.(App (Ref "List.fold",   [("", v); ("init", acc); ("f", lam2 (fun acc x -> f a (Codegen.Var x) (Codegen.Var acc)))]))
+      | Tuple ts ->
+        Codegen.Match_tuple (v, List.length ts, fun vs ->
+          List.fold2_exn ts vs ~init:acc ~f:(fun acc t v -> f t (Codegen.Var v) acc))
+      | Ref _ | Map _ -> assert false
 
     let sexp_of_t sexp_of_a = function
       | Ref x -> Sexp.Atom ("$" ^ x)

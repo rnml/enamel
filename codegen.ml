@@ -7,6 +7,7 @@ type 'v s =
 | Var of 'v
 | Lam of ('v -> 'v s)
 | App of 'v s * (string * 'v s) list
+| Match_tuple of 'v s * int * ('v list -> 'v s)
 
 let lam2 f = Lam (fun x1 -> Lam (fun x2 -> f x1 x2))
 let lam3 f = Lam (fun x1 -> lam2 (fun x2 x3 -> f x1 x2 x3))
@@ -49,6 +50,11 @@ let rec sexp_of_s n = function
         ])
     in
     loop [] lam
+  | Match_tuple (e, m, cs) ->
+    let e = sexp_of_s n e in
+    let vs = List.init m ~f:(fun _ -> let v = Atom (var_of_int !n) in incr n; v) in
+    let body = sexp_of_s n (cs vs) in
+    List [Atom "let"; List vs; Atom "="; e; Atom "in"; body]
 
 type t = { closed : 'a. unit -> 'a s }
 
