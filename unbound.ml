@@ -23,6 +23,8 @@ let type_apply xs foo =
       text foo
     ]
 
+type code = Sexp.t Codegen.s
+
 module Compile_time = struct
 
   module Ctx : sig
@@ -84,11 +86,8 @@ module Compile_time = struct
     | Map    of string * 'a
     with sexp
 
-    type code = Sexp.t Codegen.s
-    type 'a fvs = 'a -> code -> code -> code
-
     (* fvs : t:TYPE -> {t -> Name.Univ.Set.t -> Name.Univ.Set.t} *)
-    let rec fvs (type a) (f : a fvs) (t : a t) (v : code) (acc : code) : code =
+    let fvs (type a) (f : a -> code -> code -> code) (t : a t) (v : code) (acc : code) : code =
       match t with
       | Option a ->
         Codegen.(App (Ref "Option.fold", [("", v); ("init", acc); ("f", lam2 (fun acc x -> f a (Codegen.Var x) (Codegen.Var acc)))]))
@@ -97,7 +96,10 @@ module Compile_time = struct
       | Tuple ts ->
         Codegen.Match_tuple (v, List.length ts, fun vs ->
           List.fold2_exn ts vs ~init:acc ~f:(fun acc t v -> f t (Codegen.Var v) acc))
-      | Ref _ | Map _ -> assert false
+      | Ref x ->
+        Codegen.(App (Ref (x ^ ".fvs"), [("", v); ("", acc)]))
+      | Map (_, a) ->
+        Codegen.(App (Ref "Map.fold", [("", v); ("init", acc); ("f", lam3 (fun _ x acc -> f a (Codegen.Var x) (Codegen.Var acc)))]))
 
     let sexp_of_t sexp_of_a = function
       | Ref x -> Sexp.Atom ("$" ^ x)
@@ -165,6 +167,23 @@ module Compile_time = struct
     let type_def ctx t_def p_def = function
       | Bind (p, t) -> type_apply [p_def ctx p; t_def ctx t] "Bind.t"
       | Var x -> type_apply [] (type_name ctx x ^ " New_name.t")
+
+    (* fvs : t:TYPE -> {t -> Name.Univ.Set.t -> Name.Univ.Set.t} *)
+    let fvs (type a) (type b)
+        (f : a -> code -> code -> code)
+        (g : b -> code -> code -> code)
+        (t : (a, b) t) (v : code) (acc : code) : code =
+      match t with
+      | Var x ->
+        Codegen.(App (Ref (x ^ ".fvs"), [("", v); ("", acc)]))
+      | Bind (p, t) ->
+        Codegen.Match_tuple (v, 2, function
+        | [a; b] ->
+          ignore (a, b, p, t, f, g);
+          (* do something special *)
+          failwith "unimplemented"
+        | _ -> assert false)
+
   end
 
   module Pattern = struct
