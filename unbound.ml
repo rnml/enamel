@@ -169,19 +169,17 @@ module Compile_time = struct
       | Var x -> type_apply [] (type_name ctx x ^ " New_name.t")
 
     (* fvs : t:TYPE -> {t -> Name.Univ.Set.t -> Name.Univ.Set.t} *)
-    let fvs (type a) (type b)
-        (f : a -> code -> code -> code)
-        (g : b -> code -> code -> code)
-        (t : (a, b) t) (v : code) (acc : code) : code =
+    let fvs (type tt) (type tp)
+        (ft : tt -> code -> code -> code)
+        (fp : tp -> code -> code -> code)
+        (t : (tt, tp) t) (v : code) (acc : code) : code =
       match t with
       | Var x ->
         Codegen.(App (Ref (x ^ ".fvs"), [("", v); ("", acc)]))
-      | Bind (p, t) ->
+      | Bind (tp, tt) ->
         Codegen.Match_tuple (v, 2, function
-        | [a; b] ->
-          ignore (a, b, p, t, f, g);
-          (* do something special *)
-          failwith "unimplemented"
+        | [vp; vt] ->
+          ft tt (Codegen.Var vt) (fp tp (Codegen.Var vp) acc)
         | _ -> assert false)
 
   end
