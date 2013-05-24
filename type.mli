@@ -28,24 +28,29 @@ module rec Rep : sig
 
   module Record : sig
     module type T = sig
+      type t
+      val name : t Name.t
+
       type 'a field
       val name_of : 'a field -> string
       val type_of : 'a field -> 'a Rep.t
+
       type some_field = Field : 'a field -> some_field
       val fields : some_field list
       module type Repr = sig val get : 'a field -> 'a end
-      type t
-      val name : t Name.t
+
       val encode : t -> (module Repr)
+
       val decode : (module Repr) -> t
-(*
+
+PICK UP HERE!  DEFINE A FOLD OVER THE TYPE SO THAT ONE MAY DEFINE GENERIC FUNCTIONS
       module Fold (X : sig
         type result
-        val visit : 'a field -> result -> 'a Rep.t -> result
+        val visit : 'a field -> result -> 'a -> result
       end) : sig
         val fold : X.result -> X.result
       end
-*)
+
     end
     type 'a t = (module T with type t = 'a)
   end
