@@ -22,20 +22,29 @@ module rec Rep : sig
     | Record of 'a Rep.Record.t
     | Variant of 'a Rep.Variant.t
 
+  module type Labeled = sig
+    type t
+    val name : t Name.t
+    module Label : sig
+      type 'a t
+      val name_of : 'a t -> string
+      val type_of : 'a t -> 'a Rep.t
+      type univ = Label : 'a t -> univ
+      val all : univ list
+    end
+    module Fold (Comp : sig
+      type 'a t
+      val visit : 'a Label.t -> 'a t
+    end) : sig
+      val result : t Comp.t
+    end
+  end
+
   module Record : sig
     module type T = sig
       type 'a field
-      val name_of : 'a field -> string
-      val type_of : 'a field -> 'a Rep.t
-      type some_field = Field : 'a field -> some_field
-      val fields : some_field list
-      module type Repr = sig
-        val get : 'a field -> 'a
-      end
-      type t
-      val name : t Name.t
-      val encode : t -> (module Repr)
-      val decode : (module Repr) -> t
+      include Labeled with type 'a Label.t = 'a field
+      val project : t -> 'a field -> 'a
     end
     type 'a t = (module T with type t = 'a)
   end
@@ -43,19 +52,8 @@ module rec Rep : sig
   module Variant : sig
     module type T = sig
       type 'a tag
-      val name_of : 'a tag -> string
-      val type_of : 'a tag -> 'a Rep.t
-      type some_tag = Tag : 'a tag -> some_tag
-      val tags : some_tag list
-      module type Repr = sig
-        type a
-        val tag : a tag
-        val value : a
-      end
-      type t
-      val name : t Name.t
-      val encode : t -> (module Repr)
-      val decode : (module Repr) -> t
+      include Labeled with type 'a Label.t = 'a tag
+      val inject : 'a tag -> 'a -> t
     end
     type 'a t = (module T with type t = 'a)
   end
