@@ -19,6 +19,7 @@ MODULES=\
   base \
   text_block \
   scc \
+  type \
   codegen \
   unbound \
   main \
