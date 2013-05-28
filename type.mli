@@ -53,8 +53,6 @@ module rec Rep : sig
     type 'a t = (module T with type t = 'a)
   end
 
-    STILL NOT QUITE RIGHT
-
   module Variant : sig
     module type T = sig
       type 'a tag
