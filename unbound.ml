@@ -1,5 +1,7 @@
 open Core.Std
 
+module Text_block = Core_extended.Std.Text_block
+
 let intersperse x = function
   | [] -> []
   | y :: ys ->
@@ -11,14 +13,14 @@ let paren x =
 
 let space = Text_block.text " "
 
-let indent t = Text_block.hpad t ~align:`Right 2
+let indent t = Text_block.hcat [Text_block.hstrut 2; t]
 
 let type_apply xs foo =
   let open Text_block in
   match xs with
   | [] -> text foo
   | xs ->
-    hcat ~sep:space [
+    hcat ~sep:(hstrut 1) [
       paren (hcat ~sep:(text ", ") xs);
       text foo
     ]
@@ -345,9 +347,9 @@ module Compile_time = struct
       match mode with
       | None ->
         let prelude = vcat (List.map ~f:text t.prelude) in
-        vcat ~sep:space [
+        vcat ~sep:(vstrut 1) [
           prelude;
-          vcat ~sep:space [
+          vcat ~sep:(vstrut 1) [
             text "module rec Self : sig";
             indent (type_defs ~mode:`Signature t);
             text "end = struct";
@@ -380,7 +382,7 @@ module Compile_time = struct
         in
         let w =
           let names = List.concat sccs in
-          vcat ~sep:space begin
+          vcat ~sep:(vstrut 1) begin
             List.fold names ~init:(ctx, []) ~f:(fun (ctx, ws) name ->
               let (ctx, w) =
                 Ctx.while_visiting ctx name (fun ctx ->

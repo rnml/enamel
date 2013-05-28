@@ -1,4 +1,5 @@
 open Core.Std
+open Core_extended.Std
 
 module Compile_time : sig
 

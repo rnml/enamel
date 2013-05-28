@@ -75,7 +75,7 @@ let unbound_gen_command =
     (fun path () ->
       Sexp.load_sexp_conv_exn path Unbound.Compile_time.Env.t_of_sexp
       |! Unbound.Compile_time.Env.type_defs
-      |! Text_block.render
+      |! Core_extended.Std.Text_block.render
       |! print_endline
     )
 
