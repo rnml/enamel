@@ -1,6 +1,6 @@
 ### PARAMETERS #####################################################
 
-PACKAGES=core
+PACKAGES=core core_extended
 INCLUDES=
 LIBRARIES=
 SYNTAX=comparelib sexplib

@@ -32,19 +32,26 @@ module rec Rep : sig
       type univ = Label : 'a t -> univ
       val all : univ list
     end
+    type rep
+    val inject : rep -> t
+    val project : t -> rep
+    (*
     module Fold (Comp : sig
       type 'a t
       val visit : 'a Label.t -> 'a t
     end) : sig
       val result : t Comp.t
     end
+    *)
   end
 
   module Record : sig
     module type T = sig
       type 'a field
-      include Labeled with type 'a Label.t = 'a field
-      val project : t -> 'a field -> 'a
+      type rep = { lookup : 'a. 'a field -> 'a }
+      include Labeled
+        with type 'a Label.t = 'a field
+         and type rep = rep
     end
     type 'a t = (module T with type t = 'a)
   end
@@ -52,8 +59,10 @@ module rec Rep : sig
   module Variant : sig
     module type T = sig
       type 'a tag
-      include Labeled with type 'a Label.t = 'a tag
-      val inject : 'a tag -> 'a -> t
+      type rep = Tag : 'a tag * 'a -> rep
+      include Labeled
+        with type 'a Label.t = 'a tag
+         and type rep = rep
     end
     type 'a t = (module T with type t = 'a)
   end

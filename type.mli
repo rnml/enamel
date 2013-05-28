@@ -43,12 +43,14 @@ module rec Rep : sig
       type 'a field
       include Labeled with type 'a Label.t = 'a field
       val project : t -> 'a field -> 'a
+      (*
       module Fold (Comp : sig
         type 'a t
         val visit : 'a field -> 'a -> 'a t
       end) : sig
         val result : t -> t Comp.t
       end
+      *)
     end
     type 'a t = (module T with type t = 'a)
   end
@@ -58,12 +60,14 @@ module rec Rep : sig
       type 'a tag
       include Labeled with type 'a Label.t = 'a tag
       val inject : 'a tag -> 'a -> t
+      (*
       module Fold (Comp : sig
         type 'a t
         val visit : 'a field -> 'a -> 'a t
       end) : sig
         val result : t -> t Comp.t
       end
+      *)
     end
     type 'a t = (module T with type t = 'a)
   end
