@@ -51,7 +51,7 @@ module rec Rep : sig
   module Variant : sig
     module type T = sig
       type 'a tag
-      type rep = Tag : 'a tag * 'a -> rep
+      type rep = Tagged : 'a tag * 'a -> rep
       include Labeled
         with type 'a Label.t = 'a tag
          and type rep := rep
