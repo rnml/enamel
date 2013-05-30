@@ -1,10 +1,12 @@
 open Core.Std
 
 module Equal :
-  (module type of Type_equal with type ('a, 'b) t = ('a, 'b) Type_equal.t)
+module type of Type_equal
+  with type ('a, 'b) t = ('a, 'b) Type_equal.t
 
 module Name :
-  (module type of Type_equal.Id with type 'a t = 'a Type_equal.Id.t)
+module type of Type_equal.Id
+  with type 'a t = 'a Type_equal.Id.t
 
 (** runtime type representations *)
 module rec Rep : sig
