@@ -95,6 +95,11 @@ let rec of_sexp : type a. a Type.Rep.t -> Sexp.t -> a = function
     let module R = (val r : Type.Rep.Record.T with type t = a) in
     let map =
       List.map R.Label.all ~f:(function
+      | R.Label.Label tag ->
+        let of_sexp sexp =
+
+        in
+        (R.Label.name_of tag, of_sexp)
 
       )
       |! String.Map.of_alist_exn
