@@ -92,52 +92,70 @@ let rec of_sexp : type a. a Type.Rep.t -> Sexp.t -> a = function
     let c_of_sexp = of_sexp c in
     Tuple.T3.t_of_sexp a_of_sexp b_of_sexp c_of_sexp
   | Type.Rep.Record r ->
-    let module R = (val r : Type.Rep.Record.T with type t = a) in
-    let map =
-      List.map R.Label.all ~f:(function
-      | R.Label.Label tag ->
-        let of_sexp sexp =
-
-        in
-        (R.Label.name_of tag, of_sexp)
-
-      )
-      |! String.Map.of_alist_exn
-  |!
-    in
-    fun sexp ->
-      with_return (fun {return} ->
-        match sexp with
-        | Sexp.List entries ->
-          List.map entries ~f:(function
-          | Sexp.List [Sexp.Atom key; value] -> (key, value)
-          | entry ->
-            return
-              (error "Record.of_sexp entry does not match\
-                   \ (ATOM VALUE) pattern" entry Fn.id)
-          )
-        | Sexp.Atom _ ->
-          error "Record.of_sexp expected list but found atom"
-            sexp Fn.id
-      )
-      |! Or_error.ok_exn
-      |! String.Map.of_alist
-      (*
     begin
+      let module R = (val r : Type.Rep.Record.T with type t = a) in
+      let fields =
+        String.Map.of_alist_exn
+          (List.map R.Label.all ~f:(function
+          | R.Label.Label tag -> (R.Label.name_of tag, ())))
+      in
       function
+      | Sexp.Atom _ as sexp ->
+        failwiths "Record.of_sexp expected list but found atom"
+          sexp Fn.id
+      | Sexp.List entries ->
+        List.map entries ~f:(function
+        | Sexp.List [Sexp.Atom key; value] -> (key, value)
+        | entry ->
+          failwiths "Record.of_sexp entry does not match\
+                  \ (ATOM VALUE) pattern" entry Fn.id)
+        |! String.Map.of_alist
+        |! function
+          | `Duplicate_key key ->
+            failwiths "Record.of_sexp duplicate key"
+              key String.sexp_of_t
+          | `Ok entries ->
+            Map.merge fields entries ~f:(fun ~key data ->
+              match data with
+              | `Both ((), sexp) -> Some sexp
+              | `Left () ->
+                failwiths "missing field" key String.sexp_of_t
+              | `Right sexp ->
+                failwiths "unknown field" (key, sexp)
+                <:sexp_of< string * Sexp.t >>)
+            |! fun map ->
+              R.inject
+                { R.lookup = fun field ->
+                  let key = R.Label.name_of field in
+                  let typ = R.Label.type_of field in
+                  match Map.find map key with
+                  | Some sexp -> of_sexp typ sexp
+                  | None ->
+                    failwiths "missing field" key String.sexp_of_t
+                }
     end
-    let entry : R.Label.univ -> R.t -> Sexp.t = function
-      | R.Label.Label field ->
-        let name = Sexp.Atom (R.Label.name_of field) in
-        let val_to_sexp = to_sexp (R.Label.type_of field) in
-        fun r ->
-          Sexp.List [
-            name;
-            val_to_sexp ((R.project r).R.lookup field);
-          ]
-    in
-    let entries = List.map R.Label.all ~f:entry in
-    fun a ->
-      Sexp.List (List.map entries ~f:(fun f -> f a))
-  | _ -> assert false
-      *)
+  | Type.Rep.Variant v ->
+    begin
+      let module V = (val v : Type.Rep.Variant.T with type t = a) in
+      let tags =
+        String.Map.of_alist_exn
+          (List.map V.Label.all ~f:(function
+          | V.Label.Label tag as univ ->
+            (V.Label.name_of tag, univ)))
+      in
+      function
+      | Sexp.List [Sexp.Atom tag; arg] ->
+        begin
+          match Map.find tags tag with
+          | None ->
+            failwiths "unknown tag" (tag, arg)
+            <:sexp_of< string * Sexp.t >>
+          | Some (V.Label.Label tag) ->
+            let arg = of_sexp (V.Label.type_of tag) arg in
+            V.inject (V.Tagged (tag, arg))
+        end
+      | sexp ->
+        failwiths "Variant.of_sexp expected (ATOM ARG) but found \
+                  \ atom" sexp Fn.id
+    end
+
