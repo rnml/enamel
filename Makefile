@@ -19,6 +19,7 @@ MODULES=\
   base \
   scc \
   type \
+  sexp_conv \
   codegen \
   unbound \
   main \
