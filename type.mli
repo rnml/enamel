@@ -1,4 +1,5 @@
 open Core.Std
+open Core_extended.Std
 
 module Equal :
 module type of Type_equal
@@ -86,5 +87,8 @@ module Code : sig
     | Triple of t * t * t
     | Record of (string * t) list
     | Variant of (string * t) list
+    | Name of string
   with sexp
+
+  val codegen : (string * t) list -> Text_block.t
 end
