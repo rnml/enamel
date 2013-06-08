@@ -69,3 +69,22 @@ module rec Rep : sig
 
 end
 
+module Code : sig
+  type t =
+    | Int
+    | Char
+    | Float
+    | String
+    | Bool
+    | Unit
+    | Option of t
+    | List of t
+    | Array of t
+    | Lazy of t
+    | Ref of t
+    | Pair of t * t
+    | Triple of t * t * t
+    | Record of (string * t) list
+    | Variant of (string * t) list
+  with sexp
+end
