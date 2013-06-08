@@ -243,7 +243,8 @@ module Code = struct
     let map = String.Map.of_alist_exn alist in
     let edges =
       List.concat_map alist ~f:(fun (x, t) ->
-        List.map (Set.to_list t) ~f:(fun y -> (x, y)))
+        let ys = Set.to_list (fvs t) in
+        List.map ys ~f:(fun y -> (x, y)))
     in
     Text.vcat
       (List.map (Scc.scc edges) ~f:(fun group ->
