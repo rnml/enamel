@@ -52,12 +52,11 @@ let rec to_sexp : type a. a Type.Rep.t -> a -> Sexp.t = function
     let module V = (val v : Type.Rep.Variant.T with type t = a) in
     begin
       fun a ->
-        match V.project a with
-        | V.Tagged (tag, arg) ->
-          Sexp.List [
-            Sexp.Atom (V.Label.name_of tag);
-            to_sexp (V.Label.type_of tag) arg;
-          ]
+        let V.Tagged (tag, arg) = V.project a in
+        Sexp.List [
+          Sexp.Atom (V.Label.name_of tag);
+          to_sexp (V.Label.type_of tag) arg;
+        ]
     end
 
 let rec of_sexp : type a. a Type.Rep.t -> Sexp.t -> a = function
@@ -156,6 +155,5 @@ let rec of_sexp : type a. a Type.Rep.t -> Sexp.t -> a = function
         end
       | sexp ->
         failwiths "Variant.of_sexp expected (ATOM ARG) but found \
-                  \ atom" sexp Fn.id
+                   atom" sexp Fn.id
     end
-

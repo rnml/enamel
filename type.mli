@@ -51,6 +51,7 @@ module rec Rep : sig
       include Labeled
         with type 'a Label.t = 'a field
          and type rep := rep
+      val get : 'a field -> t -> 'a
     end
     type 'a t = (module T with type t = 'a)
   end
@@ -62,6 +63,7 @@ module rec Rep : sig
       include Labeled
         with type 'a Label.t = 'a tag
          and type rep := rep
+      val put : 'a tag -> 'a -> t
     end
     type 'a t = (module T with type t = 'a)
   end
