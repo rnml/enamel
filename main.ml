@@ -85,14 +85,21 @@ module Z = struct
     Command.basic ~summary:"scratch work command"
       Command.Spec.(empty)
       (fun () ->
-        let open Codegen in
-        { closed =
-            fun () ->
-              lam3 (fun f g x ->
-                app (Var f, [app (Var g, [Var x])])) }
-        |! <:sexp_of<t>>
+        let open Type_rep_example in
+        let animal =
+          { Animal.
+            name = "lion";
+            size = 55;
+            sound = Sound.Meow 23;
+          }
+        in
+        let sexp = Sexp_conv.to_sexp Animal.type_rep animal in
+        sexp
         |! Sexp.to_string_hum
-        |! print_endline
+        |! print_endline;
+        let animal' = Sexp_conv.of_sexp Animal.type_rep sexp in
+        let open Polymorphic_compare in
+        assert (animal = animal')
       )
 end
 
