@@ -94,16 +94,26 @@ module Compile_time = struct
     let fvs (type a) (f : a -> code -> code -> code) (t : a t) (v : code) (acc : code) : code =
       match t with
       | Option a ->
-        Codegen.(App (Ref "Option.fold", [("", v); ("init", acc); ("f", lam2 (fun acc x -> f a (Codegen.Var x) (Codegen.Var acc)))]))
+        Codegen.(App (Ref "Option.fold", [
+          (None, v);
+          (Some "init", acc);
+          (Some "f", lam2 (fun acc x ->
+            f a (Codegen.Var x) (Codegen.Var acc)));
+        ]))
       | List a ->
-        Codegen.(App (Ref "List.fold",   [("", v); ("init", acc); ("f", lam2 (fun acc x -> f a (Codegen.Var x) (Codegen.Var acc)))]))
+        Codegen.(App (Ref "List.fold", [
+          (None, v);
+          (Some "init", acc);
+          (Some "f", lam2 (fun acc x ->
+            f a (Codegen.Var x) (Codegen.Var acc)));
+        ]))
       | Tuple ts ->
         Codegen.Match_tuple (v, List.length ts, fun vs ->
           List.fold2_exn ts vs ~init:acc ~f:(fun acc t v -> f t (Codegen.Var v) acc))
       | Ref x ->
-        Codegen.(App (Ref (x ^ ".fvs"), [("", v); ("", acc)]))
+        Codegen.(App (Ref (x ^ ".fvs"), [(None, v); (None, acc)]))
       | Map (_, a) ->
-        Codegen.(App (Ref "Map.fold", [("", v); ("init", acc); ("f", lam3 (fun _ x acc -> f a (Codegen.Var x) (Codegen.Var acc)))]))
+        Codegen.(App (Ref "Map.fold", [(None, v); (Some "init", acc); (Some "f", lam3 (fun _ x acc -> f a (Codegen.Var x) (Codegen.Var acc)))]))
 
     let sexp_of_t sexp_of_a = function
       | Ref x -> Sexp.Atom ("$" ^ x)
@@ -179,7 +189,7 @@ module Compile_time = struct
         (t : (tt, tp) t) (v : code) (acc : code) : code =
       match t with
       | Var x ->
-        Codegen.(App (Ref (x ^ ".fvs"), [("", v); ("", acc)]))
+        Codegen.(App (Ref (x ^ ".fvs"), [(None, v); (None, acc)]))
       | Bind (tp, tt) ->
         Codegen.Match_tuple (v, 2, function
         | [vp; vt] ->

@@ -3,19 +3,44 @@ open Core_extended.Std
 
 type sexp = Sexp.t = Atom of string | List of sexp list
 
-module Term = struct
+module rec Term : sig
+  type 'v s =
+  | Ref of string (* free var *)
+  | Var of 'v     (* bound var *)
+  | Lam of ('v -> 'v s)
+  | App of 'v s * (string option * 'v s) list
+  | Match_tuple of 'v s * int * ('v list -> 'v s)
+  | Struct of 'v Decl.s list
+  | Sig    of 'v Decl.s list
+  | Module of 'v Decl.s list * string
+
+  val sexp_of_s : int ref -> sexp s -> sexp
+
+  val lam2 : ('v -> 'v -> 'v s) -> 'v s
+  val lam3 : ('v -> 'v -> 'v -> 'v s) -> 'v s
+  val lam4 : ('v -> 'v -> 'v -> 'v -> 'v s) -> 'v s
+
+  val app : 'v s * 'v s list -> 'v s
+
+  type t = { closed : 'v. unit -> 'v s } with sexp_of
+
+end = struct
+
   type 'v s =
   | Ref of string
   | Var of 'v
   | Lam of ('v -> 'v s)
-  | App of 'v s * (string * 'v s) list
+  | App of 'v s * (string option * 'v s) list
   | Match_tuple of 'v s * int * ('v list -> 'v s)
+  | Struct of 'v Decl.s list
+  | Sig    of 'v Decl.s list
+  | Module of 'v Decl.s list * string
 
   let lam2 f = Lam (fun x1 -> Lam (fun x2 -> f x1 x2))
   let lam3 f = Lam (fun x1 -> lam2 (fun x2 x3 -> f x1 x2 x3))
   let lam4 f = Lam (fun x1 -> lam3 (fun x2 x3 x4 -> f x1 x2 x3 x4))
 
-  let app (v, vs) = App (v, List.map vs ~f:(fun v -> ("", v)))
+  let app (v, vs) = App (v, List.map vs ~f:(fun v -> (None, v)))
 
   let a_char_int = Char.to_int 'a'
 
@@ -32,9 +57,9 @@ module Term = struct
       List
         (sexp_of_s n f
          :: List.concat_map xs ~f:(fun (label, arg) ->
-           if String.equal label "" then
-             [sexp_of_s n arg]
-           else
+           match label with
+           | None -> [sexp_of_s n arg]
+           | Some label ->
              [Atom ("~" ^ label ^ ":"); List[sexp_of_s n arg]]
          ))
     | Lam _ as lam ->
@@ -62,12 +87,41 @@ module Term = struct
       in
       let body = sexp_of_s n (cs vs) in
       List [Atom "let"; List vs; Atom "="; e; Atom "in"; body]
+    | Struct ds ->
+      List (Atom "struct" :: List.map ds ~f:(Decl.sexp_of_s n))
+    | Sig ds ->
+      List (Atom "sig" :: List.map ds ~f:(Decl.sexp_of_s n))
+    | Module (ds, sig_name) ->
+      List (List.concat [
+        [Atom "module"];
+        List.map ds ~f:(Decl.sexp_of_s n);
+        [Atom ":"; Atom sig_name];
+      ])
 
   type t = { closed : 'a. unit -> 'a s }
 
   let sexp_of_t t = sexp_of_s (ref 0) (t.closed ())
 
 end
+
+and Decl : sig
+  type kind = Value | Type | Module | Signature
+  type 'v s = kind * string * 'v Term.s option
+  val sexp_of_s : int ref -> sexp s -> sexp
+  type t = { closed : 'v. unit -> 'v s } with sexp_of
+end = struct
+  type kind = Value | Type | Module | Signature with sexp_of
+  type 'v s = kind * string * 'v Term.s option
+  let sexp_of_s n (kind, x, term) =
+    List (List.filter_opt [
+      Some (sexp_of_kind kind);
+      Some (String.sexp_of_t x);
+      Option.map term ~f:(Term.sexp_of_s n);
+    ])
+  type t = { closed : 'v. unit -> 'v s } with sexp_of
+  let sexp_of_t t = sexp_of_s (ref 0) (t.closed ())
+end
+
 
 module Type = struct
   type t =
