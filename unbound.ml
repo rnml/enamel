@@ -25,6 +25,8 @@ let type_apply xs foo =
       text foo
     ]
 
+module Codegen = Codegen.Term
+
 type code = Sexp.t Codegen.s
 
 module Compile_time = struct
