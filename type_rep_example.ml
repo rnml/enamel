@@ -80,6 +80,44 @@ module Animal = struct
     end : Type.Rep.Record.T with type t = t)
 end
 
+module Tree = struct
+
+  type t =
+    | Empty
+    | Node of t * int * t
+
+  let rec type_rep =
+    Type.Rep.Variant (module struct
+      type t_outer = t
+      type t = t_outer
+      let name : t Type.Name.t = Type.Name.create ~name:"Sound.t"
+      module Label = struct
+        type 'a t =
+        | Empty : unit t
+        | Node : (t_outer * int * t_outer) t
+        let name_of : type a. a t -> string = function
+          | Empty -> "empty"
+          | Node -> "node"
+        let type_of : type a. a t -> a Type.Rep.t = function
+          | Empty -> Type.Rep.Unit
+          | Node -> Type.Rep.(Triple (type_rep, Int, type_rep))
+        type univ = Label : 'a t -> univ
+        let all = [Label Empty; Label Node]
+      end
+      type 'a tag = 'a Label.t
+      type rep = Tagged : 'a tag * 'a -> rep
+      let project = function
+        | Empty          -> Tagged (Label.Empty, ())
+        | Node (a, b, c) -> Tagged (Label.Node, (a, b, c))
+      let put (type a) (tag : a tag) (arg : a) : t =
+        match (tag, arg) with
+        | (Label.Empty,  ())     -> Empty
+        | (Label.Node, (a, b, c)) -> Node (a, b, c)
+      let inject = fun (Tagged (tag, arg)) -> put tag arg
+    end : Type.Rep.Variant.T with type t = t)
+
+end
+
 module Even_odd_lists = struct
 
   type even =
