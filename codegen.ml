@@ -52,7 +52,12 @@ let rec sexp_of_s n = function
     loop [] lam
   | Match_tuple (e, m, cs) ->
     let e = sexp_of_s n e in
-    let vs = List.init m ~f:(fun _ -> let v = Atom (var_of_int !n) in incr n; v) in
+    let vs =
+      List.init m ~f:(fun _ ->
+        let v = Atom (var_of_int !n) in
+        incr n;
+        v)
+    in
     let body = sexp_of_s n (cs vs) in
     List [Atom "let"; List vs; Atom "="; e; Atom "in"; body]
 

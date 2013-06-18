@@ -5,7 +5,8 @@ module Sound = struct
     | Bark of string * int
   let type_rep =
     Type.Rep.Variant (module struct
-      type nonrec t = t
+      type outer_t = t
+      type t = outer_t
       let name : t Type.Name.t = Type.Name.create ~name:"Sound.t"
       module Label = struct
         type 'a t =
@@ -123,6 +124,7 @@ module Even_odd_lists = struct
   type even =
     | Nil
     | Cons of int * odd
+
   and odd = {
     head : int;
     tail : even;
@@ -130,7 +132,8 @@ module Even_odd_lists = struct
 
   let rec type_rep_of_even =
     Type.Rep.Variant (module struct
-      type nonrec t = even
+      type outer_t = even
+      type t = outer_t
       let name : t Type.Name.t = Type.Name.create ~name:"Sound.t"
       module Label = struct
         type 'a t =
@@ -159,7 +162,8 @@ module Even_odd_lists = struct
 
   and type_rep_of_odd =
     Type.Rep.Record (module struct
-      type nonrec t = odd
+      type outer_t = odd
+      type t = outer_t
       let name : t Type.Name.t = Type.Name.create ~name:"Animal.t"
       module Label = struct
         type 'a t =
