@@ -12,22 +12,20 @@ module Name = struct
   let unit   : unit   t = create ~name:"unit"
 end
 
-module Name_table (Data : sig type 'a t end) = struct
+module Registry (Data : sig type 'a t end) = struct
 
   type entry = Entry : 'a Name.t * 'a Data.t -> entry
 
-  type t = entry Name.Uid.Table.t
+  let t = Name.Uid.Table.create ~size:10 ()
 
-  let create () = Name.Uid.Table.create ~size:10 ()
-
-  let set t name data =
+  let register name data =
     let key = Name.uid name in
     let data = Entry (name, data) in
     Hashtbl.set t ~key ~data
 
   module Lift = Type_equal.Lift (Data)
 
-  let find t (type a) (name : a Name.t) : a Data.t option =
+  let lookup (type a) (name : a Name.t) : a Data.t option =
     Option.map (Hashtbl.find t (Name.uid name)) ~f:(function
     | Entry (name', data) ->
       let eq = Name.same_witness_exn name' name in

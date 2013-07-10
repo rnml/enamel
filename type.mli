@@ -8,11 +8,9 @@ module Name :
 module type of Type_equal.Id
   with type 'a t = 'a Type_equal.Id.t
 
-module Name_table (Data : sig type 'a t end) : sig
-  type t
-  val create : unit -> t
-  val set : t -> 'a Name.t -> 'a Data.t -> unit
-  val find : t -> 'a Name.t -> 'a Data.t option
+module Registry (Data : sig type 'a t end) : sig
+  val register  : 'a Name.t -> 'a Data.t -> unit
+  val lookup : 'a Name.t -> 'a Data.t option
 end
 
 (** runtime type representations *)
