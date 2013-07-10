@@ -8,6 +8,13 @@ module Name :
 module type of Type_equal.Id
   with type 'a t = 'a Type_equal.Id.t
 
+module Name_table (Data : sig type 'a t end) : sig
+  type t
+  val create : unit -> t
+  val set : t -> 'a Name.t -> 'a Data.t -> unit
+  val find : t -> 'a Name.t -> 'a Data.t option
+end
+
 (** runtime type representations *)
 module rec Rep : sig
 
@@ -27,6 +34,10 @@ module rec Rep : sig
     | Triple : 'a t * 'b t * 'c t -> ('a * 'b * 'c) t
     | Record of 'a Rep.Record.t
     | Variant of 'a Rep.Variant.t
+    | Abstract of 'a Name.t
+
+  (* val id : 'a t -> 'a Name.t *)
+  val same : 'a t -> 'b t -> ('a, 'b) Equal.t option
 
   module type Labeled = sig
     type t
@@ -66,8 +77,6 @@ module rec Rep : sig
     end
     type 'a t = (module T with type t = 'a)
   end
-
-  val same : 'a t -> 'b t -> ('a, 'b) Equal.t option
 
 end
 

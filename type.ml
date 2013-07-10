@@ -1,7 +1,39 @@
 open Core.Std
 
 module Equal = Type_equal
-module Name = Type_equal.Id
+
+module Name = struct
+  include Type_equal.Id
+  let int    : int    t = create ~name:"int"
+  let char   : char   t = create ~name:"char"
+  let float  : float  t = create ~name:"float"
+  let string : string t = create ~name:"string"
+  let bool   : bool   t = create ~name:"bool"
+  let unit   : unit   t = create ~name:"unit"
+end
+
+module Name_table (Data : sig type 'a t end) = struct
+
+  type entry = Entry : 'a Name.t * 'a Data.t -> entry
+
+  type t = entry Name.Uid.Table.t
+
+  let create () = Name.Uid.Table.create ~size:10 ()
+
+  let set t name data =
+    let key = Name.uid name in
+    let data = Entry (name, data) in
+    Hashtbl.set t ~key ~data
+
+  module Lift = Type_equal.Lift (Data)
+
+  let find t (type a) (name : a Name.t) : a Data.t option =
+    Option.map (Hashtbl.find t (Name.uid name)) ~f:(function
+    | Entry (name', data) ->
+      let eq = Name.same_witness_exn name' name in
+      Type_equal.conv (Lift.lift eq) data)
+
+end
 
 module rec Rep : sig
 
@@ -21,6 +53,7 @@ module rec Rep : sig
     | Triple : 'a t * 'b t * 'c t -> ('a * 'b * 'c) t
     | Record of 'a Rep.Record.t
     | Variant of 'a Rep.Variant.t
+    | Abstract of 'a Name.t
 
   module type Labeled = sig
     type t
@@ -61,11 +94,36 @@ module rec Rep : sig
     type 'a t = (module T with type t = 'a)
   end
 
+  val id : 'a t -> 'a Name.t
   val same : 'a t -> 'b t -> ('a, 'b) Equal.t option
 
 end = struct
 
   include Rep
+
+(*
+  let id : type a. a t -> a Name.t = function
+    | Abstract (id, _) -> id
+    | Int     -> Name.int
+    | Char    -> Name.char
+    | Float   -> Name.float
+    | String  -> Name.string
+    | Bool    -> Name.bool
+    | Unit    -> Name.unit
+    | Variant x ->
+      let module X = (val x : Rep.Variant.T with type t = a) in
+      X.name
+    | Record x ->
+      let module X = (val x : Rep.Record.T with type t = a) in
+      X.name
+    | Option _ -> assert false
+    | List   _ -> assert false
+    | Array  _ -> assert false
+    | Lazy   _ -> assert false
+    | Ref    _ -> assert false
+    | Pair   _ -> assert false
+    | Triple _ -> assert false
+*)
 
   let rec same : type a b. a t -> b t -> (a, b) Equal.t option =
   fun t1 t2 ->
@@ -124,6 +182,8 @@ end = struct
         let module R1 = (val r1 : Rep.Variant.T with type t = a) in
         let module R2 = (val r2 : Rep.Variant.T with type t = b) in
         Name.same_witness R1.name R2.name |> Result.ok
+    | (Abstract id1, Abstract id2) ->
+      Result.ok (Name.same_witness id1 id2)
     | (Int, _) -> None
     | (Char, _) -> None
     | (Float, _) -> None
@@ -139,6 +199,7 @@ end = struct
     | (Variant _, _) -> None
     | (Pair _, _) -> None
     | (Triple _, _) -> None
+    | (Abstract _, _) -> None
   ;;
 
   module Short_circuit_same : sig

@@ -2,6 +2,14 @@ open Core.Std
 
 open Or_error.Monad_infix
 
+module To_sexp_registry =
+  Type.Name_table (struct type 'a t = 'a -> Sexp.t end)
+
+let registry = To_sexp_registry.create ()
+
+let register_to_sexp name to_sexp =
+  To_sexp_registry.set registry name to_sexp
+
 let rec to_sexp : type a. a Type.Rep.t -> a -> Sexp.t = function
   | Type.Rep.Int    -> Int.sexp_of_t
   | Type.Rep.Char   -> Char.sexp_of_t
@@ -58,6 +66,19 @@ let rec to_sexp : type a. a Type.Rep.t -> a -> Sexp.t = function
           to_sexp (V.Label.type_of tag) arg;
         ]
     end
+  | Type.Rep.Abstract id ->
+    match To_sexp_registry.find registry id with
+    | Some x -> x
+    | None ->
+      failwithf "no to_sexp defined for %s" (Type.Name.name id) ()
+
+module Of_sexp_registry =
+  Type.Name_table (struct type 'a t = Sexp.t -> 'a end)
+
+let registry = Of_sexp_registry.create ()
+
+let register_of_sexp name of_sexp =
+  Of_sexp_registry.set registry name of_sexp
 
 let rec of_sexp : type a. a Type.Rep.t -> Sexp.t -> a = function
   | Type.Rep.Int    -> Int.t_of_sexp
@@ -157,3 +178,8 @@ let rec of_sexp : type a. a Type.Rep.t -> Sexp.t -> a = function
         failwiths "Variant.of_sexp expected (ATOM ARG) but found \
                    atom" sexp Fn.id
     end
+  | Type.Rep.Abstract id ->
+    match Of_sexp_registry.find registry id with
+    | Some x -> x
+    | None ->
+      failwithf "no of_sexp defined for %s" (Type.Name.name id) ()

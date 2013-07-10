@@ -21,6 +21,7 @@ MODULES=\
   type \
   type_rep_example \
   sexp_conv \
+  syntax \
   codegen \
   unbound \
   main \
