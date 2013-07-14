@@ -45,7 +45,7 @@ end) = struct
 
     let build es = Vertex.Map.of_alist_multi es
 
-    let transpose t = edges t |! List.map ~f:Edge.flip |! build
+    let transpose t = edges t |> List.map ~f:Edge.flip |> build
 
     let out_degree = Map.map ~f:List.length
     let in_degree t = out_degree (transpose t)
@@ -74,7 +74,7 @@ end) = struct
     let post_order t = Forest.post_order (dff t)
 
     let scc t =
-      transpose t |! post_order |! List.rev |! dfs t |! List.rev
+      transpose t |> post_order |> List.rev |> dfs t |> List.rev
   end
 
 end
@@ -86,5 +86,5 @@ module Make (Vertex : sig
 end) = struct
   include Graph (Vertex)
   let scc es =
-    Graph.build es |! Graph.scc |! List.map ~f:Tree.pre_order
+    Graph.build es |> Graph.scc |> List.map ~f:Tree.pre_order
 end

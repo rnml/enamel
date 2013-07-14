@@ -154,8 +154,8 @@ module Compile_time = struct
       | Map (key, a) -> type_apply [a_def ctx a] (String.capitalize key ^ ".Map.t")
       | Tuple bs ->
         List.map bs ~f:(fun b -> paren (a_def ctx b))
-        |! intersperse (Text_block.text " * ")
-        |! Text_block.hcat
+        |> intersperse (Text_block.text " * ")
+        |> Text_block.hcat
       | Ref "" -> assert false
       | Ref x ->
         let capitalized = let c0 = x.[0] in Char.equal c0 (Char.uppercase c0) in
@@ -247,11 +247,11 @@ module Compile_time = struct
     | None -> Pt (Pattern.t_of_sexp pt_of_sexp tm_of_sexp sexp)
 
   let rec tm_names acc = function
-    | Tm_regular rg -> Regular.to_list rg |! List.fold ~init:acc ~f:tm_names
+    | Tm_regular rg -> Regular.to_list rg |> List.fold ~init:acc ~f:tm_names
     | Tm tm -> Term.names tm_names pt_names acc tm
 
   and pt_names acc = function
-    | Pt_regular rg -> Regular.to_list rg |! List.fold ~init:acc ~f:pt_names
+    | Pt_regular rg -> Regular.to_list rg |> List.fold ~init:acc ~f:pt_names
     | Pt pt -> Pattern.names pt_names tm_names acc pt
 
   let rec tm_refs acc = function
@@ -278,13 +278,13 @@ module Compile_time = struct
 
     let to_list = function
       | Synonym x -> [x]
-      | Variant map -> Map.data map |! List.concat
+      | Variant map -> Map.data map |> List.concat
 
     let type_def ctx a_def = function
       | Synonym a -> a_def ctx a
       | Variant map ->
         Map.to_alist map
-        |! List.map ~f:(fun (constr, args) ->
+        |> List.map ~f:(fun (constr, args) ->
           Text_block.hcat ~sep:space [
             Text_block.text "|";
             Text_block.text (Constant.to_string constr);
@@ -298,7 +298,7 @@ module Compile_time = struct
             end;
           ]
         )
-        |! Text_block.vcat
+        |> Text_block.vcat
   end
 
   module Env = struct
@@ -406,8 +406,8 @@ module Compile_time = struct
               in
               (ctx, w :: ws)
             )
-            |! snd
-            |! List.rev
+            |> snd
+            |> List.rev
           end
         in
         w
