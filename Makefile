@@ -15,6 +15,7 @@ MODULES=\
   type_rep_example \
   name \
   new_name \
+  common \
   systemf \
   target \
   module_system \
