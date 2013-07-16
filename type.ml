@@ -53,9 +53,9 @@ module Name = struct
 end
 
 module type Registry = sig
-  type 'a t
-  val register  : 'a Name.t -> 'a t -> unit
-  val lookup : 'a Name.t -> 'a t option
+  type 'a computation
+  val register  : 'a Name.t -> 'a computation -> unit
+  val lookup : 'a Name.t -> 'a computation option
 end
 
 module Registry (Data : sig type 'a t end) = struct

@@ -43,20 +43,11 @@ module Make (X : sig type a val name : string end) :
 
 module Registry : sig
   module Free_vars : sig
-    module Term : sig
-      type 'a computation = Univ.Set.t -> 'a -> Univ.Set.t
-      val register : 'a Type.Name.t -> 'a computation -> unit
-      val lookup : 'a Type.Name.t -> 'a computation option
-    end
-    module Pat : sig
-      type 'a computation = Univ.Set.t -> 'a -> Univ.Set.t
-      val register : 'a Type.Name.t -> 'a computation -> unit
-      val lookup : 'a Type.Name.t -> 'a computation option
-    end
+    module Term : Type.Registry
+      with type 'a computation = Univ.Set.t -> 'a -> Univ.Set.t
+    module Pat : Type.Registry
+      with type 'a computation = Univ.Set.t -> 'a -> Univ.Set.t
   end
-  module Swap : sig
-    type 'a computation = Univ.t * Univ.t -> 'a -> 'a
-    val register : 'a Type.Name.t -> 'a computation -> unit
-    val lookup : 'a Type.Name.t -> 'a computation option
-  end
+  module Swap : Type.Registry
+    with type 'a computation = Univ.t * Univ.t -> 'a -> 'a
 end

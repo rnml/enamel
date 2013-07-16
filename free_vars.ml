@@ -4,9 +4,8 @@ module Nm = New_name.Univ
 
 module type Registry = sig
   val generic_name : string
-  type 'a computation = Nm.Set.t -> 'a -> Nm.Set.t
-  val register  : 'a Type.Name.t -> 'a computation -> unit
-  val lookup : 'a Type.Name.t -> 'a computation option
+  include Type.Registry
+    with type 'a computation = Nm.Set.t -> 'a -> Nm.Set.t
 end
 
 module Make (Registry : Registry) = struct
