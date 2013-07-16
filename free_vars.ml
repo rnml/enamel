@@ -58,6 +58,6 @@ let rec fvs_aux : type a. a Type.Rep.t -> a computation = function
   | Type.Rep.Abstract id ->
     match lookup id with
     | Some x -> x
-    | None -> failwithf "no fvs defined for %s" (Type.Name.name id) ()
+    | None -> failwithf "fvs undefined for %s" (Type.Name.name id) ()
 
 let fvs ty x = fvs_aux ty Nm.Set.empty x

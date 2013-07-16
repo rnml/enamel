@@ -37,5 +37,5 @@ let rec swap : type a. a Type.Rep.t -> a computation = function
   | Type.Rep.Abstract id ->
     match lookup id with
     | Some x -> x
-    | None -> failwithf "no swap defined for %s" (Type.Name.name id) ()
+    | None -> failwithf "swap undefined for %s" (Type.Name.name id) ()
 
