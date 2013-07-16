@@ -27,7 +27,6 @@ module rec Rep : sig
     | List : 'a t -> 'a list t
     | Array : 'a t -> 'a array t
     | Lazy : 'a t -> 'a Lazy.t t
-    | Ref : 'a t -> 'a ref t
     | Pair : 'a t * 'b t -> ('a * 'b) t
     | Triple : 'a t * 'b t * 'c t -> ('a * 'b * 'c) t
     | Record of 'a Rep.Record.t

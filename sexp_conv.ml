@@ -26,9 +26,6 @@ let rec to_sexp : type a. a Type.Rep.t -> a -> Sexp.t = function
   | Type.Rep.Lazy a ->
     let a_to_sexp = to_sexp a in
     Lazy.sexp_of_t a_to_sexp
-  | Type.Rep.Ref a ->
-    let a_to_sexp = to_sexp a in
-    Ref.sexp_of_t a_to_sexp
   | Type.Rep.Pair (a, b) ->
     let a_to_sexp = to_sexp a in
     let b_to_sexp = to_sexp b in
@@ -93,9 +90,6 @@ let rec of_sexp : type a. a Type.Rep.t -> Sexp.t -> a = function
   | Type.Rep.Lazy a ->
     let a_of_sexp = of_sexp a in
     Lazy.t_of_sexp a_of_sexp
-  | Type.Rep.Ref a ->
-    let a_of_sexp = of_sexp a in
-    Ref.t_of_sexp a_of_sexp
   | Type.Rep.Pair (a, b) ->
     let a_of_sexp = of_sexp a in
     let b_of_sexp = of_sexp b in

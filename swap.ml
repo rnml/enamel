@@ -15,7 +15,6 @@ let rec swap : type a. a Type.Rep.t -> a computation = function
   | Type.Rep.List   a -> fun p v -> List.map   v ~f:(swap a p)
   | Type.Rep.Array  a -> fun p v -> Array.map  v ~f:(swap a p)
   | Type.Rep.Lazy   a -> fun p v -> Lazy.map   v ~f:(swap a p)
-  | Type.Rep.Ref    a -> fun p v -> ref (swap a p !v)
   | Type.Rep.Pair (a, b) ->
     fun p (x, y) -> (swap a p x, swap b p y)
   | Type.Rep.Triple (a, b, c) ->

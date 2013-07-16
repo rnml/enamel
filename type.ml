@@ -46,7 +46,6 @@ module rec Rep : sig
     | List : 'a t -> 'a list t
     | Array : 'a t -> 'a array t
     | Lazy : 'a t -> 'a Lazy.t t
-    | Ref : 'a t -> 'a ref t
     | Pair : 'a t * 'b t -> ('a * 'b) t
     | Triple : 'a t * 'b t * 'c t -> ('a * 'b * 'c) t
     | Record of 'a Rep.Record.t
@@ -118,7 +117,6 @@ end = struct
     | List   _ -> assert false
     | Array  _ -> assert false
     | Lazy   _ -> assert false
-    | Ref    _ -> assert false
     | Pair   _ -> assert false
     | Triple _ -> assert false
 *)
@@ -148,11 +146,6 @@ end = struct
       | Some Type_equal.T -> Some Type_equal.T
     end
     | (Lazy a1, Lazy a2) -> begin
-      match same a1 a2 with
-      | None -> None
-      | Some Type_equal.T -> Some Type_equal.T
-    end
-    | (Ref a1, Ref a2) -> begin
       match same a1 a2 with
       | None -> None
       | Some Type_equal.T -> Some Type_equal.T
@@ -192,7 +185,6 @@ end = struct
     | (List _, _) -> None
     | (Array _, _) -> None
     | (Lazy _, _) -> None
-    | (Ref _, _) -> None
     | (Record _, _) -> None
     | (Variant _, _) -> None
     | (Pair _, _) -> None
