@@ -22,16 +22,16 @@ let rec swap : type a. a Type.Rep.t -> a computation = function
     fun p (x, y, z) -> (swap a p x, swap b p y, swap c p z)
   | Type.Rep.Record r ->
     let module R = (val r : Type.Rep.Record.T with type t = a) in
-    fun p (rcd : R.t) ->
-      let rep = R.project rcd in
+    fun p r ->
+      let rep = R.project r in
       let lookup (type a) (field : a R.field) : a =
         swap (R.Label.type_of field) p (rep.R.lookup field)
       in
       R.inject {R.lookup}
   | Type.Rep.Variant v ->
     let module V = (val v : Type.Rep.Variant.T with type t = a) in
-    fun p (vnt : V.t) ->
-      let V.Tagged (tag, arg) = V.project vnt in
+    fun p v ->
+      let V.Tagged (tag, arg) = V.project v in
       let arg = swap (V.Label.type_of tag) p arg in
       V.inject (V.Tagged (tag, arg))
   | Type.Rep.Abstract id ->
