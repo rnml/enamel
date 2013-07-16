@@ -1,14 +1,10 @@
 open Core.Std
 
-open Or_error.Monad_infix
-
 module Nm = New_name.Univ
 
-type 'a computation = 'a -> Nm.Set.t
+include New_name.Free_vars_registry
 
-let register = New_name.Free_vars_registry.register
-
-let rec fvs_aux : type a. a Type.Rep.t -> Nm.Set.t -> a computation = function
+let rec fvs_aux : type a. a Type.Rep.t -> a computation = function
   | Type.Rep.Int    -> fun acc _ -> acc
   | Type.Rep.Char   -> fun acc _ -> acc
   | Type.Rep.Float  -> fun acc _ -> acc
@@ -60,7 +56,7 @@ let rec fvs_aux : type a. a Type.Rep.t -> Nm.Set.t -> a computation = function
       let V.Tagged (tag, arg) = V.project vnt in
       fvs_aux (V.Label.type_of tag) acc arg
   | Type.Rep.Abstract id ->
-    match New_name.Free_vars_registry.lookup id with
+    match lookup id with
     | Some x -> x
     | None -> failwithf "no fvs defined for %s" (Type.Name.name id) ()
 

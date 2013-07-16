@@ -22,6 +22,7 @@ MODULES=\
   base \
   scc \
   free_vars \
+  swap \
   syntax \
   codegen \
   unbound \

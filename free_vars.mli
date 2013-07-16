@@ -1,8 +1,8 @@
 open Core.Std
 
-type 'a computation = 'a -> New_name.Univ.Set.t
+val fvs : 'a Type.Rep.t -> 'a -> New_name.Univ.Set.t
 
-val fvs : 'a Type.Rep.t -> 'a computation
+val register :
+  'a Type.Name.t -> (New_name.Univ.Set.t -> 'a -> New_name.Univ.Set.t) -> unit
 
-val register : 'a Type.Name.t -> (New_name.Univ.Set.t -> 'a computation) -> unit
 

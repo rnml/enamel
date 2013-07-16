@@ -30,5 +30,3 @@ end
   with type name := t
 
 module Make (X : sig end) : S
-
-
