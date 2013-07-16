@@ -90,7 +90,7 @@ module Z = struct
           { Animal.
             name = "lion";
             size = 55;
-            sound = Sound.Meow 23;
+            sound = Sound.Meow (Dollars.of_int 23);
           }
         in
         let sexp = Sexp_conv.to_sexp Animal.type_rep animal in

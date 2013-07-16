@@ -1,7 +1,30 @@
+
+module Dollars : sig
+  type t
+  val type_rep : t Type.Rep.t
+end = struct
+  module T = struct
+    type t = int
+    let to_string t = "$" ^ Int.to_string t
+    let of_string s =
+      match String.chop_prefix s ~prefix:"$" with
+      | None ->
+        failwiths "Dollars.of_string %S: missing $ prefix" s ()
+      | Some s -> Int.of_string s
+  end
+  include T
+  include Sexpable.To_stringable (T)
+  let type_name = Type.Name.create ~name:"Dollars"
+  let type_rep = Type.Rep.Abstract type_name
+  let () = Sexp_conv.register_to_sexp type_name sexp_of_t
+  let () = Sexp_conv.register_of_sexp type_name t_of_sexp
+  let of_int = Fn.id
+end
+
 module Sound = struct
   type t =
     | Roar
-    | Meow of int
+    | Meow of Dollars.t
     | Bark of string * int
   let type_rep =
     Type.Rep.Variant (module struct
@@ -82,7 +105,6 @@ module Animal = struct
 end
 
 module Tree = struct
-
   type t =
     | Empty
     | Node of t * int * t
@@ -120,11 +142,9 @@ module Tree = struct
 end
 
 module Even_odd_lists = struct
-
   type even =
     | Nil
     | Cons of int * odd
-
   and odd = {
     head : int;
     tail : even;
@@ -192,3 +212,4 @@ module Even_odd_lists = struct
     end : Type.Rep.Record.T with type t = odd)
 
 end
+

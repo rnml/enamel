@@ -1,5 +1,11 @@
+module Dollars : sig
+  type t
+  val type_rep : t Type.Rep.t
+  val of_int : int -> t
+end
+
 module Sound : sig
-  type t = Roar | Meow of int | Bark of string * int
+  type t = Roar | Meow of Dollars.t | Bark of string * int
   val type_rep : t Type.Rep.t
 end
 
