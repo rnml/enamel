@@ -1,6 +1,11 @@
 #+STARTUP: hidestars
 * todo list
-** ACTV define fv, fvp, swap for Bind, Rebind, Embed, Rec types
+** DONE define fvs for both term and pat
+** DONE define swap
+** define generics for Bind type
+** define generics for Rebind type
+** define generics for Embed type
+** define generics for Rec type
 ** define alpha_eq as a generic
 ** migrate systemf.ml over to generic implementation
 ** migrate "F-ing modules" types over as well
