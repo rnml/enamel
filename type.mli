@@ -25,7 +25,6 @@ module rec Rep : sig
     | Unit : unit t
     | Option : 'a t -> 'a option t
     | List : 'a t -> 'a list t
-    | Array : 'a t -> 'a array t
     | Lazy : 'a t -> 'a Lazy.t t
     | Pair : 'a t * 'b t -> ('a * 'b) t
     | Triple : 'a t * 'b t * 'c t -> ('a * 'b * 'c) t

@@ -17,9 +17,6 @@ let rec fvs_aux : type a. a Type.Rep.t -> a computation = function
   | Type.Rep.List a ->
     let fvs_a = fvs_aux a in
     fun acc v -> List.fold ~f:fvs_a ~init:acc v
-  | Type.Rep.Array a ->
-    let fvs_a = fvs_aux a in
-    fun acc v -> Array.fold ~f:fvs_a ~init:acc v
   | Type.Rep.Lazy a ->
     fun acc v -> fvs_aux a acc (Lazy.force v)
   | Type.Rep.Pair (a, b) ->
