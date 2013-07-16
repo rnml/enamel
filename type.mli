@@ -4,9 +4,19 @@ module Equal :
 module type of Type_equal
   with type ('a, 'b) t = ('a, 'b) Type_equal.t
 
-module Name :
-module type of Type_equal.Id
-  with type 'a t = 'a Type_equal.Id.t
+module Name : sig
+  include module type of Type_equal.Id
+    with type 'a t = 'a Type_equal.Id.t
+  module Make1 (X : T1) : sig
+    val lookup : 'a t -> 'a X.t t
+  end
+  module Make2 (X : T2) : sig
+    val lookup : 'a t -> 'b t -> ('a, 'b) X.t t
+  end
+  module Make3 (X : T3) : sig
+    val lookup : 'a t -> 'b t -> 'c t -> ('a, 'b, 'c) X.t t
+  end
+end
 
 module Registry (Data : sig type 'a t end) : sig
   val register  : 'a Name.t -> 'a Data.t -> unit
