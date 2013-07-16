@@ -5,6 +5,8 @@ module Bind = struct
   let unbind _ = failwith "Bind.unbind unimplemented"
   module Type_name = Type.Name.Make2 (struct type nonrec ('p, 't) t = ('p, 't) t end)
   let type_name = Type_name.lookup
+  let type_rep a b =
+    Type.Rep.Abstract (type_name (Type.Rep.id a) (Type.Rep.id b))
 end
 
 module Rebind = struct
@@ -12,6 +14,8 @@ module Rebind = struct
   let create p1 p2 = (p1, p2)
   module Type_name = Type.Name.Make2 (struct type nonrec ('p1, 'p2) t = ('p1, 'p2) t end)
   let type_name = Type_name.lookup
+  let type_rep a b =
+    Type.Rep.Abstract (type_name (Type.Rep.id a) (Type.Rep.id b))
 end
 
 module Embed = struct
@@ -19,6 +23,7 @@ module Embed = struct
   let create x = x
   module Type_name = Type.Name.Make1 (struct type nonrec 't t = 't t end)
   let type_name = Type_name.lookup
+  let type_rep a = Type.Rep.Abstract (type_name (Type.Rep.id a))
 end
 
 module Rec = struct
@@ -26,5 +31,6 @@ module Rec = struct
   let create x = x
   module Type_name = Type.Name.Make1 (struct type nonrec 'p t = 'p t end)
   let type_name = Type_name.lookup
+  let type_rep a = Type.Rep.Abstract (type_name (Type.Rep.id a))
 end
 
