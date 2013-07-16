@@ -2,7 +2,7 @@ open Core.Std
 
 module Nm = New_name.Univ
 
-include New_name.Swap_registry
+include New_name.Registry.Swap
 
 let rec swap : type a. a Type.Rep.t -> a computation = function
   | Type.Rep.Int    -> fun _ x -> x

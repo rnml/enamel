@@ -88,14 +88,21 @@ end
 
 type 'a t = Univ.t
 
-module Free_vars_registry = struct
-  type 'a computation = Univ.Set.t -> 'a -> Univ.Set.t
-  include Type.Registry (struct type 'a t = 'a computation end)
-end
-
-module Swap_registry = struct
-  type 'a computation = Univ.t * Univ.t -> 'a -> 'a
-  include Type.Registry (struct type 'a t = 'a computation end)
+module Registry = struct
+  module Free_vars = struct
+    module Term = struct
+      type 'a computation = Univ.Set.t -> 'a -> Univ.Set.t
+      include Type.Registry (struct type 'a t = 'a computation end)
+    end
+    module Pat = struct
+      type 'a computation = Univ.Set.t -> 'a -> Univ.Set.t
+      include Type.Registry (struct type 'a t = 'a computation end)
+    end
+  end
+  module Swap = struct
+    type 'a computation = Univ.t * Univ.t -> 'a -> 'a
+    include Type.Registry (struct type 'a t = 'a computation end)
+  end
 end
 
 module type S = sig
@@ -132,7 +139,11 @@ module Make (X : sig type a val name : string end) = struct
   let type_name = Type.Name.create ~name:X.name
   let type_rep = Type.Rep.Abstract type_name
 
-  let () = Free_vars_registry.register type_name Univ.Set.add
-  let () = Swap_registry.register      type_name Univ.swap
+  include struct
+    open Registry
+    let () = Free_vars.Term.register type_name Univ.Set.add
+    let () = Free_vars.Pat.register  type_name (fun s _ -> s)
+    let () = Swap.register           type_name Univ.swap
+  end
 
 end
