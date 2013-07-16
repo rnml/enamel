@@ -26,6 +26,8 @@ module type S = sig
   type 'a name
   type a
   type t = a name with of_sexp
+  val type_name : t Type.Name.t
+  val type_rep : t Type.Rep.t
   val of_string : string -> t
   include T with type t := t
   val to_univ : t -> Univ.t
@@ -36,5 +38,10 @@ module type S = sig
 end
   with type 'a name := 'a t
 
-module Make (X : sig type a end) : S with type a := X.a
+module Make (X : sig type a val name : string end) :
+  S with type a := X.a
 
+module Free_vars_registry : sig
+  val register : 'a Type.Name.t -> (Univ.Set.t -> 'a -> Univ.Set.t) -> unit
+  val lookup : 'a Type.Name.t -> (Univ.Set.t -> 'a -> Univ.Set.t) option
+end

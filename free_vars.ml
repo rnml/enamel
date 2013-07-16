@@ -6,13 +6,7 @@ module Nm = New_name.Univ
 
 type 'a computation = 'a -> Nm.Set.t
 
-module Registry =
-  Type.Registry (struct type 'a t = Nm.Set.t -> 'a computation end)
-
-let register = Registry.register
-
-let register_name ty_name to_univ =
-  Registry.register ty_name (fun acc x -> Set.add acc (to_univ x))
+let register = New_name.Free_vars_registry.register
 
 let rec fvs_aux : type a. a Type.Rep.t -> Nm.Set.t -> a computation = function
   | Type.Rep.Int    -> fun acc _ -> acc
@@ -66,7 +60,7 @@ let rec fvs_aux : type a. a Type.Rep.t -> Nm.Set.t -> a computation = function
       let V.Tagged (tag, arg) = V.project vnt in
       fvs_aux (V.Label.type_of tag) acc arg
   | Type.Rep.Abstract id ->
-    match Registry.lookup id with
+    match New_name.Free_vars_registry.lookup id with
     | Some x -> x
     | None -> failwithf "no fvs defined for %s" (Type.Name.name id) ()
 

@@ -10,6 +10,9 @@ MODULES=\
   pretty \
   std_internal \
   constant \
+  type \
+  sexp_conv \
+  type_rep_example \
   name \
   new_name \
   systemf \
@@ -18,11 +21,8 @@ MODULES=\
   initial_context \
   base \
   scc \
-  type \
-  sexp_conv \
-  type_rep_example \
-  syntax \
   free_vars \
+  syntax \
   codegen \
   unbound \
   main \

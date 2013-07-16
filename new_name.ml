@@ -88,10 +88,17 @@ end
 
 type 'a t = Univ.t
 
+module Free_vars_registry =
+  Type.Registry (struct
+    type 'a t = Univ.Set.t -> 'a -> Univ.Set.t
+  end)
+
 module type S = sig
   type 'a name
   type a
   type t = a name with of_sexp
+  val type_name : t Type.Name.t
+  val type_rep : t Type.Rep.t
   val of_string : string -> t
   include T with type t := t
   val to_univ : t -> Univ.t
@@ -102,7 +109,7 @@ module type S = sig
 end
   with type 'a name := 'a t
 
-module Make (X : sig type a end) = struct
+module Make (X : sig type a val name : string end) = struct
   let kind = Uid.create ()
   module U = struct
     include Univ
@@ -116,5 +123,11 @@ module Make (X : sig type a end) = struct
 
   let raw name = {kind; basic = Basic.create ~name ~stamp:None}
   let preferred t = {kind; basic = Basic.preferred t.basic}
+
+  let type_name = Type.Name.create ~name:X.name
+  let type_rep = Type.Rep.Abstract type_name
+
+  let () =
+    Free_vars_registry.register type_name (fun acc x -> Univ.Set.add acc (to_univ x))
 
 end

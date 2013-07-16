@@ -1,4 +1,6 @@
 #+STARTUP: hidestars
+* todo list
+** define all syntax with type-reps
 * elisp-like auto-documentation
 * syntax
 ** lua-style balanced keywords
