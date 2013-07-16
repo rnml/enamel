@@ -1,6 +1,9 @@
 #+STARTUP: hidestars
 * todo list
-** define all syntax with type-reps
+** ACTV define fv, fvp, swap for Bind, Rebind, Embed, Rec types
+** define alpha_eq as a generic
+** migrate systemf.ml over to generic implementation
+** migrate "F-ing modules" types over as well
 * elisp-like auto-documentation
 * syntax
 ** lua-style balanced keywords

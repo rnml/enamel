@@ -42,7 +42,7 @@ module rec Rep : sig
     | Variant of 'a Rep.Variant.t
     | Abstract of 'a Name.t
 
-  (* val id : 'a t -> 'a Name.t *)
+  val id : 'a t -> 'a Name.t
   val same : 'a t -> 'b t -> ('a, 'b) Equal.t option
 
   module type Labeled = sig
