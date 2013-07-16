@@ -132,9 +132,7 @@ module Make (X : sig type a val name : string end) = struct
   let type_name = Type.Name.create ~name:X.name
   let type_rep = Type.Rep.Abstract type_name
 
-  let () =
-    Free_vars_registry.register type_name Univ.Set.add;
-    Swap_registry.register type_name Univ.swap
-  ;;
+  let () = Free_vars_registry.register type_name Univ.Set.add
+  let () = Swap_registry.register      type_name Univ.swap
 
 end
