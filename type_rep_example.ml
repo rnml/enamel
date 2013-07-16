@@ -1,7 +1,9 @@
+open Core.Std
 
 module Dollars : sig
   type t
   val type_rep : t Type.Rep.t
+  val of_int : int -> t
 end = struct
   module T = struct
     type t = int
@@ -9,11 +11,11 @@ end = struct
     let of_string s =
       match String.chop_prefix s ~prefix:"$" with
       | None ->
-        failwiths "Dollars.of_string %S: missing $ prefix" s ()
+        failwithf "Dollars.of_string %S: missing $ prefix" s ()
       | Some s -> Int.of_string s
   end
   include T
-  include Sexpable.To_stringable (T)
+  include Sexpable.Of_stringable (T)
   let type_name = Type.Name.create ~name:"Dollars"
   let type_rep = Type.Rep.Abstract type_name
   let () = Sexp_conv.register_to_sexp type_name sexp_of_t
@@ -34,7 +36,7 @@ module Sound = struct
       module Label = struct
         type 'a t =
         | Roar : unit t
-        | Meow : int t
+        | Meow : Dollars.t t
         | Bark : (string * int) t
         let name_of : type a. a t -> string = function
           | Roar -> "roar"
@@ -42,7 +44,7 @@ module Sound = struct
           | Bark -> "bark"
         let type_of : type a. a t -> a Type.Rep.t = function
           | Roar -> Type.Rep.Unit
-          | Meow -> Type.Rep.Int
+          | Meow -> Dollars.type_rep
           | Bark -> Type.Rep.(Pair (String, Int))
         type univ = Label : 'a t -> univ
         let all = [Label Roar; Label Bark; Label Meow]
