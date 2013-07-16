@@ -18,10 +18,13 @@ module Name : sig
   end
 end
 
-module Registry (Data : sig type 'a t end) : sig
-  val register  : 'a Name.t -> 'a Data.t -> unit
-  val lookup : 'a Name.t -> 'a Data.t option
+module type Registry = sig
+  type 'a t
+  val register  : 'a Name.t -> 'a t -> unit
+  val lookup : 'a Name.t -> 'a t option
 end
+
+module Registry (Data : sig type 'a t end) : Registry with type 'a t := 'a Data.t
 
 (** runtime type representations *)
 module rec Rep : sig
