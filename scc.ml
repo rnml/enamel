@@ -16,22 +16,26 @@ end) = struct
 
   module rec Tree : sig
     type 'a t = Node of 'a * 'a Forest.t
-    val post_order : 'a t -> 'a list
     val pre_order : 'a t -> 'a list
+    val post_order : 'a t -> 'a list
+    val post_order_aux : 'a t -> 'a list -> 'a list
   end = struct
     type 'a t = Node of 'a * 'a Forest.t
-    let post_order (Node (x, f)) = Forest.post_order f @ [x]
     let pre_order  (Node (x, f)) = x :: Forest.pre_order f
+    let post_order_aux (Node (x, f)) acc = Forest.post_order_aux f (x :: acc)
+    let post_order ts = post_order_aux ts []
   end
 
   and Forest : sig
     type 'a t = 'a Tree.t list
-    val post_order : 'a t -> 'a list
     val pre_order : 'a t -> 'a list
+    val post_order : 'a t -> 'a list
+    val post_order_aux : 'a t -> 'a list -> 'a list
   end = struct
     type 'a t = 'a Tree.t list
-    let post_order ts = List.concat_map ts ~f:Tree.post_order
     let pre_order  ts = List.concat_map ts ~f:Tree.pre_order
+    let post_order_aux ts acc = List.fold_right ts ~f:Tree.post_order_aux ~init:acc
+    let post_order ts = post_order_aux ts []
   end
 
   module Graph = struct
