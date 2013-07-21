@@ -10,7 +10,7 @@ MODULES=\
   pretty \
   std_internal \
   constant \
-  new_name \
+  name \
   free_vars \
   swap \
   unbound \
@@ -20,7 +20,6 @@ MODULES=\
   initial_context \
   base \
   scc \
-  syntax \
   main \
 
 B=

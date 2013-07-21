@@ -8,8 +8,8 @@ module Bind = struct
 
   let fvs_term a b acc (p, t) =
     Set.union acc begin
-      let p = Free_vars.Pat.fv_aux  a New_name.Univ.Set.empty p in
-      let t = Free_vars.Term.fv_aux b New_name.Univ.Set.empty t in
+      let p = Free_vars.Pat.fv_aux  a Name.Univ.Set.empty p in
+      let t = Free_vars.Term.fv_aux b Name.Univ.Set.empty t in
       Set.diff t p
     end
 

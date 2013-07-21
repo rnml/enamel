@@ -20,16 +20,16 @@ end
 module Type = struct
 
   type t =
-    | Name of t New_name.t
+    | Name of t Name.t
     | Arr of t * t
     | Record of t Label.Map.t
-    | Forall of t New_name.t * Kind.t * t
-    | Exists of t New_name.t * Kind.t * t
-    | Fun of t New_name.t * Kind.t * t
+    | Forall of t Name.t * Kind.t * t
+    | Exists of t Name.t * Kind.t * t
+    | Fun of t Name.t * Kind.t * t
     | App of t * t
   with sexp
 
-  module Name = New_name.Make (struct
+  module Name = Name.Make (struct
     type nonrec a = t
     let name = "Type.Name"
   end)
@@ -110,8 +110,8 @@ end
 module Expr = struct
 
   type t =
-    | Name of t New_name.t
-    | Fun of t New_name.t * Type.t * t
+    | Name of t Name.t
+    | Fun of t Name.t * Type.t * t
     | App of t * t
     | Record of t Label.Map.t
     | Dot of t * Label.t
@@ -119,16 +119,16 @@ module Expr = struct
     | Ty_app of t * Type.t
     | Pack of (* pack <ty, tm> : exists a. ty *)
         Type.t * t * Type.Name.t * Type.t
-    | Unpack of Type.Name.t * t New_name.t * t * t
-    | Let of t New_name.t * t * t
+    | Unpack of Type.Name.t * t Name.t * t * t
+    | Let of t Name.t * t * t
   with sexp
 
   module Name = struct
-    include New_name.Make (struct
+    include Name.Make (struct
       type nonrec a = t
       let name = "Type.Name"
     end)
-    let to_label t = to_univ t |> New_name.Univ.to_string |> Label.of_string
+    let to_label t = to_univ t |> Name.Univ.to_string |> Label.of_string
     let of_label l = Label.to_string l |> raw
   end
 

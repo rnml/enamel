@@ -1,6 +1,6 @@
 open Std_internal
 
-module Nm = New_name.Univ
+module Nm = Name.Univ
 
 module type Registry = sig
   val generic_name : string
@@ -64,10 +64,10 @@ end
 
 module Term = Make (struct
   let generic_name = "Term.fvs"
-  include New_name.Registry.Free_vars.Term
+  include Name.Registry.Free_vars.Term
 end)
 
 module Pat = Make (struct
   let generic_name = "Pat.fvs"
-  include New_name.Registry.Free_vars.Pat
+  include Name.Registry.Free_vars.Pat
 end)

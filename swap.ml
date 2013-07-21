@@ -1,8 +1,8 @@
 open Std_internal
 
-module Nm = New_name.Univ
+module Nm = Name.Univ
 
-include New_name.Registry.Swap
+include Name.Registry.Swap
 
 let rec swap : type a. a Type.Rep.t -> a t = function
   | Type.Rep.Int    -> fun _ x -> x
