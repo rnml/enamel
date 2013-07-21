@@ -1,34 +1,19 @@
 ### PARAMETERS #####################################################
 
-PACKAGES=core core_extended
-INCLUDES= -I typerep
-LIBRARIES= typerep
+PACKAGES=core
+INCLUDES=
+LIBRARIES=
 SYNTAX=comparelib sexplib
-
 MODULES=\
-  string_pad \
-  pretty \
-  std_internal \
-  constant \
-  name \
-  new_name \
-  free_vars \
-  swap \
-  common \
-  systemf \
-  target \
-  module_system \
-  initial_context \
-  base \
-  scc \
-  syntax \
-  codegen \
-  unbound \
-  main \
+  type \
+  sexp_conv \
+  type_rep_example \
+  std
 
-B=
-T=main.exe
-FOR_PACK_OPT=
+B= typerep
+T=$B.cmxa
+
+FOR_PACK_OPT=-for-pack Typerep
 
 ### RULES ##########################################################
 

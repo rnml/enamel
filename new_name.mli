@@ -1,4 +1,4 @@
-open Core.Std
+open Std_internal
 
 (* we want
    (1) typed names, so that [term name] and [type name] are

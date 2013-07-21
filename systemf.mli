@@ -1,3 +1,4 @@
+open Std_internal
 
 module Kind : sig
   type t =

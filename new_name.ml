@@ -1,6 +1,4 @@
-open Core.Std
-
-open Int.Replace_polymorphic_compare
+open Std_internal
 
 module Uid = Unique_id.Int (struct end)
 
@@ -140,10 +138,9 @@ module Make (X : sig type a val name : string end) = struct
   let type_rep = Type.Rep.Abstract type_name
 
   include struct
-    open Registry
-    let () = Free_vars.Term.register type_name Univ.Set.add
-    let () = Free_vars.Pat.register  type_name (fun s _ -> s)
-    let () = Swap.register           type_name Univ.swap
+    let () = Registry.Free_vars.Term.register type_name Univ.Set.add
+    let () = Registry.Free_vars.Pat.register  type_name (fun s _ -> s)
+    let () = Registry.Swap.register           type_name Univ.swap
   end
 
 end

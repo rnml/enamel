@@ -1,4 +1,4 @@
-open Core.Std
+open Std_internal
 
 module Nm = New_name.Univ
 

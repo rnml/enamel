@@ -1,4 +1,4 @@
-open Core.Std
+open Std_internal
 
 type 'a computation = New_name.Univ.t * New_name.Univ.t -> 'a -> 'a
 

@@ -1,3 +1,4 @@
+open Std_internal
 
 module Bind : sig
   type ('pat, 'term) t
