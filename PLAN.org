@@ -1,8 +1,8 @@
 #+STARTUP: hidestars
 * todo list
 ** DONE define fvs for both term and pat
-** DONE define open/close
 ** DONE define swap
+** DONE name permutations
 ** define generics for Bind type
 ** define generics for Rebind type
 ** define generics for Embed type

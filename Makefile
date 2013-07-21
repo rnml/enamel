@@ -3,12 +3,14 @@
 PACKAGES=core core_extended
 INCLUDES= -I typerep
 LIBRARIES= typerep
-SYNTAX=comparelib sexplib
+SYNTAX=comparelib sexplib bin_prot
 
 MODULES=\
+  std_internal \
   string_pad \
   pretty \
-  std_internal \
+  scc \
+  perm \
   constant \
   name \
   free_vars \
@@ -19,7 +21,6 @@ MODULES=\
   module_system \
   initial_context \
   base \
-  scc \
   main \
 
 B=

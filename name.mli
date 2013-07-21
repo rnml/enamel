@@ -35,6 +35,7 @@ module type S = sig
   val cast    : _ name -> t
   val raw : string -> t
   val preferred : t -> t
+  module Perm : Perm.S with type elt := t
 end
   with type 'a name := 'a t
 

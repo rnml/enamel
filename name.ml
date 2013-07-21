@@ -10,9 +10,8 @@ module type T = sig
 end
 
 module Basic : sig
-  type t with sexp
-  include Stringable.S with type t := t
-  include Comparable.S with type t := t
+  type t
+  include Identifiable with type t := t
   val create : name:string -> stamp:int option -> t
   val preferred : t -> t
   val freshen : t -> t
@@ -20,10 +19,11 @@ end = struct
 
   module U = struct
     module T = struct
+      let module_name = "Name"
       type t = {
         name : string;
         stamp : int option;
-      } with compare
+      } with compare, bin_io
       let hash = Hashtbl.hash
       let equal t1 t2 = (compare t1 t2 = 0)
       let to_string t =
@@ -43,8 +43,7 @@ end = struct
     include Sexpable.Of_stringable (T)
   end
   include U
-  include Comparable.Make (U)
-  include Hashable.Make (U)
+  include Identifiable.Make (U)
 
   module Weak = Caml.Weak.Make (T)
 
@@ -71,11 +70,20 @@ end = struct
 end
 
 module Univ = struct
-  module T = struct
-    type t = {kind : Uid.t; basic : Basic.t} with compare, sexp
+  module U = struct
+    let module_name = "Name.Univ"
+    module T = struct
+      type t = {
+        kind : Uid.t;
+        basic : Basic.t;
+      } with compare, sexp, bin_io
+      let hash (t:t) = Hashtbl.hash t
+    end
+    include T
+    include Sexpable.To_stringable (T)
   end
-  include T
-  include Comparable.Make (T)
+  include U
+  include Identifiable.Make (U)
   let to_string t = Basic.to_string t.basic
   let swap (a, b) c =
     if (**) c = a then b
@@ -113,17 +121,14 @@ module type S = sig
   val cast    : _ name -> t
   val raw : string -> t
   val preferred : t -> t
+  module Perm : Perm.S with type elt := t
 end
   with type 'a name := 'a t
 
 module Make (X : sig type a val name : string end) = struct
   let kind = Uid.create ()
-  module U = struct
-    include Univ
-    let of_string x = { kind; basic = Basic.of_string x }
-  end
-  include U
-  include Sexpable.Of_stringable (U)
+  include Univ
+  let of_string x = { kind; basic = Basic.of_string x }
   let to_univ u = u
   let of_univ u = if Uid.equal u.kind kind then Some u else None
   let cast t = { kind; basic = t.basic }
@@ -139,5 +144,7 @@ module Make (X : sig type a val name : string end) = struct
     let () = Registry.Free_vars.Pat.register  type_name (fun s _ -> s)
     let () = Registry.Swap.register           type_name Univ.swap
   end
+
+  module Perm = Perm.Make (Univ)
 
 end
