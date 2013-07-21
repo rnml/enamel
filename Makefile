@@ -22,8 +22,6 @@ MODULES=\
   base \
   scc \
   syntax \
-  codegen \
-  unbound \
   main \
 
 B=

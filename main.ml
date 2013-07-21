@@ -8,7 +8,6 @@ include struct
   open Uid
   open Target
   open Module_system
-  open Unbound
 end
 
 module F = Systemf
@@ -69,16 +68,6 @@ let init_ctx_command =
       |> print_endline
     )
 
-let unbound_gen_command =
-  Command.basic ~summary:"generate unbound typing context"
-    Command.Spec.(empty +> anon ("SPEC" %: file))
-    (fun path () ->
-      Sexp.load_sexp_conv_exn path Unbound.Compile_time.Env.t_of_sexp
-      |> Unbound.Compile_time.Env.type_defs
-      |> Core_extended.Std.Text_block.render
-      |> print_endline
-    )
-
 module Z = struct
 
   let command =
@@ -107,7 +96,6 @@ let command =
     ("check-type",   check_type_command);
     ("elaborate",    elaborate_command);
     ("initial-ctx",  init_ctx_command);
-    ("unbound-gen",  unbound_gen_command);
     ("z",            Z.command);
   ]
 
