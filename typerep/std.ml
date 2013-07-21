@@ -1,2 +1,2 @@
-module Type = Type
 module Generic = Generic
+module Type    = Type
