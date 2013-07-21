@@ -4,7 +4,7 @@ module Nm = New_name.Univ
 
 include New_name.Registry.Swap
 
-let rec swap : type a. a Type.Rep.t -> a computation = function
+let rec swap : type a. a Type.Rep.t -> a t = function
   | Type.Rep.Int    -> fun _ x -> x
   | Type.Rep.Char   -> fun _ x -> x
   | Type.Rep.Float  -> fun _ x -> x

@@ -88,19 +88,16 @@ type 'a t = Univ.t
 
 module Registry = struct
   module Free_vars = struct
-    module Term = struct
-      type 'a computation = Univ.Set.t -> 'a -> Univ.Set.t
-      include Type.Registry (struct type 'a t = 'a computation end)
-    end
-    module Pat = struct
-      type 'a computation = Univ.Set.t -> 'a -> Univ.Set.t
-      include Type.Registry (struct type 'a t = 'a computation end)
-    end
+    module Term = Generic.Make (struct
+      type 'a t = Univ.Set.t -> 'a -> Univ.Set.t
+    end)
+    module Pat = Generic.Make (struct
+      type 'a t = Univ.Set.t -> 'a -> Univ.Set.t
+    end)
   end
-  module Swap = struct
-    type 'a computation = Univ.t * Univ.t -> 'a -> 'a
-    include Type.Registry (struct type 'a t = 'a computation end)
-  end
+  module Swap = Generic.Make (struct
+    type 'a t = Univ.t * Univ.t -> 'a -> 'a
+  end)
 end
 
 module type S = sig

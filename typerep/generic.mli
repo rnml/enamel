@@ -6,5 +6,5 @@ module type S = sig
   val lookup : 'a Type.Name.t -> 'a t option
 end
 
-module Make (X : T1) : S with type 'a t := 'a X.t
+module Make (X : T1) : S with type 'a t = 'a X.t
 

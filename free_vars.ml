@@ -4,15 +4,14 @@ module Nm = New_name.Univ
 
 module type Registry = sig
   val generic_name : string
-  include Type.Registry
-    with type 'a computation = Nm.Set.t -> 'a -> Nm.Set.t
+  include Generic.S with type 'a t = Nm.Set.t -> 'a -> Nm.Set.t
 end
 
 module Make (Registry : Registry) = struct
 
   include Registry
 
-  let rec fv_aux : type a. a Type.Rep.t -> a computation = function
+  let rec fv_aux : type a. a Type.Rep.t -> a t = function
     | Type.Rep.Int    -> fun acc _ -> acc
     | Type.Rep.Char   -> fun acc _ -> acc
     | Type.Rep.Float  -> fun acc _ -> acc

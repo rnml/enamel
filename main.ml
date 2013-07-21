@@ -93,13 +93,9 @@ module Z = struct
             sound = Sound.Meow (Dollars.of_int 23);
           }
         in
-        let sexp =
-          Typerep.Sexp_conv.to_sexp Animal.type_rep animal
-        in
+        let sexp = Sexp_conv.to_sexp Animal.type_rep animal in
         print_endline (Sexp.to_string_hum sexp);
-        let animal' =
-          Typerep.Sexp_conv.of_sexp Animal.type_rep sexp
-        in
+        let animal' = Sexp_conv.of_sexp Animal.type_rep sexp in
         let open Polymorphic_compare in
         assert (animal = animal')
       )
