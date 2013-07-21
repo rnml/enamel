@@ -155,7 +155,7 @@ end) = struct
         Target.Asig.Exists ([], Target.Csig.Type (t, k))
       | Abstype k ->
         let k = Kind.ok ctx k in
-        let a = F.Type.Name.dummy in
+        let a = assert false (* F.Type.Name.dummy *) in
         let t = F.Type.Name a in
         Target.Asig.Exists ([(a, k)], Target.Csig.Type (t, k))
       | Sig s ->
@@ -399,7 +399,7 @@ end) = struct
           ( asig
           , F.Expr.pack taks (f (F.Expr.Name x)) (Target.Csig.to_f csig') ))
       | Let (b, m) -> (* derived form *)
-        let x = F.Expr.Name.dummy in
+        let x = assert false (* F.Expr.Name.dummy *) in
         let lx = F.Expr.Name.to_label x in
         let m =  Dot (Struct (Bnd.Cat (b, Bnd.Let (x, m))), lx) in
         ok ctx m

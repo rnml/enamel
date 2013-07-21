@@ -37,13 +37,13 @@ end = struct
   let rec to_f = function
     | Val t -> t
     | Type (t, k) ->
-      let p = Type.Name.next (Type.Name.raw "p") ~not_in:(Type.fvs t) in
+      let p = assert false in
       Type.Forall
         ( p
-            , Kind.Arr (k, Kind.Star)
-              , Type.Arr
-                ( Type.App (Type.Name p, t)
-                    , Type.App (Type.Name p, t)))
+        , Kind.Arr (k, Kind.Star)
+        , Type.Arr
+          ( Type.App (Type.Name p, t)
+          , Type.App (Type.Name p, t)))
     | Sig asig ->
       let asig = Asig.to_f asig in
       Type.Arr (asig, asig)
@@ -70,34 +70,7 @@ end = struct
     in
     swap
 
-  let subst t sub =
-    let rec subst = function
-      | Val t -> Val (Type.subst t sub)
-      | Type (t, k) -> Type (Type.subst t sub, k)
-      | Sig asig -> Sig (Asig.subst asig sub)
-      | Struct map -> Struct (Label.Map.map map ~f:subst)
-      | Fun (aks, csig, asig) ->
-        let (aks, csig, asig, _) =
-          let (+) = Set.union in
-          let (-) = Set.remove in
-          let rec freshen aks csig asig fvs =
-            match aks with
-            | [] -> ([], csig, asig, fvs)
-            | (a, k) :: aks ->
-              let (aks, csig, asig, fvs) = freshen aks csig asig fvs in
-              let a' = Type.Name.next a ~not_in:fvs in
-              ( (a', k) :: aks
-                  , swap (a, a') csig
-                    , Asig.swap (a, a') asig
-                      , Set.add (fvs - a) a' )
-          in
-          freshen aks csig asig begin
-            fvs csig + Asig.fvs asig + Type.fvs (snd sub)
-          end
-        in
-        Fun (aks, subst csig, Asig.subst asig sub)
-    in
-    subst t
+  let subst _ _ = assert false
 
   let rec sub ctx csig1 csig2 =
     match (csig1, csig2) with
@@ -144,15 +117,16 @@ end = struct
       `Coerce (fun f ->
         List.fold_right ~f:(fun (a, k) e -> Expr.Ty_fun (a, k, e)) aks2
           ~init:begin
-            let x = Expr.Name.dummy in
-            Expr.Fun (x, Csig.to_f csig2,
-                      frng begin
-                        Expr.App
-                          ( List.fold tks ~init:f
-                              ~f:(fun e (t, _k) -> Expr.Ty_app (e, t))
-                              , fdom (Expr.Name x) )
-                      end
-            )
+            let x = assert false (* Expr.Name.dummy *) in
+            Expr.Fun
+              ( x
+              , Csig.to_f csig2
+              , frng begin
+                  Expr.App
+                    ( List.fold tks ~init:f
+                        ~f:(fun e (t, _k) -> Expr.Ty_app (e, t))
+                        , fdom (Expr.Name x) )
+                end )
           end
       )
     | _ -> failwith "signature mismatch"
@@ -236,7 +210,7 @@ end = struct
         | [] -> ([], csig, fvs)
         | (a, k) :: aks ->
           let (aks, csig, fvs) = freshen aks csig fvs in
-          let a' = Type.Name.next a ~not_in:fvs in
+          let a' = assert false (* Type.Name.next a ~not_in:fvs *) in
           ( (a', k) :: aks
           , Csig.swap (a, a') csig
           , Set.add (fvs - a) a' )
@@ -252,7 +226,7 @@ end = struct
     | (Exists (aks1, csig1), (Exists (aks2, csig2) as asig2)) ->
       let (ts, `Coerce f) = Csig.matches ctx csig1 asig2 in
       `Coerce (fun x ->
-        let y = Expr.Name.dummy in
+        let y = assert false (* Expr.Name.dummy *) in
         let taks =
           List.map ~f:(fun ((a, k), (t, _)) -> (t, a, k))
             (List.zip_exn aks2 ts)

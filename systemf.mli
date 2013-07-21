@@ -8,11 +8,21 @@ module Kind : sig
   val equal : t -> t -> bool
 end
 
-module Label : Name.S
+module Label : Identifiable
 
 module Type : sig
 
-  module Name : Name.S
+  type t =
+    | Name of t New_name.t
+    | Arr of t * t
+    | Record of t Label.Map.t
+    | Forall of t New_name.t * Kind.t * t
+    | Exists of t New_name.t * Kind.t * t
+    | Fun of t New_name.t * Kind.t * t
+    | App of t * t
+  with sexp
+
+  module Name : New_name.S with type a := t
 
   module Context : sig
     type t with sexp
@@ -20,16 +30,6 @@ module Type : sig
     val add   : t -> Name.t -> Kind.t -> t
     val find  : t -> Name.t -> Kind.t option
   end
-
-  type t =
-    | Name of Name.t
-    | Arr of t * t
-    | Record of t Label.Map.t
-    | Forall of Name.t * Kind.t * t
-    | Exists of Name.t * Kind.t * t
-    | Fun of Name.t * Kind.t * t
-    | App of t * t
-  with sexp
 
   val fvs : t -> Name.Set.t
   val swap : Name.t * Name.t -> t -> t
@@ -39,24 +39,24 @@ end
 
 module Expr : sig
 
-  module Name : sig
-    include Name.S
-    val to_label : t -> Label.t
-    val of_label : Label.t -> t
-  end
-
   type t =
-    | Name of Name.t
-    | Fun of Name.t * Type.t * t
+    | Name of t New_name.t
+    | Fun of t New_name.t * Type.t * t
     | App of t * t
     | Record of t Label.Map.t
     | Dot of t * Label.t
     | Ty_fun of Type.Name.t * Kind.t * t
     | Ty_app of t * Type.t
     | Pack of Type.t * t * Type.Name.t * Type.t
-    | Unpack of Type.Name.t * Name.t * t * t
-    | Let of Name.t * t * t
+    | Unpack of Type.Name.t * t New_name.t * t * t
+    | Let of t New_name.t * t * t
   with sexp
+
+  module Name : sig
+    include New_name.S with type a := t
+    val to_label : t -> Label.t
+    val of_label : Label.t -> t
+  end
 
   val type_mod : Type.t -> Kind.t -> t
   val sig_mod : Type.t -> t

@@ -10,7 +10,6 @@ MODULES=\
   pretty \
   std_internal \
   constant \
-  name \
   new_name \
   free_vars \
   swap \

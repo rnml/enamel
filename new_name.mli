@@ -20,7 +20,7 @@ end
 
 module Univ : T
 
-type 'a t
+type 'a t with sexp
 
 module type S = sig
   type 'a name

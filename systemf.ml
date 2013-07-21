@@ -9,11 +9,30 @@ module Kind = struct
     | _ -> false
 end
 
-module Label : Name.S = Name.Make (struct end)
+module Label : Identifiable = struct
+  type t = string
+  include Identifiable.Make (struct
+    include String
+    let module_name = "Label"
+  end)
+end
 
 module Type = struct
 
-  module Name : Name.S = Name.Make (struct end)
+  type t =
+    | Name of t New_name.t
+    | Arr of t * t
+    | Record of t Label.Map.t
+    | Forall of t New_name.t * Kind.t * t
+    | Exists of t New_name.t * Kind.t * t
+    | Fun of t New_name.t * Kind.t * t
+    | App of t * t
+  with sexp
+
+  module Name = New_name.Make (struct
+    type nonrec a = t
+    let name = "Type.Name"
+  end)
 
   module Names = struct
     include Name.Set
@@ -21,16 +40,6 @@ module Type = struct
     let (+) = union
     let (-) = remove
   end
-
-  type t =
-    | Name of Name.t
-    | Arr of t * t
-    | Record of t Label.Map.t
-    | Forall of Name.t * Kind.t * t
-    | Exists of Name.t * Kind.t * t
-    | Fun of Name.t * Kind.t * t
-    | App of t * t
-  with sexp
 
   let rec fvs =
     let open Names in
@@ -45,65 +54,13 @@ module Type = struct
       | Exists (x, _, t)
       | Fun (x, _, t) -> fvs t - x
 
-  let swap p =
-    let rec swap = function
-      | Name a -> Name (Name.swap p a)
-      | Record m -> Record (Label.Map.map m ~f:swap)
-      | App (t1, t2) -> App (swap t1, swap t2)
-      | Arr (t1, t2) -> Arr (swap t1, swap t2)
-      | Forall (a, k, t) -> Forall (Name.swap p a, k, swap t)
-      | Exists (a, k, t) -> Exists (Name.swap p a, k, swap t)
-      | Fun    (a, k, t) -> Fun    (Name.swap p a, k, swap t)
-    in
-    swap
+  let swap _ = assert false
 
-  let subst t sub =
-    let sub_fvs = fvs (snd sub) in
-    let freshen (a, t) =
-      let a' = Name.next a ~not_in:(Name.Set.union sub_fvs (fvs t)) in
-      let t' = swap (a, a') t in
-      (a', t')
-    in
-    let rec subst = function
-      | Name a -> if Name.equal a (fst sub) then snd sub else Name a
-      | Record m -> Record (Label.Map.map m ~f:subst)
-      | App (t1, t2) -> App (subst t1, subst t2)
-      | Arr (t1, t2) -> Arr (subst t1, subst t2)
-      | Forall (a, k, t) -> let (a, t) = freshen (a, t) in Forall (a, k, subst t)
-      | Exists (a, k, t) -> let (a, t) = freshen (a, t) in Exists (a, k, subst t)
-      | Fun    (a, k, t) -> let (a, t) = freshen (a, t) in Fun    (a, k, subst t)
-    in
-    subst t
+  let subst _ _ = assert false
 
-  let whnf t =
-    let rec loop t args =
-      match t with
-      | App (tf, tx) -> loop tf (tx :: args)
-      | Fun (a, k, tbody) ->
-        (match args with
-        | [] -> Fun (a, k, tbody)
-        | arg :: args -> loop (subst tbody (a, arg)) args)
-      | head ->
-        List.fold args ~init:head ~f:(fun tf tx -> App (tf, tx))
-    in
-    loop t []
+  let whnf _ = assert false
 
-  let rec equal t t' =
-    let fresh_eq (a1, t1) (a2, t2) =
-      let a = Name.next a1 ~not_in:(Name.Set.union (fvs t1) (fvs t2)) in
-      let t1 = swap (a, a1) t1 in
-      let t2 = swap (a, a2) t2 in
-      equal t1 t2
-    in
-    match (whnf t, whnf t') with
-    | (Name a, Name a') -> Name.equal a a'
-    | (Record m, Record m') -> Label.Map.equal equal m m'
-    | (App (ta, tb), App (ta', tb'))
-    | (Arr (ta, tb), Arr (ta', tb')) -> equal ta ta' && equal tb tb'
-    | (Forall (a, k, t), Forall (a', k', t'))
-    | (Exists (a, k, t), Exists (a', k', t'))
-    | (Fun    (a, k, t), Fun    (a', k', t')) -> Kind.equal k k' && fresh_eq (a, t) (a', t')
-    | (_, (Name _ | Record _ | App _ | Arr _ | Forall _ | Exists _ | Fun _)) -> false
+  let rec equal _ _ = assert false
 
   module Context : sig
     type t with sexp
@@ -152,19 +109,9 @@ end
 
 module Expr = struct
 
-  module Name : sig
-    include Name.S
-    val to_label : t -> Label.t
-    val of_label : Label.t -> t
-  end = struct
-    include Name.Make (struct end)
-    let to_label t = Label.of_name (to_name t)
-    let of_label l = of_name (Label.to_name l)
-  end
-
   type t =
-    | Name of Name.t
-    | Fun of Name.t * Type.t * t
+    | Name of t New_name.t
+    | Fun of t New_name.t * Type.t * t
     | App of t * t
     | Record of t Label.Map.t
     | Dot of t * Label.t
@@ -172,9 +119,18 @@ module Expr = struct
     | Ty_app of t * Type.t
     | Pack of (* pack <ty, tm> : exists a. ty *)
         Type.t * t * Type.Name.t * Type.t
-    | Unpack of Type.Name.t * Name.t * t * t
-    | Let of Name.t * t * t
+    | Unpack of Type.Name.t * t New_name.t * t * t
+    | Let of t New_name.t * t * t
   with sexp
+
+  module Name = struct
+    include New_name.Make (struct
+      type nonrec a = t
+      let name = "Type.Name"
+    end)
+    let to_label t = to_univ t |> New_name.Univ.to_string |> Label.of_string
+    let of_label l = Label.to_string l |> raw
+  end
 
   module Context : sig
     type t
@@ -205,47 +161,9 @@ module Expr = struct
     let find_tm g x = Map.find g.tm_ctx x
   end
 
-  let rec ftvs =
-    let open Type.Names in
-    function
-    | Name _ -> nil
-    | Fun (_, t, e) -> Type.fvs t + ftvs e
-    | App (efun, earg) -> ftvs efun + ftvs earg
-    | Record xes ->
-      Map.fold xes ~init:nil
-        ~f:(fun ~key:_ ~data:e acc -> acc + ftvs e)
-    | Dot (e, _) -> ftvs e
-    | Ty_fun (a, _, e) -> ftvs e - a
-    | Ty_app (e, targ) -> ftvs e + Type.fvs targ
-    | Pack (tsub, e, a, tbody) ->
-      Type.fvs tsub + ftvs e + (Type.fvs tbody - a)
-    | Unpack (a, _, edef, ebody) -> ftvs edef + (ftvs ebody - a)
-    | Let (_, e1, e2) -> ftvs e1 + ftvs e2
+  let rec ftvs _ = assert false
 
-  let swap_ty p =
-    let tswap t = Type.swap p t in
-    let aswap a = Type.Name.swap p a in
-    let rec swap = function
-      | Name x -> Name x
-      | Fun (x,       t,      e) ->
-        Fun (x, tswap t, swap e)
-      | App (     efun,      earg) ->
-        App (swap efun, swap earg)
-      | Record xes -> Record (Label.Map.map xes ~f:swap)
-      | Dot (     e, x) ->
-        Dot (swap e, x)
-      | Ty_fun (      a, k,      e) ->
-        Ty_fun (aswap a, k, swap e)
-      | Ty_app (     e,       t) ->
-        Ty_app (swap e, tswap t)
-      | Pack (      tsub,      e,       a,       tbody) ->
-        Pack (tswap tsub, swap e, aswap a, tswap tbody)
-      | Unpack (      a, x,      edef,      ebody) ->
-        Unpack (aswap a, x, swap edef, swap ebody)
-      | Let (x,      edef,      ebody) ->
-        Let (x, swap edef, swap ebody)
-    in
-    swap
+  let swap_ty _ = assert false
 
   let rec ok ctx = function
     | Name x ->
@@ -272,13 +190,7 @@ module Expr = struct
       | _ -> failwith "expected record type")
     | Ty_fun (a, k, e) ->
       let (a, e) =
-        let a' =
-          Type.Name.next a ~not_in:begin
-            let open Type.Names in
-              Type.Context.domain (Context.ty_ctx ctx)
-              + ftvs e
-          end
-        in
+        let a' = assert false in
         let e' = swap_ty (a, a') e in
         (a', e')
       in
@@ -302,14 +214,7 @@ module Expr = struct
       (match ok ctx edef with
       | Type.Exists (a2, k, tbody) ->
         let (a, ebody, tbody) =
-          let a =
-            Type.Name.next a1 ~not_in:begin
-              let open Type.Names in
-              Type.Context.domain (Context.ty_ctx ctx)
-                + ftvs ebody
-                + Type.fvs tbody
-            end
-          in
+          let a = assert false in
           let ebody = swap_ty   (a, a1) ebody in
           let tbody = Type.swap (a, a2) tbody in
           (a, ebody, tbody)
@@ -327,13 +232,13 @@ module Expr = struct
       ok ctx ebody
 
   let type_mod t k =
-    let a = Type.Name.next (Type.Name.raw "p") ~not_in:(Type.fvs t) in
-    let x = Name.dummy in
+    let a = assert false in
+    let x = assert false (* Name.dummy *) in
     Ty_fun (a, Kind.Arr (k, Kind.Star),
       Fun (x, Type.App (Type.Name a, t), Name x))
 
   let sig_mod t =
-    let x = Name.dummy in
+    let x = assert false (* Name.dummy *) in
     Fun (x, t, Name x)
 
   let pack taks e t =

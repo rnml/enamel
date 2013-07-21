@@ -84,7 +84,7 @@ module Univ = struct
   let freshen t = { t with basic = Basic.freshen t.basic }
 end
 
-type 'a t = Univ.t
+type 'a t = Univ.t with sexp
 
 module Registry = struct
   module Free_vars = struct
