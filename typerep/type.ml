@@ -52,33 +52,6 @@ module Name = struct
   end
 end
 
-module type Registry = sig
-  type 'a computation
-  val register  : 'a Name.t -> 'a computation -> unit
-  val lookup : 'a Name.t -> 'a computation option
-end
-
-module Registry (Data : sig type 'a t end) = struct
-
-  type entry = Entry : 'a Name.t * 'a Data.t -> entry
-
-  let t = Name.Uid.Table.create ~size:10 ()
-
-  let register name data =
-    let key = Name.uid name in
-    let data = Entry (name, data) in
-    Hashtbl.set t ~key ~data
-
-  module Lift = Type_equal.Lift (Data)
-
-  let lookup (type a) (name : a Name.t) : a Data.t option =
-    Option.map (Hashtbl.find t (Name.uid name)) ~f:(function
-    | Entry (name', data) ->
-      let eq = Name.same_witness_exn name' name in
-      Type_equal.conv (Lift.lift eq) data)
-
-end
-
 module rec Rep : sig
 
   type 'a t =

@@ -3,7 +3,7 @@ open Core.Std
 open Or_error.Monad_infix
 
 module To_sexp_registry =
-  Type.Registry (struct type 'a t = 'a -> Sexp.t end)
+  Generic.Make (struct type 'a t = 'a -> Sexp.t end)
 
 let register_to_sexp = To_sexp_registry.register
 
@@ -64,7 +64,7 @@ let rec to_sexp : type a. a Type.Rep.t -> a -> Sexp.t = function
       failwithf "no to_sexp defined for %s" (Type.Name.name id) ()
 
 module Of_sexp_registry =
-  Type.Registry (struct type 'a t = Sexp.t -> 'a end)
+  Generic.Make (struct type 'a t = Sexp.t -> 'a end)
 
 let register_of_sexp = Of_sexp_registry.register
 

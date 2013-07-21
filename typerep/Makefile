@@ -6,6 +6,7 @@ LIBRARIES=
 SYNTAX=comparelib sexplib
 MODULES=\
   type \
+  generic \
   sexp_conv \
   type_rep_example \
   std

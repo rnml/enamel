@@ -1,2 +1,2 @@
 module Type = Type
-module Generic = Type.Registry
+module Generic = Generic
