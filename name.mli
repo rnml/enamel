@@ -2,7 +2,7 @@ open Std_internal
 
 (* we want
    (1) typed names, so that [term name] and [type name] are
-       distinguishable by the type system,
+       kept distinct by the type system,
    (2) the ability to "cast" a name from one type to another.
        This is particularly useful in translations from a source
        language to a target language when you want to preserve
@@ -26,15 +26,15 @@ module type S = sig
   type 'a name
   type a
   type t = a name with of_sexp
-  val type_name : t Type.Name.t
-  val type_rep : t Type.Rep.t
-  val of_string : string -> t
   include T with type t := t
+  val of_string : string -> t
   val to_univ : t -> Univ.t
   val of_univ : Univ.t -> t option
   val cast    : _ name -> t
   val raw : string -> t
   val preferred : t -> t
+  val type_name : t Type.Name.t
+  val type_rep : t Type.Rep.t
 end
   with type 'a name := 'a t
 

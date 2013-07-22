@@ -19,17 +19,23 @@ end = struct
 
   module U = struct
     module T = struct
+
       let module_name = "Name"
+
       type t = {
         name : string;
         stamp : int option;
       } with compare, bin_io
+
       let hash = Hashtbl.hash
-      let equal t1 t2 = (compare t1 t2 = 0)
+
+      let equal t1 t2 = compare t1 t2 = 0
+
       let to_string t =
         match t.stamp with
         | None -> t.name
         | Some i -> String.concat [t.name; "_"; Int.to_string i]
+
       let of_string x =
         match String.rsplit2 x ~on:'_' with
         | None -> { name = x; stamp = None }
@@ -38,6 +44,7 @@ end = struct
             let stamp = Some (Int.of_string stamp) in
             { name; stamp }
           with _ -> { name = x; stamp = None }
+
     end
     include T
     include Sexpable.Of_stringable (T)
@@ -112,24 +119,26 @@ module type S = sig
   type 'a name
   type a
   type t = a name with of_sexp
-  val type_name : t Type.Name.t
-  val type_rep : t Type.Rep.t
-  val of_string : string -> t
   include T with type t := t
+  val of_string : string -> t
   val to_univ : t -> Univ.t
   val of_univ : Univ.t -> t option
   val cast    : _ name -> t
   val raw : string -> t
   val preferred : t -> t
+  val type_name : t Type.Name.t
+  val type_rep : t Type.Rep.t
 end
   with type 'a name := 'a t
 
 module Make (X : sig type a val name : string end) = struct
-  let kind = Uid.create ()
   include Univ
+  let kind = Uid.create ()
   let of_string x = { kind; basic = Basic.of_string x }
+
   let to_univ u = u
   let of_univ u = if Uid.equal u.kind kind then Some u else None
+
   let cast t = { kind; basic = t.basic }
 
   let raw name = {kind; basic = Basic.create ~name ~stamp:None}
@@ -138,10 +147,8 @@ module Make (X : sig type a val name : string end) = struct
   let type_name = Type.Name.create ~name:X.name
   let type_rep = Type.Rep.Abstract type_name
 
-  include struct
-    let () = Registry.Free_vars.Term.register type_name Univ.Set.add
-    let () = Registry.Free_vars.Pat.register type_name (fun s _ -> s)
-    let () = Registry.Swap.register type_name Univ.Perm.apply
-  end
+  let () = Registry.Free_vars.Term.register type_name Univ.Set.add
+  let () = Registry.Free_vars.Pat.register type_name (fun s _ -> s)
+  let () = Registry.Swap.register type_name Univ.Perm.apply
 
 end
