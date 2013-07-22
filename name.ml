@@ -40,10 +40,8 @@ end = struct
         match String.rsplit2 x ~on:'_' with
         | None -> { name = x; stamp = None }
         | Some (name, stamp) ->
-          try
-            let stamp = Some (Int.of_string stamp) in
-            { name; stamp }
-          with _ -> { name = x; stamp = None }
+          try {name; stamp = Some (Int.of_string stamp)}
+          with _ -> {name = x; stamp = None}
 
     end
     include T
