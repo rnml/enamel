@@ -10,8 +10,10 @@ module type S = sig
   val apply : t -> elt -> elt
 end
 
-module Make (Elt:Identifiable) = struct
+module Make (Elt : Identifiable) = struct
+
   type elt = Elt.t
+
   type t = {
     map : elt Elt.Map.t;
     inv : elt Elt.Map.t;

@@ -54,22 +54,8 @@ end = struct
         ~f:(fun (a, k) acc -> Type.Exists (a, k, acc))
         ~init:(Type.Arr (to_f csig, Asig.to_f asig))
 
-  let fvs t = Type.fvs (to_f t)
-
-  let swap p =
-    let rec swap = function
-      | Val t -> Val (Type.swap p t)
-      | Type (t, k) -> Type (Type.swap p t, k)
-      | Sig asig -> Sig (Asig.swap p asig)
-      | Struct map -> Struct (Label.Map.map map ~f:swap)
-      | Fun (aks, csig, asig) ->
-        Fun
-          ( List.map aks ~f:(fun (a, k) -> (Type.Name.swap p a, k))
-              , swap csig
-                , Asig.swap p asig )
-    in
-    swap
-
+  let fvs _ = assert false
+  let swap _ = assert false
   let subst _ _ = assert false
 
   let rec sub ctx csig1 csig2 =
@@ -194,12 +180,8 @@ end = struct
         ~f:(fun (a, k) acc -> Type.Exists (a, k, acc))
         ~init:(Csig.to_f csig)
 
-  let fvs t = Type.fvs (to_f t)
-
-  let swap p (Exists (aks, csig)) =
-    Exists
-      ( List.map aks ~f:(fun (a, k) -> (Type.Name.swap p a, k))
-      , Csig.swap p csig )
+  let fvs _ = assert false
+  let swap _ _ = assert false
 
   let subst (Exists (aks, csig)) sub =
     let (aks, csig, _) =

@@ -1,6 +1,6 @@
 open Std_internal
 
-type 'a t = Name.Univ.t * Name.Univ.t -> 'a -> 'a
+type 'a t = Name.Univ.Perm.t -> 'a -> 'a
 
 val swap : 'a Type.Rep.t -> 'a t
 

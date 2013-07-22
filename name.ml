@@ -6,7 +6,7 @@ module type T = sig
   type t with sexp_of
   include Comparable.S with type t := t
   val to_string : t -> string
-  val swap : t * t -> t -> t
+  module Perm : Perm.S with type elt := t
 end
 
 module Basic : sig
@@ -70,25 +70,25 @@ end = struct
 end
 
 module Univ = struct
-  module U = struct
-    let module_name = "Name.Univ"
-    module T = struct
-      type t = {
-        kind : Uid.t;
-        basic : Basic.t;
-      } with compare, sexp, bin_io
-      let hash (t:t) = Hashtbl.hash t
+  module S = struct
+    module U = struct
+      let module_name = "Name.Univ"
+      module T = struct
+        type t = {
+          kind : Uid.t;
+          basic : Basic.t;
+        } with compare, sexp, bin_io
+        let hash (t:t) = Hashtbl.hash t
+      end
+      include T
+      include Sexpable.To_stringable (T)
     end
-    include T
-    include Sexpable.To_stringable (T)
+    include U
+    include Identifiable.Make (U)
   end
-  include U
-  include Identifiable.Make (U)
+  include S
+  module Perm = Perm.Make (S)
   let to_string t = Basic.to_string t.basic
-  let swap (a, b) c =
-    if (**) c = a then b
-    else if c = b then a
-    else c
   let freshen t = { t with basic = Basic.freshen t.basic }
 end
 
@@ -104,7 +104,7 @@ module Registry = struct
     end)
   end
   module Swap = Generic.Make (struct
-    type 'a t = Univ.t * Univ.t -> 'a -> 'a
+    type 'a t = Univ.Perm.t -> 'a -> 'a
   end)
 end
 
@@ -121,7 +121,6 @@ module type S = sig
   val cast    : _ name -> t
   val raw : string -> t
   val preferred : t -> t
-  module Perm : Perm.S with type elt := t
 end
   with type 'a name := 'a t
 
@@ -141,10 +140,8 @@ module Make (X : sig type a val name : string end) = struct
 
   include struct
     let () = Registry.Free_vars.Term.register type_name Univ.Set.add
-    let () = Registry.Free_vars.Pat.register  type_name (fun s _ -> s)
-    let () = Registry.Swap.register           type_name Univ.swap
+    let () = Registry.Free_vars.Pat.register type_name (fun s _ -> s)
+    let () = Registry.Swap.register type_name Univ.Perm.apply
   end
-
-  module Perm = Perm.Make (Univ)
 
 end

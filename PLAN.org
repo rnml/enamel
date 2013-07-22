@@ -3,10 +3,8 @@
 ** DONE define fvs for both term and pat
 ** DONE define swap
 ** DONE name permutations
-** define generics for Bind type
-** define generics for Rebind type
-** define generics for Embed type
-** define generics for Rec type
+** DONE replace swap with perm
+** DONE define generics for Unbound type constructors
 ** define alpha_eq as a generic
 ** migrate systemf.ml over to generic implementation
 ** migrate "F-ing modules" types over as well

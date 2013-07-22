@@ -10,4 +10,4 @@ module type S = sig
   val apply : t -> elt -> elt
 end
 
-module Make (Elt:Identifiable) : S with type elt = Elt.t
+module Make (Elt : Identifiable) : S with type elt = Elt.t
