@@ -6,13 +6,16 @@ module type T = sig
   type t with sexp_of
   include Comparable.S with type t := t
   val to_string : t -> string
+  val freshen : t -> t
   module Perm : Perm.S with type elt := t
 end
+
+module Stamp = Unique_id.Int (struct end)
 
 module Basic : sig
   type t
   include Identifiable with type t := t
-  val create : name:string -> stamp:int option -> t
+  val create : name:string -> stamp:Stamp.t option -> t
   val preferred : t -> t
   val freshen : t -> t
 end = struct
@@ -24,7 +27,7 @@ end = struct
 
       type t = {
         name : string;
-        stamp : int option;
+        stamp : Stamp.t option;
       } with compare, bin_io
 
       let hash = Hashtbl.hash
@@ -34,13 +37,13 @@ end = struct
       let to_string t =
         match t.stamp with
         | None -> t.name
-        | Some i -> String.concat [t.name; "_"; Int.to_string i]
+        | Some i -> String.concat [t.name; "_"; Stamp.to_string i]
 
       let of_string x =
         match String.rsplit2 x ~on:'_' with
         | None -> { name = x; stamp = None }
         | Some (name, stamp) ->
-          try {name; stamp = Some (Int.of_string stamp)}
+          try {name; stamp = Some (Stamp.of_string stamp)}
           with _ -> {name = x; stamp = None}
 
     end
@@ -50,27 +53,13 @@ end = struct
   include U
   include Identifiable.Make (U)
 
-  module Weak = Caml.Weak.Make (T)
-
-  let global : Weak.t = Weak.create 100
-
-  let create ~name ~stamp =
-    Option.iter stamp ~f:(fun s -> assert (Int.(>) s 0));
-    let t = {name; stamp} in
-    try Weak.find global t
-    with Not_found -> Weak.add global t; t
-
-  let succ t =
-    let stamp = match t.stamp with None -> 0 | Some n -> n in
-    let stamp = Some (1 + stamp) in
-    create ~name:t.name ~stamp
+  let create ~name ~stamp = {name; stamp}
 
   let rec freshen t =
-    if Weak.mem global t
-    then Weak.find global t
-    else freshen (succ t)
+    create ~name:t.name ~stamp:(Some (Stamp.create ()))
 
-  let preferred t = create ~name:t.name ~stamp:None
+  let preferred t =
+    create ~name:t.name ~stamp:None
 
 end
 
@@ -108,6 +97,9 @@ module Registry = struct
       type 'a t = Univ.Set.t -> 'a -> Univ.Set.t
     end)
   end
+  module Binders = Generic.Make (struct
+    type 'a t = Univ.Set.t -> 'a -> Univ.Set.t
+  end)
   module Swap = Generic.Make (struct
     type 'a t = Univ.Perm.t -> 'a -> 'a
   end)
@@ -147,6 +139,7 @@ module Make (X : sig type a val name : string end) = struct
 
   let () = Registry.Free_vars.Term.register type_name Univ.Set.add
   let () = Registry.Free_vars.Pat.register type_name (fun s _ -> s)
+  let () = Registry.Binders.register type_name Univ.Set.add
   let () = Registry.Swap.register type_name Univ.Perm.apply
 
 end

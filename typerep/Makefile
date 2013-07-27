@@ -9,6 +9,7 @@ MODULES=\
   generic \
   sexp_conv \
   type_rep_example \
+  fold \
   std
 
 B= typerep

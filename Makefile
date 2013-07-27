@@ -14,7 +14,9 @@ MODULES=\
   constant \
   name \
   free_vars \
+  binders \
   swap \
+  freshen \
   unbound \
   systemf \
   target \

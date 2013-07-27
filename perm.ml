@@ -8,6 +8,7 @@ module type S = sig
   val inverse : t -> t
   val swap : elt -> elt -> t
   val apply : t -> elt -> elt
+  val of_alist : (elt, elt) List.Assoc.t -> t
 end
 
 module Make (Elt : Identifiable) = struct
@@ -44,4 +45,19 @@ module Make (Elt : Identifiable) = struct
     |! Map.fold ~init:id ~f:(fun ~key:_ ~data:(src, tgt) t ->
       { map = Map.add t.map ~key:src ~data:tgt;
         inv = Map.add t.inv ~key:tgt ~data:src; })
+
+  let of_alist xys =
+    List.fold xys ~init:id ~f:(fun {map; inv} (src, tgt) ->
+      let map =
+        match Map.find inv tgt with
+        | None -> map
+        | Some src' -> Map.remove map src'
+      in
+      let inv =
+        match Map.find map src with
+        | None -> inv
+        | Some tgt' -> Map.remove inv tgt'
+      in
+      { map = Map.add map ~key:src ~data:tgt;
+        inv = Map.add inv ~key:tgt ~data:src; })
 end

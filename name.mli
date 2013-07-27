@@ -15,6 +15,7 @@ module type T = sig
   type t with sexp_of
   include Comparable.S with type t := t
   val to_string : t -> string
+  val freshen : t -> t
   module Perm : Perm.S with type elt := t
 end
 
@@ -48,6 +49,8 @@ module Registry : sig
     module Pat : Generic.S
       with type 'a t = Univ.Set.t -> 'a -> Univ.Set.t
   end
+  module Binders : Generic.S
+    with type 'a t = Univ.Set.t -> 'a -> Univ.Set.t
   module Swap : Generic.S
     with type 'a t = Univ.Perm.t -> 'a -> 'a
 end
