@@ -4,7 +4,10 @@ module Bind = struct
   type ('pat, 'term) t = 'pat * 'term with sexp
 
   let create p t = (p, t)
-  let unbind _ = failwith "Bind.unbind unimplemented"
+
+  let unbind typ tyt (p, t) =
+    let (p, perm) = Freshen.freshen typ p in
+    (p, Swap.swap tyt perm t)
 
   let fvs_term a b acc (p, t) =
     Set.union acc begin
@@ -15,6 +18,7 @@ module Bind = struct
 
   module Type_name = Type.Name.Make2 (struct type nonrec ('p, 't) t = ('p, 't) t end)
   let type_name = Type_name.lookup
+
   let type_rep a b =
     let name = type_name (Type.Rep.id a) (Type.Rep.id b) in
     Free_vars.Term.register name (fvs_term a b);
@@ -61,4 +65,3 @@ module Rec = struct
     Swap.register name (Swap.swap rep);
     Type.Rep.Abstract name
 end
-

@@ -3,7 +3,7 @@ open Std_internal
 module Bind : sig
   type ('pat, 'term) t
   val create : 'pat -> 'term -> ('pat, 'term) t
-  val unbind : ('pat, 'term) t -> 'pat * 'term
+  val unbind : 'pat Type.Rep.t -> 'term Type.Rep.t -> ('pat, 'term) t -> 'pat * 'term
   val type_rep : 'pat Type.Rep.t -> 'term Type.Rep.t -> ('pat, 'term) t Type.Rep.t
 end
 
