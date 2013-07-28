@@ -1,32 +1,79 @@
 open Std_internal
+open Unbound
 
 module Kind = struct
+
   type t = Star | Arr of t * t with sexp
+
+  let rec type_rep =
+    Type.Rep.Variant (module struct
+      type outer_t = t
+      type t = outer_t
+      let name : t Type.Name.t = Type.Name.create ~name:"Systemf.Kind.t"
+      module Label = struct
+        type 'a t =
+        | Star : unit t
+        | Arr : (outer_t * outer_t) t
+        let name_of : type a. a t -> string = function
+          | Star -> "star"
+          | Arr -> "arr"
+        let type_of : type a. a t -> a Type.Rep.t = function
+          | Star -> Type.Rep.Unit
+          | Arr -> Type.Rep.(Pair (type_rep, type_rep))
+        type univ = Label : 'a t -> univ
+        let all = [Label Star; Label Arr]
+      end
+      type 'a tag = 'a Label.t
+      type rep = Tagged : 'a tag * 'a -> rep
+      let project = function
+        | Star       -> Tagged (Label.Star, ())
+        | Arr (a, b) -> Tagged (Label.Arr, (a, b))
+      let put (type a) (tag : a tag) (arg : a) : t =
+        match (tag, arg) with
+        | (Label.Star, ())    -> Star
+        | (Label.Arr, (a, b)) -> Arr (a, b)
+      let inject = fun (Tagged (tag, arg)) -> put tag arg
+    end : Type.Rep.Variant.T with type t = t)
+
   let rec equal k k' =
     match (k, k') with
     | (Star, Star) -> true
     | (Arr (k1, k2), Arr (k1', k2')) -> equal k1 k1' && equal k2 k2'
     | _ -> false
+
 end
 
-module Label : Identifiable = struct
+module Label = struct
   type t = string
   include Identifiable.Make (struct
     include String
     let module_name = "Label"
   end)
+  let type_rep = Type.Rep.String
+  module Map_type_rep = Type.Name.Make1 (struct type 'a t = 'a Map.t end)
+  let map_type_rep_name = Map_type_rep.lookup
+  let map_type_rep x =
+    let name = map_type_rep_name (Type.Rep.id x) in
+    List.iter [
+      (Free_vars.Term.register, Free_vars.Term.fold);
+      (Free_vars.Pat.register,  Free_vars.Pat.fold);
+    ]
+      ~f:(fun (register, fold) ->
+        register name (fun acc map -> List.fold (Map.data map) ~init:acc ~f:(fold x))) ;
+    Swap.register name (fun perm map -> Map.map map ~f:(fun d -> Swap.swap x perm d));
+    Type.Rep.Abstract name
 end
 
 module Type = struct
 
   type t =
-    | Name of t Name.t
-    | Arr of t * t
+    | Name   of t Name.t
+    | Arr    of t * t
     | Record of t Label.Map.t
-    | Forall of t Name.t * Kind.t * t
-    | Exists of t Name.t * Kind.t * t
-    | Fun of t Name.t * Kind.t * t
-    | App of t * t
+    | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
+    | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
+    | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t
+    | App    of t * t
   with sexp
 
   module Name = Name.Make (struct
@@ -34,33 +81,78 @@ module Type = struct
     let name = "Type.Name"
   end)
 
-  module Names = struct
-    include Name.Set
-    let nil = empty
-    let (+) = union
-    let (-) = remove
-  end
+  let rec type_rep =
+    Type.Rep.Variant (module struct
+      type outer_t = t
+      type t = outer_t
+      let name : t Type.Name.t = Type.Name.create ~name:"Systemf.Type.t"
+      module Label = struct
+        type 'a t =
+        | Name : Name.t t
+        | Arr : (outer_t * outer_t) t
+        | Record : outer_t Label.Map.t t
+        | Forall : (Name.t * Kind.t Embed.t, outer_t) Bind.t t
+        | Exists : (Name.t * Kind.t Embed.t, outer_t) Bind.t t
+        | Fun    : (Name.t * Kind.t Embed.t, outer_t) Bind.t t
+        | App : (outer_t * outer_t) t
+        let name_of : type a. a t -> string = function
+          | Name -> "name"
+          | Arr -> "arr"
+          | Record -> "record"
+          | Forall -> "forall"
+          | Exists -> "exists"
+          | Fun    -> "fun"
+          | App -> "app"
+        let type_of : type a. a t -> a Type.Rep.t = function
+          | Name   -> Name.type_rep
+          | Arr    -> Type.Rep.(Pair (type_rep, type_rep))
+          | Record -> Label.map_type_rep type_rep
+          | Forall -> Bind.type_rep (Type.Rep.Pair (Name.type_rep, Embed.type_rep Kind.type_rep)) type_rep
+          | Exists -> Bind.type_rep (Type.Rep.Pair (Name.type_rep, Embed.type_rep Kind.type_rep)) type_rep
+          | Fun    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep, Embed.type_rep Kind.type_rep)) type_rep
+          | App    -> Type.Rep.(Pair (type_rep, type_rep))
+        type univ = Label : 'a t -> univ
+        let all = [Label Name; Label Arr; Label App]
+      end
+      type 'a tag = 'a Label.t
+      type rep = Tagged : 'a tag * 'a -> rep
+      let project = function
+        | Name x     -> Tagged (Label.Name, x)
+        | Arr (a, b) -> Tagged (Label.Arr, (a, b))
+        | Record m   -> Tagged (Label.Record, m)
+        | Forall x   -> Tagged (Label.Forall, x)
+        | Exists x   -> Tagged (Label.Exists, x)
+        | Fun x      -> Tagged (Label.Fun, x)
+        | App (a, b) -> Tagged (Label.App, (a, b))
+      let put (type a) (tag : a tag) (arg : a) : t =
+        match (tag, arg) with
+        | (Label.Name, x)     -> Name x
+        | (Label.Arr, (a, b)) -> Arr (a, b)
+        | (Label.Record, m)    -> Record m
+        | (Label.Forall, x)   -> Forall x
+        | (Label.Exists, x)   -> Exists x
+        | (Label.Fun, x)      -> Fun x
+        | (Label.App, (a, b)) -> App (a, b)
+      let inject = fun (Tagged (tag, arg)) -> put tag arg
+    end : Type.Rep.Variant.T with type t = t)
 
-  let rec fvs =
-    let open Names in
-    function
-      | Name x -> Name.Set.singleton x
-      | Record xts ->
-        Map.fold xts ~init:nil
-          ~f:(fun ~key:_ ~data:t acc -> acc + fvs t)
-      | App (t1, t2)
-      | Arr (t1, t2) -> fvs t1 + fvs t2
-      | Forall (x, _, t)
-      | Exists (x, _, t)
-      | Fun (x, _, t) -> fvs t - x
+  let unbind b =
+    let ((x, k), t) =
+      Bind.unbind (Type.Rep.Pair (Name.type_rep, Embed.type_rep Kind.type_rep)) type_rep b
+    in
+    (x, ((k : Kind.t Embed.t) :> Kind.t), t)
 
+  let bind (x, k, t) = Bind.create (x, Embed.create k) t
+
+  let forall xkt = Forall (bind xkt)
+  let exists xkt = Exists (bind xkt)
+  let fun_   xkt = Fun    (bind xkt)
+
+  let fvs _ = assert false
   let swap _ = assert false
-
   let subst _ _ = assert false
-
   let whnf _ = assert false
-
-  let rec equal _ _ = assert false
+  let equal _ _ = assert false
 
   module Context : sig
     type t with sexp
@@ -90,9 +182,12 @@ module Type = struct
     | Record entries ->
       Label.Map.iter entries ~f:(fun ~key:_ ~data:t -> check_star ctx t);
       Kind.Star
-    | Forall (a, k, t)
-    | Exists (a, k, t) -> check_star (Context.add ctx a k) t; Kind.Star
-    | Fun (a, k, t) -> Kind.Arr (k, ok (Context.add ctx a k) t)
+    | Forall b | Exists b ->
+      let (a, k, t) = unbind b in
+      check_star (Context.add ctx a k) t; Kind.Star
+    | Fun b ->
+      let (a, k, t) = unbind b in
+      Kind.Arr (k, ok (Context.add ctx a k) t)
     | App (tfun, targ) ->
       let karg = ok ctx targ in
       (match ok ctx tfun with
@@ -194,25 +289,27 @@ module Expr = struct
         let e' = swap_ty (a, a') e in
         (a', e')
       in
-      Type.Forall (a, k, ok (Context.add_ty ctx a k) e)
+      Type.forall (a, k, ok (Context.add_ty ctx a k) e)
     | Ty_app (e, targ) ->
       let karg = Type.ok (Context.ty_ctx ctx) targ in
       (match ok ctx e with
-      | Type.Forall (a, kdom, trng) ->
+      | Type.Forall bnd ->
+        let (a, kdom, trng) = Type.unbind bnd in
         if Kind.equal kdom karg then Type.subst trng (a, targ) else
           failwith "kind mismatch"
       | _ -> failwith "expected forall type")
     | Pack (tsub, e, a, tintf) ->
       let ty_ctx = Context.ty_ctx ctx in
       let k = Type.ok ty_ctx tsub in
-      let t = Type.Exists (a, k, tintf) in
+      let t = Type.exists (a, k, tintf) in
       Type.check_star ty_ctx t;
       let tfull = ok ctx e in
       if Type.equal tfull (Type.subst tintf (a, tsub)) then t else
       failwith "existential type mismatch"
     | Unpack (a1, x, edef, ebody) ->
       (match ok ctx edef with
-      | Type.Exists (a2, k, tbody) ->
+      | Type.Exists bnd ->
+        let (a2, k, tbody) = Type.unbind bnd in
         let (a, ebody, tbody) =
           let a = assert false in
           let ebody = swap_ty   (a, a1) ebody in
@@ -244,7 +341,7 @@ module Expr = struct
   let pack taks e t =
     fst
       (List.fold_right taks ~init:(e, t) ~f:(fun (t, a, k) (e, tann) ->
-        (Pack (t, e, a, tann), Type.Exists (a, k, tann))))
+        (Pack (t, e, a, tann), Type.exists (a, k, tann))))
 
   let rec unpack alphas x edef ebody =
     match alphas with

@@ -13,7 +13,6 @@ module Make (Registry : Registry) = struct
     type nonrec acc = acc
     include Registry
   end)
-  let fv_aux = fold
   let fv ty x = fold ty Name.Univ.Set.empty x
 end
 

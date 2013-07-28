@@ -1,4 +1,5 @@
 open Std_internal
+open Unbound
 
 module Kind : sig
   type t =
@@ -6,6 +7,7 @@ module Kind : sig
     | Arr of t * t
   with sexp
   val equal : t -> t -> bool
+  val type_rep : t Type.Rep.t
 end
 
 module Label : Identifiable
@@ -13,14 +15,18 @@ module Label : Identifiable
 module Type : sig
 
   type t =
-    | Name of t Name.t
-    | Arr of t * t
+    | Name   of t Name.t
+    | Arr    of t * t
     | Record of t Label.Map.t
-    | Forall of t Name.t * Kind.t * t
-    | Exists of t Name.t * Kind.t * t
-    | Fun of t Name.t * Kind.t * t
-    | App of t * t
+    | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
+    | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
+    | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t
+    | App    of t * t
   with sexp
+
+  val type_rep : t Type.Rep.t
+
+  val unbind : (t Name.t * Kind.t Embed.t, t) Bind.t -> t Name.t * Kind.t * t
 
   module Name : Name.S with type a := t
 

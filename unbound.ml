@@ -11,8 +11,8 @@ module Bind = struct
 
   let fvs_term a b acc (p, t) =
     Set.union acc begin
-      let p = Free_vars.Pat.fv_aux  a Name.Univ.Set.empty p in
-      let t = Free_vars.Term.fv_aux b Name.Univ.Set.empty t in
+      let p = Free_vars.Pat.fold  a Name.Univ.Set.empty p in
+      let t = Free_vars.Term.fold b Name.Univ.Set.empty t in
       Set.diff t p
     end
 
@@ -35,7 +35,7 @@ module Rebind = struct
   let type_rep a b =
     let name = type_name (Type.Rep.id a) (Type.Rep.id b) in
     let rep = Type.Rep.Pair (a, b) in
-    Free_vars.Pat.register name (Free_vars.Pat.fv_aux rep);
+    Free_vars.Pat.register name (Free_vars.Pat.fold rep);
     Swap.register name (Swap.swap rep);
     Type.Rep.Abstract name
 end
@@ -48,7 +48,7 @@ module Embed = struct
   let type_rep a =
     let name = type_name (Type.Rep.id a) in
     let rep = a in
-    Free_vars.Pat.register name (Free_vars.Term.fv_aux rep);
+    Free_vars.Pat.register name (Free_vars.Term.fold rep);
     Swap.register name (Swap.swap rep);
     Type.Rep.Abstract name
 end
@@ -61,7 +61,7 @@ module Rec = struct
   let type_rep a =
     let name = type_name (Type.Rep.id a) in
     let rep = a in
-    Free_vars.Pat.register name (Free_vars.Pat.fv_aux rep);
+    Free_vars.Pat.register name (Free_vars.Pat.fold rep);
     Swap.register name (Swap.swap rep);
     Type.Rep.Abstract name
 end
