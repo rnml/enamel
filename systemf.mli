@@ -26,9 +26,14 @@ module Type : sig
 
   val type_rep : t Type.Rep.t
 
-  val unbind : (t Name.t * Kind.t Embed.t, t) Bind.t -> t Name.t * Kind.t * t
-
   module Name : Name.S with type a := t
+
+  val unbind :
+    (Name.t * Kind.t Embed.t, t) Bind.t -> Name.t * Kind.t * t
+
+  val forall : Name.t * Kind.t * t -> t
+  val exists : Name.t * Kind.t * t -> t
+  val fun_   : Name.t * Kind.t * t -> t
 
   module Context : sig
     type t with sexp
