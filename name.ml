@@ -105,6 +105,16 @@ module Registry = struct
   end)
 end
 
+module Rep = Type.Name.Make1 (struct type nonrec 'a t = 'a t end)
+
+let type_rep ty =
+  let type_name = Rep.lookup (Type.Rep.id ty) in
+  Registry.Free_vars.Term.register type_name Univ.Set.add;
+  Registry.Free_vars.Pat.register type_name (fun s _ -> s);
+  Registry.Binders.register type_name Univ.Set.add;
+  Registry.Swap.register type_name Univ.Perm.apply;
+  Type.Rep.Abstract type_name
+
 module type S = sig
   type 'a name
   type a
@@ -121,7 +131,11 @@ module type S = sig
 end
   with type 'a name := 'a t
 
-module Make (X : sig type a val name : string end) = struct
+module Make (X : sig
+  type a
+  val name : string
+  val type_rep : a Type.Rep.t
+end) = struct
   include Univ
   let kind = Uid.create ()
   let of_string x = { kind; basic = Basic.of_string x }
@@ -129,7 +143,7 @@ module Make (X : sig type a val name : string end) = struct
   let to_univ u = u
   let of_univ u = if Uid.equal u.kind kind then Some u else None
 
-  let cast t = { kind; basic = t.basic }
+  let cast t = {kind; basic = t.basic}
 
   let raw name = {kind; basic = Basic.create ~name ~stamp:None}
   let preferred t = {kind; basic = Basic.preferred t.basic}

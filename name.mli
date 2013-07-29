@@ -22,6 +22,7 @@ end
 module Univ : T
 
 type 'a t with sexp
+val type_rep : 'a Type.Rep.t -> 'a t Type.Rep.t
 
 module type S = sig
   type 'a name
@@ -39,7 +40,11 @@ module type S = sig
 end
   with type 'a name := 'a t
 
-module Make (X : sig type a val name : string end) :
+module Make (X : sig
+  type a
+  val name : string
+  val type_rep : a Type.Rep.t
+end) :
   S with type a := X.a
 
 module Registry : sig

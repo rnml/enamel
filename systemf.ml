@@ -7,19 +7,21 @@ module Kind = struct
 
   let rec type_rep =
     Type.Rep.Variant (module struct
-      type outer_t = t
-      type t = outer_t
+      type o = t
+      let orep = type_rep
+
+      type t = o
       let name : t Type.Name.t = Type.Name.create ~name:"Systemf.Kind.t"
       module Label = struct
         type 'a t =
         | Star : unit t
-        | Arr : (outer_t * outer_t) t
+        | Arr : (o * o) t
         let name_of : type a. a t -> string = function
           | Star -> "star"
           | Arr -> "arr"
         let type_of : type a. a t -> a Type.Rep.t = function
           | Star -> Type.Rep.Unit
-          | Arr -> Type.Rep.(Pair (type_rep, type_rep))
+          | Arr -> Type.Rep.(Pair (orep, orep))
         type univ = Label : 'a t -> univ
         let all = [Label Star; Label Arr]
       end
@@ -64,7 +66,7 @@ module Label = struct
     Type.Rep.Abstract name
 end
 
-module Type = struct
+module Ty = struct
 
   type t =
     | Name   of t Name.t
@@ -76,41 +78,37 @@ module Type = struct
     | App    of t * t
   with sexp
 
-  module Name = Name.Make (struct
-    type nonrec a = t
-    let name = "Type.Name"
-  end)
-
   let rec type_rep =
     Type.Rep.Variant (module struct
-      type outer_t = t
-      type t = outer_t
+      type o = t
+      let orep = type_rep
+      type t = o
       let name : t Type.Name.t = Type.Name.create ~name:"Systemf.Type.t"
       module Label = struct
         type 'a t =
-        | Name : Name.t t
-        | Arr : (outer_t * outer_t) t
-        | Record : outer_t Label.Map.t t
-        | Forall : (Name.t * Kind.t Embed.t, outer_t) Bind.t t
-        | Exists : (Name.t * Kind.t Embed.t, outer_t) Bind.t t
-        | Fun    : (Name.t * Kind.t Embed.t, outer_t) Bind.t t
-        | App : (outer_t * outer_t) t
+        | Name   : o Name.t t
+        | Arr    : (o * o) t
+        | Record : o Label.Map.t t
+        | Forall : (o Name.t * Kind.t Embed.t, o) Bind.t t
+        | Exists : (o Name.t * Kind.t Embed.t, o) Bind.t t
+        | Fun    : (o Name.t * Kind.t Embed.t, o) Bind.t t
+        | App    : (o * o) t
         let name_of : type a. a t -> string = function
-          | Name -> "name"
-          | Arr -> "arr"
+          | Name   -> "name"
+          | Arr    -> "arr"
           | Record -> "record"
           | Forall -> "forall"
           | Exists -> "exists"
           | Fun    -> "fun"
-          | App -> "app"
+          | App    -> "app"
         let type_of : type a. a t -> a Type.Rep.t = function
-          | Name   -> Name.type_rep
-          | Arr    -> Type.Rep.(Pair (type_rep, type_rep))
+          | Name   -> Name.type_rep orep
+          | Arr    -> Type.Rep.(Pair (orep, orep))
           | Record -> Label.map_type_rep type_rep
-          | Forall -> Bind.type_rep (Type.Rep.Pair (Name.type_rep, Embed.type_rep Kind.type_rep)) type_rep
-          | Exists -> Bind.type_rep (Type.Rep.Pair (Name.type_rep, Embed.type_rep Kind.type_rep)) type_rep
-          | Fun    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep, Embed.type_rep Kind.type_rep)) type_rep
-          | App    -> Type.Rep.(Pair (type_rep, type_rep))
+          | Forall -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep Kind.type_rep)) orep
+          | Exists -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep Kind.type_rep)) orep
+          | Fun    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep Kind.type_rep)) orep
+          | App    -> Type.Rep.(Pair (orep, orep))
         type univ = Label : 'a t -> univ
         let all = [Label Name; Label Arr; Label App]
       end
@@ -135,6 +133,12 @@ module Type = struct
         | (Label.App, (a, b)) -> App (a, b)
       let inject = fun (Tagged (tag, arg)) -> put tag arg
     end : Type.Rep.Variant.T with type t = t)
+
+  module Name = Name.Make (struct
+    type nonrec a = t
+    let name = "Type.Name"
+    let type_rep = type_rep
+  end)
 
   let unbind b =
     let ((x, k), t) =
@@ -206,22 +210,108 @@ module Expr = struct
 
   type t =
     | Name of t Name.t
-    | Fun of t Name.t * Type.t * t
+    | Fun of (t Name.t * Ty.t Embed.t, t) Bind.t
     | App of t * t
     | Record of t Label.Map.t
     | Dot of t * Label.t
-    | Ty_fun of Type.Name.t * Kind.t * t
-    | Ty_app of t * Type.t
-    | Pack of (* pack <ty, tm> : exists a. ty *)
-        Type.t * t * Type.Name.t * Type.t
-    | Unpack of Type.Name.t * t Name.t * t * t
-    | Let of t Name.t * t * t
+    | Ty_fun of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
+    | Ty_app of t * Ty.t
+    | Pack of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
+    | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
+    | Let of (t Name.t * t Embed.t, t) Bind.t
   with sexp
+
+  let rec type_rep =
+    Type.Rep.Variant (module struct
+      type o = t
+      let orep = type_rep
+      type t = o
+      let name : t Type.Name.t = Type.Name.create ~name:"Systemf.Term.t"
+      module Label = struct
+        type 'a t =
+        | Name   : o Name.t t
+        | Fun    : (o Name.t * Ty.t Embed.t, o) Bind.t t
+        | App    : (o * o) t
+        | Record : o Label.Map.t t
+        | Dot    : (o * Label.t) t
+        | Ty_fun : (Ty.Name.t * Kind.t Embed.t, o) Bind.t t
+        | Ty_app : (o * Ty.t) t
+        | Pack   : (Ty.t * o * (Ty.Name.t, Ty.t) Bind.t) t
+        | Unpack : (Ty.Name.t * o Name.t * o Embed.t, o) Bind.t t
+        | Let    : (o Name.t * o Embed.t, o) Bind.t t
+        let name_of : type a. a t -> string = function
+          | Name   -> "name"
+          | Fun    -> "fun"
+          | App    -> "app"
+          | Record -> "record"
+          | Dot    -> "dot"
+          | Ty_fun -> "ty_fun"
+          | Ty_app -> "ty_app"
+          | Pack   -> "pack"
+          | Unpack -> "unpack"
+          | Let    -> "let"
+        let type_of : type a. a t -> a Type.Rep.t = function
+        | Name   -> Name.type_rep orep
+        | Fun    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep Ty.type_rep)) orep
+        | App    -> Type.Rep.Pair (orep, orep)
+        | Record -> Label.map_type_rep orep
+        | Dot    -> Type.Rep.Pair (orep, Label.type_rep)
+        | Ty_fun -> Bind.type_rep (Type.Rep.Pair (Ty.Name.type_rep, Embed.type_rep Kind.type_rep)) orep
+        | Ty_app -> Type.Rep.Pair (orep, Ty.type_rep)
+        | Pack   -> Type.Rep.Triple (Ty.type_rep, orep, Bind.type_rep Ty.Name.type_rep Ty.type_rep)
+        | Unpack -> Bind.type_rep (Type.Rep.Triple (Ty.Name.type_rep, Name.type_rep orep, Embed.type_rep orep)) orep
+        | Let    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep orep)) orep
+        type univ = Label : 'a t -> univ
+        let all = [ Label Name; Label Fun; Label App; Label Record; Label Dot;
+                    Label Ty_fun; Label Ty_app; Label Pack; Label Unpack; Label Let ]
+      end
+      type 'a tag = 'a Label.t
+      type rep = Tagged : 'a tag * 'a -> rep
+      let project = function
+        | Name a         -> Tagged (Label.Name,   a)
+        | Fun a          -> Tagged (Label.Fun,    a)
+        | App (a, b)     -> Tagged (Label.App,    (a, b))
+        | Record a       -> Tagged (Label.Record, a)
+        | Dot (a, b)     -> Tagged (Label.Dot,    (a, b))
+        | Ty_fun a       -> Tagged (Label.Ty_fun, a)
+        | Ty_app (a, b)  -> Tagged (Label.Ty_app, (a, b))
+        | Pack (a, b, c) -> Tagged (Label.Pack,   (a, b, c))
+        | Unpack a       -> Tagged (Label.Unpack, a)
+        | Let a          -> Tagged (Label.Let,    a)
+      let put (type a) (tag : a tag) (arg : a) : t =
+        match (tag, arg) with
+        | (Label.Name,   a)         -> Name a
+        | (Label.Fun,    a)         -> Fun a
+        | (Label.App,    (a, b))    -> App (a, b)
+        | (Label.Record, a)         -> Record a
+        | (Label.Dot,    (a, b))    -> Dot (a, b)
+        | (Label.Ty_fun, a)         -> Ty_fun a
+        | (Label.Ty_app, (a, b))    -> Ty_app (a, b)
+        | (Label.Pack,   (a, b, c)) -> Pack (a, b, c)
+        | (Label.Unpack, a)         -> Unpack a
+        | (Label.Let,    a)         -> Let a
+      let inject = fun (Tagged (tag, arg)) -> put tag arg
+    end : Type.Rep.Variant.T with type t = t)
+
+  let fun_ x ty body =
+    Fun (Bind.create (x, Embed.create ty) body)
+
+  let ty_fun a k body =
+    Ty_fun (Bind.create (a, Embed.create k) body)
+
+  let pack ty tm (a, body) =
+    Pack (ty, tm, Bind.create a body)
+
+  let unpack a x tm body =
+    Unpack (Bind.create (a, x, Embed.create tm) body)
+
+  let let_ x tm body = Let (Bind.create (x, Embed.create tm) body)
 
   module Name = struct
     include Name.Make (struct
       type nonrec a = t
       let name = "Type.Name"
+      let type_rep = type_rep
     end)
     let to_label t = to_univ t |> Name.Univ.to_string |> Label.of_string
     let of_label l = Label.to_string l |> raw
@@ -230,23 +320,23 @@ module Expr = struct
   module Context : sig
     type t
     val empty   : t
-    val add_tm  : t -> Name.t -> Type.t -> t
-    val find_tm : t -> Name.t -> Type.t option
-    val add_ty  : t -> Type.Name.t -> Kind.t -> t
-    val ty_ctx  : t -> Type.Context.t
+    val add_tm  : t -> Name.t -> Ty.t -> t
+    val find_tm : t -> Name.t -> Ty.t option
+    val add_ty  : t -> Ty.Name.t -> Kind.t -> t
+    val ty_ctx  : t -> Ty.Context.t
   end = struct
 
     type t = {
-      ty_ctx : Type.Context.t;
-      tm_ctx : Type.t Name.Map.t;
+      ty_ctx : Ty.Context.t;
+      tm_ctx : Ty.t Name.Map.t;
     }
 
     let empty = {
-      ty_ctx = Type.Context.empty;
+      ty_ctx = Ty.Context.empty;
       tm_ctx = Name.Map.empty;
     }
 
-    let add_ty g a k = {g with ty_ctx = Type.Context.add g.ty_ctx a k}
+    let add_ty g a k = {g with ty_ctx = Ty.Context.add g.ty_ctx a k}
 
     let ty_ctx g = g.ty_ctx
 
@@ -266,19 +356,19 @@ module Expr = struct
       | None -> failwith "unbound term variable"
       | Some t -> t)
     | Fun (x, t, e) ->
-      Type.check_star (Context.ty_ctx ctx) t;
-      Type.Arr (t, ok (Context.add_tm ctx x t) e)
+      Ty.check_star (Context.ty_ctx ctx) t;
+      Ty.Arr (t, ok (Context.add_tm ctx x t) e)
     | App (efun, earg) ->
       let targ = ok ctx earg in
       (match ok ctx efun with
-      | Type.Arr (tdom, trng) ->
-        if Type.equal targ tdom then trng else
+      | Ty.Arr (tdom, trng) ->
+        if Ty.equal targ tdom then trng else
           failwith "type mismatch"
       | _ -> failwith "expected arrow type")
-    | Record xes -> Type.Record (Label.Map.map xes ~f:(fun e -> ok ctx e))
+    | Record xes -> Ty.Record (Label.Map.map xes ~f:(fun e -> ok ctx e))
     | Dot (e, x) ->
       (match ok ctx e with
-      | Type.Record map ->
+      | Ty.Record map ->
         (match Label.Map.find map x with
         | Some t -> t
         | None -> failwith "undefined field")
@@ -289,37 +379,37 @@ module Expr = struct
         let e' = swap_ty (a, a') e in
         (a', e')
       in
-      Type.forall (a, k, ok (Context.add_ty ctx a k) e)
+      Ty.forall (a, k, ok (Context.add_ty ctx a k) e)
     | Ty_app (e, targ) ->
-      let karg = Type.ok (Context.ty_ctx ctx) targ in
+      let karg = Ty.ok (Context.ty_ctx ctx) targ in
       (match ok ctx e with
-      | Type.Forall bnd ->
-        let (a, kdom, trng) = Type.unbind bnd in
-        if Kind.equal kdom karg then Type.subst trng (a, targ) else
+      | Ty.Forall bnd ->
+        let (a, kdom, trng) = Ty.unbind bnd in
+        if Kind.equal kdom karg then Ty.subst trng (a, targ) else
           failwith "kind mismatch"
       | _ -> failwith "expected forall type")
     | Pack (tsub, e, a, tintf) ->
       let ty_ctx = Context.ty_ctx ctx in
-      let k = Type.ok ty_ctx tsub in
-      let t = Type.exists (a, k, tintf) in
-      Type.check_star ty_ctx t;
+      let k = Ty.ok ty_ctx tsub in
+      let t = Ty.exists (a, k, tintf) in
+      Ty.check_star ty_ctx t;
       let tfull = ok ctx e in
-      if Type.equal tfull (Type.subst tintf (a, tsub)) then t else
+      if Ty.equal tfull (Ty.subst tintf (a, tsub)) then t else
       failwith "existential type mismatch"
     | Unpack (a1, x, edef, ebody) ->
       (match ok ctx edef with
-      | Type.Exists bnd ->
-        let (a2, k, tbody) = Type.unbind bnd in
+      | Ty.Exists bnd ->
+        let (a2, k, tbody) = Ty.unbind bnd in
         let (a, ebody, tbody) =
           let a = assert false in
           let ebody = swap_ty   (a, a1) ebody in
-          let tbody = Type.swap (a, a2) tbody in
+          let tbody = Ty.swap (a, a2) tbody in
           (a, ebody, tbody)
         in
         let ctx = Context.add_ty ctx a k in
         let ctx = Context.add_tm ctx x tbody in
         let t = ok ctx ebody in
-        if Set.mem (Type.fvs t) a
+        if Set.mem (Ty.fvs t) a
         then failwith "existential type escaping its scope"
         else t
       | _ -> failwith "unpacking a non-existential")
@@ -332,7 +422,7 @@ module Expr = struct
     let a = assert false in
     let x = assert false (* Name.dummy *) in
     Ty_fun (a, Kind.Arr (k, Kind.Star),
-      Fun (x, Type.App (Type.Name a, t), Name x))
+      Fun (x, Ty.App (Ty.Name a, t), Name x))
 
   let sig_mod t =
     let x = assert false (* Name.dummy *) in
@@ -341,7 +431,7 @@ module Expr = struct
   let pack taks e t =
     fst
       (List.fold_right taks ~init:(e, t) ~f:(fun (t, a, k) (e, tann) ->
-        (Pack (t, e, a, tann), Type.exists (a, k, tann))))
+        (Pack (t, e, a, tann), Ty.exists (a, k, tann))))
 
   let rec unpack alphas x edef ebody =
     match alphas with
@@ -353,6 +443,6 @@ end
 
 let rec subtype _ctx ~src ~dst =
   match (src, dst) with
-  | (Type.Name a, Type.Name b) when Type.Name.equal a b -> `Coerce (fun x -> x)
+  | (Ty.Name a, Ty.Name b) when Ty.Name.equal a b -> `Coerce (fun x -> x)
   | _ -> failwith "UNIMPLEMENTED: Systemf.subtype"
 

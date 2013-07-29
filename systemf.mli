@@ -12,7 +12,7 @@ end
 
 module Label : Identifiable
 
-module Type : sig
+module Ty : sig
 
   type t =
     | Name   of t Name.t
@@ -52,15 +52,16 @@ module Expr : sig
 
   type t =
     | Name of t Name.t
-    | Fun of t Name.t * Type.t * t
+    | Fun of (t Name.t * Ty.t Embed.t, t) Bind.t
     | App of t * t
     | Record of t Label.Map.t
     | Dot of t * Label.t
-    | Ty_fun of Type.Name.t * Kind.t * t
-    | Ty_app of t * Type.t
-    | Pack of Type.t * t * Type.Name.t * Type.t
-    | Unpack of Type.Name.t * t Name.t * t * t
-    | Let of t Name.t * t * t
+    | Ty_fun of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
+    | Ty_app of t * Ty.t
+    | Pack of (* pack <ty, tm> : exists a. ty *)
+        Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
+    | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
+    | Let of (t Name.t * t Embed.t, t) Bind.t
   with sexp
 
   module Name : sig
@@ -69,19 +70,19 @@ module Expr : sig
     val of_label : Label.t -> t
   end
 
-  val type_mod : Type.t -> Kind.t -> t
-  val sig_mod : Type.t -> t
+  val type_mod : Ty.t -> Kind.t -> t
+  val sig_mod : Ty.t -> t
 
   val pack :
-    (Type.t * Type.Name.t * Kind.t) list -> t -> Type.t -> t
+    (Ty.t * Ty.Name.t * Kind.t) list -> t -> Ty.t -> t
 
-  val unpack : Type.Name.t list -> Name.t -> t -> t -> t
+  val unpack : Ty.Name.t list -> Name.t -> t -> t -> t
 
 end
 
 val subtype :
-  Type.Context.t
-  -> src:Type.t
-  -> dst:Type.t
+  Ty.Context.t
+  -> src:Ty.t
+  -> dst:Ty.t
   -> [`Coerce of Expr.t -> Expr.t]
 
