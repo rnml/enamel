@@ -5,9 +5,9 @@
 ** DONE name permutations
 ** DONE replace swap with perm
 ** DONE define generics for Unbound type constructors
-** ACTV define binders and then freshen
+** DONE define binders and then freshen
+** DONE migrate systemf.ml over to generic implementation
 ** define alpha_eq as a generic
-** migrate systemf.ml over to generic implementation
 ** migrate "F-ing modules" types over as well
 * elisp-like auto-documentation
 * syntax
