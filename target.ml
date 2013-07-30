@@ -4,55 +4,55 @@ open Systemf
 
 module rec Csig : sig
   type t =
-    | Val of Type.t
-    | Type of Type.t * Kind.t
+    | Val of Ty.t
+    | Type of Ty.t * Kind.t
     | Sig of Asig.t
     | Struct of t Label.Map.t
-    | Fun of (Type.Name.t * Kind.t) list * t * Asig.t
+    | Fun of (Ty.Name.t * Kind.t) list * t * Asig.t
   with sexp
 
-  val to_f : t -> Type.t
+  val to_f : t -> Ty.t
 
-  val fvs : t -> Type.Name.Set.t
+  val fvs : t -> Ty.Name.Set.t
 
-  val subst : t -> Type.Name.t * Type.t -> t
+  val subst : t -> Ty.Name.t * Ty.t -> t
 
-  val swap : Type.Name.t * Type.Name.t -> t -> t
+  val swap : Ty.Name.t * Ty.Name.t -> t -> t
 
-  val sub : Type.Context.t -> t -> t -> [`Coerce of Expr.t -> Expr.t]
+  val sub : Ty.Context.t -> t -> t -> [`Coerce of Expr.t -> Expr.t]
 
   val matches :
-    Type.Context.t -> t -> Asig.t ->
-      (Type.t * Kind.t) list * [`Coerce of Expr.t -> Expr.t]
+    Ty.Context.t -> t -> Asig.t ->
+      (Ty.t * Kind.t) list * [`Coerce of Expr.t -> Expr.t]
 
 end = struct
   type t =
-  | Val of Type.t
-  | Type of Type.t * Kind.t
+  | Val of Ty.t
+  | Type of Ty.t * Kind.t
   | Sig of Asig.t
   | Struct of t Label.Map.t
-  | Fun of (Type.Name.t * Kind.t) list * t * Asig.t
+  | Fun of (Ty.Name.t * Kind.t) list * t * Asig.t
   with sexp
 
   let rec to_f = function
     | Val t -> t
     | Type (t, k) ->
       let p = assert false in
-      Type.Forall
+      Ty.forall
         ( p
         , Kind.Arr (k, Kind.Star)
-        , Type.Arr
-          ( Type.App (Type.Name p, t)
-          , Type.App (Type.Name p, t)))
+        , Ty.Arr
+          ( Ty.App (Ty.Name p, t)
+          , Ty.App (Ty.Name p, t)))
     | Sig asig ->
       let asig = Asig.to_f asig in
-      Type.Arr (asig, asig)
+      Ty.Arr (asig, asig)
     | Struct map ->
-      Type.Record (Label.Map.map map ~f:to_f)
+      Ty.Record (Label.Map.map map ~f:to_f)
     | Fun (aks, csig, asig) ->
       List.fold_right aks
-        ~f:(fun (a, k) acc -> Type.Exists (a, k, acc))
-        ~init:(Type.Arr (to_f csig, Asig.to_f asig))
+        ~f:(fun (a, k) acc -> Ty.exists (a, k, acc))
+        ~init:(Ty.Arr (to_f csig, Asig.to_f asig))
 
   let fvs _ = assert false
   let swap _ = assert false
@@ -63,7 +63,7 @@ end = struct
     | (Csig.Val t1, Csig.Val t2) ->
       Systemf.subtype ctx ~src:t1 ~dst:t2
     | (Csig.Type (t1, _), Csig.Type (t2, _)) ->
-      if not (Systemf.Type.equal t1 t2) then failwith "type mismatch";
+      if not (Systemf.Ty.equal t1 t2) then failwith "type mismatch";
       `Coerce (fun x -> x)
     | (Csig.Sig s1, Csig.Sig s2) ->
       let `Coerce _ = Asig.sub ctx s1 s2 in
@@ -88,7 +88,7 @@ end = struct
         (* CR: this must be wrong -- we should be freshening as
            we unbind or something *)
         List.fold aks2 ~init:ctx ~f:(fun ctx (a, k) ->
-          Type.Context.add ctx a k)
+          Ty.Context.add ctx a k)
       in
       let (tks, `Coerce fdom) =
         matches ctx csig2 (Asig.Exists (aks1, csig1))
@@ -101,7 +101,8 @@ end = struct
         Asig.sub ctx (List.fold ~f:Asig.subst ~init:asig1 sub) asig2
       in
       `Coerce (fun f ->
-        List.fold_right ~f:(fun (a, k) e -> Expr.Ty_fun (a, k, e)) aks2
+        List.fold_right ~f:(fun (a, k) e ->
+          Expr.mk_tyfun (a, k, e)) aks2
           ~init:begin
             let x = assert false (* Expr.Name.dummy *) in
             Expr.Fun
@@ -122,7 +123,7 @@ end = struct
       List.map alphas ~f:(fun (alpha, kind) ->
         let rec lookup csig csig' =
           match (csig, csig') with
-          | (Type (tau, k), Type (Type.Name alpha', k')) when Type.Name.equal alpha alpha' ->
+          | (Type (tau, k), Type (Ty.Name alpha', k')) when Ty.Name.equal alpha alpha' ->
             if Kind.equal k k' && Kind.equal k kind then
               Some (tau, k)
             else
@@ -158,26 +159,26 @@ end
 
 and Asig : sig
 
-  type t = Exists of (Type.Name.t * Kind.t) list * Csig.t with sexp
+  type t = Exists of (Ty.Name.t * Kind.t) list * Csig.t with sexp
 
-  val fvs : t -> Type.Name.Set.t
+  val fvs : t -> Ty.Name.Set.t
 
-  val swap : Type.Name.t * Type.Name.t -> t -> t
+  val swap : Ty.Name.t * Ty.Name.t -> t -> t
 
-  val to_f : t -> Type.t
+  val to_f : t -> Ty.t
 
-  val sub : Type.Context.t -> t -> t -> [`Coerce of Expr.t -> Expr.t]
+  val sub : Ty.Context.t -> t -> t -> [`Coerce of Expr.t -> Expr.t]
 
-  val subst : t -> Type.Name.t * Type.t -> t
+  val subst : t -> Ty.Name.t * Ty.t -> t
 
 end = struct
 
-  type t = Exists of (Type.Name.t * Kind.t) list * Csig.t with sexp
+  type t = Exists of (Ty.Name.t * Kind.t) list * Csig.t with sexp
 
   let rec to_f = function
     | Exists (aks, csig) ->
       List.fold_right aks
-        ~f:(fun (a, k) acc -> Type.Exists (a, k, acc))
+        ~f:(fun (a, k) acc -> Ty.Exists (a, k, acc))
         ~init:(Csig.to_f csig)
 
   let fvs _ = assert false
@@ -192,12 +193,12 @@ end = struct
         | [] -> ([], csig, fvs)
         | (a, k) :: aks ->
           let (aks, csig, fvs) = freshen aks csig fvs in
-          let a' = assert false (* Type.Name.next a ~not_in:fvs *) in
+          let a' = assert false (* Ty.Name.next a ~not_in:fvs *) in
           ( (a', k) :: aks
           , Csig.swap (a, a') csig
           , Set.add (fvs - a) a' )
       in
-      freshen aks csig (Csig.fvs csig + Type.fvs (snd sub))
+      freshen aks csig (Csig.fvs csig + Ty.fvs (snd sub))
     in
     Exists (aks, Csig.subst csig sub)
 
@@ -220,17 +221,17 @@ end
 
 module Context = struct
   type t = {
-    ty_ctx : Type.Context.t;
+    ty_ctx : Ty.Context.t;
     tm_ctx : Csig.t Expr.Name.Map.t;
   } with sexp
 
   let empty = {
-    ty_ctx = Type.Context.empty;
+    ty_ctx = Ty.Context.empty;
     tm_ctx = Expr.Name.Map.empty;
   }
 
-  let add_ty g a k = {g with ty_ctx = Type.Context.add g.ty_ctx a k}
-  let find_ty g a = Type.Context.find g.ty_ctx a
+  let add_ty g a k = {g with ty_ctx = Ty.Context.add g.ty_ctx a k}
+  let find_ty g a = Ty.Context.find g.ty_ctx a
 
   let add_tm g x t = {g with tm_ctx = Map.add g.tm_ctx x t}
   let find_tm g x = Map.find g.tm_ctx x

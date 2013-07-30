@@ -64,6 +64,15 @@ module Expr : sig
     | Let of (t Name.t * t Embed.t, t) Bind.t
   with sexp
 
+  val mk_fun : t Name.t -> Ty.t -> t -> t
+  val un_fun : (t Name.t * Ty.t Embed.t, t) Bind.t -> t Name.t * Ty.t * t
+  val mk_tyfun : Ty.Name.t -> Kind.t -> t -> t
+  val un_tyfun : (Ty.Name.t * Kind.t Embed.t, t) Bind.t -> Ty.Name.t * Kind.t * t
+  val mk_pack : Ty.t -> t -> Ty.Name.t * Ty.t -> t
+  val un_pack : (Ty.Name.t, Ty.t) Bind.t -> Ty.Name.t * Ty.t
+  val mk_unpack : Ty.Name.t -> t Name.t -> t -> t -> t
+  val un_unpack : (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t -> Ty.Name.t * t Name.t * t * t
+
   module Name : sig
     include Name.S with type a := t
     val to_label : t -> Label.t
