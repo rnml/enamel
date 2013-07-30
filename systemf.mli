@@ -51,14 +51,14 @@ end
 module Expr : sig
 
   type t =
-    | Name of t Name.t
-    | Fun of (t Name.t * Ty.t Embed.t, t) Bind.t
-    | App of t * t
+    | Name   of t Name.t
+    | Fun    of (t Name.t * Ty.t Embed.t, t) Bind.t
+    | App    of t * t
     | Record of t Label.Map.t
-    | Dot of t * Label.t
-    | Ty_fun of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
-    | Ty_app of t * Ty.t
-    | Pack of (* pack <ty, tm> : exists a. ty *)
+    | Dot    of t * Label.t
+    | Tyfun  of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
+    | Tyapp  of t * Ty.t
+    | Pack   of (* pack <ty, tm> : exists a. ty *)
         Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
     | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
     | Let of (t Name.t * t Embed.t, t) Bind.t

@@ -214,8 +214,8 @@ module Expr = struct
     | App of t * t
     | Record of t Label.Map.t
     | Dot of t * Label.t
-    | Ty_fun of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
-    | Ty_app of t * Ty.t
+    | Tyfun of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
+    | Tyapp of t * Ty.t
     | Pack of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
     | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
     | Let of (t Name.t * t Embed.t, t) Bind.t
@@ -234,8 +234,8 @@ module Expr = struct
         | App    : (o * o) t
         | Record : o Label.Map.t t
         | Dot    : (o * Label.t) t
-        | Ty_fun : (Ty.Name.t * Kind.t Embed.t, o) Bind.t t
-        | Ty_app : (o * Ty.t) t
+        | Tyfun  : (Ty.Name.t * Kind.t Embed.t, o) Bind.t t
+        | Tyapp  : (o * Ty.t) t
         | Pack   : (Ty.t * o * (Ty.Name.t, Ty.t) Bind.t) t
         | Unpack : (Ty.Name.t * o Name.t * o Embed.t, o) Bind.t t
         | Let    : (o Name.t * o Embed.t, o) Bind.t t
@@ -245,8 +245,8 @@ module Expr = struct
           | App    -> "app"
           | Record -> "record"
           | Dot    -> "dot"
-          | Ty_fun -> "ty_fun"
-          | Ty_app -> "ty_app"
+          | Tyfun  -> "tyfun"
+          | Tyapp  -> "tyapp"
           | Pack   -> "pack"
           | Unpack -> "unpack"
           | Let    -> "let"
@@ -256,14 +256,14 @@ module Expr = struct
         | App    -> Type.Rep.Pair (orep, orep)
         | Record -> Label.map_type_rep orep
         | Dot    -> Type.Rep.Pair (orep, Label.type_rep)
-        | Ty_fun -> Bind.type_rep (Type.Rep.Pair (Ty.Name.type_rep, Embed.type_rep Kind.type_rep)) orep
-        | Ty_app -> Type.Rep.Pair (orep, Ty.type_rep)
+        | Tyfun -> Bind.type_rep (Type.Rep.Pair (Ty.Name.type_rep, Embed.type_rep Kind.type_rep)) orep
+        | Tyapp  -> Type.Rep.Pair (orep, Ty.type_rep)
         | Pack   -> Type.Rep.Triple (Ty.type_rep, orep, Bind.type_rep Ty.Name.type_rep Ty.type_rep)
         | Unpack -> Bind.type_rep (Type.Rep.Triple (Ty.Name.type_rep, Name.type_rep orep, Embed.type_rep orep)) orep
         | Let    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep orep)) orep
         type univ = Label : 'a t -> univ
         let all = [ Label Name; Label Fun; Label App; Label Record; Label Dot;
-                    Label Ty_fun; Label Ty_app; Label Pack; Label Unpack; Label Let ]
+                    Label Tyfun; Label Tyapp; Label Pack; Label Unpack; Label Let ]
       end
       type 'a tag = 'a Label.t
       type rep = Tagged : 'a tag * 'a -> rep
@@ -273,8 +273,8 @@ module Expr = struct
         | App (a, b)     -> Tagged (Label.App,    (a, b))
         | Record a       -> Tagged (Label.Record, a)
         | Dot (a, b)     -> Tagged (Label.Dot,    (a, b))
-        | Ty_fun a       -> Tagged (Label.Ty_fun, a)
-        | Ty_app (a, b)  -> Tagged (Label.Ty_app, (a, b))
+        | Tyfun a        -> Tagged (Label.Tyfun,  a)
+        | Tyapp (a, b)   -> Tagged (Label.Tyapp,  (a, b))
         | Pack (a, b, c) -> Tagged (Label.Pack,   (a, b, c))
         | Unpack a       -> Tagged (Label.Unpack, a)
         | Let a          -> Tagged (Label.Let,    a)
@@ -285,27 +285,77 @@ module Expr = struct
         | (Label.App,    (a, b))    -> App (a, b)
         | (Label.Record, a)         -> Record a
         | (Label.Dot,    (a, b))    -> Dot (a, b)
-        | (Label.Ty_fun, a)         -> Ty_fun a
-        | (Label.Ty_app, (a, b))    -> Ty_app (a, b)
+        | (Label.Tyfun,  a)         -> Tyfun a
+        | (Label.Tyapp,  (a, b))    -> Tyapp (a, b)
         | (Label.Pack,   (a, b, c)) -> Pack (a, b, c)
         | (Label.Unpack, a)         -> Unpack a
         | (Label.Let,    a)         -> Let a
       let inject = fun (Tagged (tag, arg)) -> put tag arg
     end : Type.Rep.Variant.T with type t = t)
 
-  let fun_ x ty body =
+  let mk_fun x ty body =
     Fun (Bind.create (x, Embed.create ty) body)
 
-  let ty_fun a k body =
-    Ty_fun (Bind.create (a, Embed.create k) body)
+  let un_fun b =
+    let ((x, ty), body) =
+      Bind.unbind
+        (Type.Rep.Pair
+           (Name.type_rep type_rep, Embed.type_rep Ty.type_rep))
+        type_rep
+        b
+    in
+    (x, ((ty : Ty.t Embed.t) :> Ty.t), body)
+  ;;
 
-  let pack ty tm (a, body) =
+  let mk_tyfun a k body =
+    Tyfun (Bind.create (a, Embed.create k) body)
+
+  let un_tyfun b =
+    let ((a, k), body) =
+      Bind.unbind
+        (Type.Rep.Pair
+           ( Ty.Name.type_rep,
+             Embed.type_rep Kind.type_rep ))
+        type_rep
+        b
+    in
+    (a, ((k : Kind.t Embed.t) :> Kind.t), body)
+  ;;
+
+  let mk_pack ty tm (a, body) =
     Pack (ty, tm, Bind.create a body)
 
-  let unpack a x tm body =
+  let un_pack b =
+    Bind.unbind Ty.Name.type_rep Ty.type_rep b
+
+  let mk_unpack a x tm body =
     Unpack (Bind.create (a, x, Embed.create tm) body)
 
-  let let_ x tm body = Let (Bind.create (x, Embed.create tm) body)
+  let un_unpack b : Ty.Name.t * t Name.t * t * t =
+    let ((x, a, tm), body) =
+      Bind.unbind
+        (Type.Rep.Triple
+           ( Ty.Name.type_rep,
+             Name.type_rep type_rep,
+             Embed.type_rep type_rep
+           ))
+        type_rep
+        b
+    in
+    (x, a, ((tm : t Embed.t) :> t), body)
+
+  let mk_let x tm body = Let (Bind.create (x, Embed.create tm) body)
+
+  let un_let b =
+    let ((x, e), body) =
+      Bind.unbind
+        (Type.Rep.Pair
+           ( Name.type_rep type_rep,
+             Embed.type_rep type_rep ))
+        type_rep
+        b
+    in
+    (x, ((e : t Embed.t) :> t), body)
 
   module Name = struct
     include Name.Make (struct
@@ -355,7 +405,8 @@ module Expr = struct
       (match Context.find_tm ctx x with
       | None -> failwith "unbound term variable"
       | Some t -> t)
-    | Fun (x, t, e) ->
+    | Fun b ->
+      let (x, t, e) = un_fun b in
       Ty.check_star (Context.ty_ctx ctx) t;
       Ty.Arr (t, ok (Context.add_tm ctx x t) e)
     | App (efun, earg) ->
@@ -373,14 +424,15 @@ module Expr = struct
         | Some t -> t
         | None -> failwith "undefined field")
       | _ -> failwith "expected record type")
-    | Ty_fun (a, k, e) ->
+    | Tyfun b ->
+      let (a, k, e) = un_tyfun b in
       let (a, e) =
         let a' = assert false in
         let e' = swap_ty (a, a') e in
         (a', e')
       in
       Ty.forall (a, k, ok (Context.add_ty ctx a k) e)
-    | Ty_app (e, targ) ->
+    | Tyapp (e, targ) ->
       let karg = Ty.ok (Context.ty_ctx ctx) targ in
       (match ok ctx e with
       | Ty.Forall bnd ->
@@ -388,15 +440,17 @@ module Expr = struct
         if Kind.equal kdom karg then Ty.subst trng (a, targ) else
           failwith "kind mismatch"
       | _ -> failwith "expected forall type")
-    | Pack (tsub, e, a, tintf) ->
+    | Pack (tsub, e, exty) ->
+      let (a, tintf) = un_pack exty in
       let ty_ctx = Context.ty_ctx ctx in
       let k = Ty.ok ty_ctx tsub in
       let t = Ty.exists (a, k, tintf) in
       Ty.check_star ty_ctx t;
       let tfull = ok ctx e in
       if Ty.equal tfull (Ty.subst tintf (a, tsub)) then t else
-      failwith "existential type mismatch"
-    | Unpack (a1, x, edef, ebody) ->
+        failwith "existential type mismatch"
+    | Unpack b ->
+      let (a1, x, edef, ebody) = un_unpack b in
       (match ok ctx edef with
       | Ty.Exists bnd ->
         let (a2, k, tbody) = Ty.unbind bnd in
@@ -413,7 +467,8 @@ module Expr = struct
         then failwith "existential type escaping its scope"
         else t
       | _ -> failwith "unpacking a non-existential")
-    | Let (x, edef, ebody) ->
+    | Let b ->
+      let (x, edef, ebody) = un_let b in
       let t = ok ctx edef in
       let ctx = Context.add_tm ctx x t in
       ok ctx ebody
@@ -421,23 +476,24 @@ module Expr = struct
   let type_mod t k =
     let a = assert false in
     let x = assert false (* Name.dummy *) in
-    Ty_fun (a, Kind.Arr (k, Kind.Star),
-      Fun (x, Ty.App (Ty.Name a, t), Name x))
+    mk_tyfun a (Kind.Arr (k, Kind.Star))
+      (mk_fun x (Ty.App (Ty.Name a, t)) (Name x))
 
   let sig_mod t =
     let x = assert false (* Name.dummy *) in
-    Fun (x, t, Name x)
+    mk_fun x t (Name x)
 
   let pack taks e t =
     fst
       (List.fold_right taks ~init:(e, t) ~f:(fun (t, a, k) (e, tann) ->
-        (Pack (t, e, a, tann), Ty.exists (a, k, tann))))
+        (mk_pack t e (a, tann), Ty.exists (a, k, tann))))
 
   let rec unpack alphas x edef ebody =
     match alphas with
-    | [] -> Let (x, edef, ebody)
-    | [a] -> Unpack (a, x, edef, ebody)
-    | a :: rest -> Unpack (a, x, edef, unpack rest x (Name x) ebody)
+    | [] -> mk_let x edef ebody
+    | [a] -> mk_unpack a x edef ebody
+    | a :: rest ->
+      mk_unpack a x edef (unpack rest x (Name x) ebody)
 
 end
 
