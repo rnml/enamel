@@ -72,6 +72,8 @@ module Expr : sig
   val un_pack : (Ty.Name.t, Ty.t) Bind.t -> Ty.Name.t * Ty.t
   val mk_unpack : Ty.Name.t -> t Name.t -> t -> t -> t
   val un_unpack : (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t -> Ty.Name.t * t Name.t * t * t
+  val mk_let : t Name.t -> t -> t -> t
+  val un_let : (t Name.t * t Embed.t, t) Bind.t -> t Name.t * t * t
 
   module Name : sig
     include Name.S with type a := t

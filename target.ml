@@ -101,21 +101,20 @@ end = struct
         Asig.sub ctx (List.fold ~f:Asig.subst ~init:asig1 sub) asig2
       in
       `Coerce (fun f ->
-        List.fold_right ~f:(fun (a, k) e ->
-          Expr.mk_tyfun (a, k, e)) aks2
+        List.fold_right aks2
+          ~f:(fun (a, k) e -> Expr.mk_tyfun a k e)
           ~init:begin
             let x = assert false (* Expr.Name.dummy *) in
-            Expr.Fun
-              ( x
-              , Csig.to_f csig2
-              , frng begin
-                  Expr.App
-                    ( List.fold tks ~init:f
-                        ~f:(fun e (t, _k) -> Expr.Ty_app (e, t))
-                        , fdom (Expr.Name x) )
-                end )
-          end
-      )
+            Expr.mk_fun
+              x
+              (Csig.to_f csig2)
+              (frng begin
+                Expr.App
+                  ( List.fold tks ~init:f
+                      ~f:(fun e (t, _k) -> Expr.Tyapp (e, t))
+                      , fdom (Expr.Name x) )
+              end)
+          end)
     | _ -> failwith "signature mismatch"
 
   and matches ctx csig (Asig.Exists (alphas, csig')) =
@@ -178,7 +177,7 @@ end = struct
   let rec to_f = function
     | Exists (aks, csig) ->
       List.fold_right aks
-        ~f:(fun (a, k) acc -> Ty.Exists (a, k, acc))
+        ~f:(fun (a, k) acc -> Ty.exists (a, k, acc))
         ~init:(Csig.to_f csig)
 
   let fvs _ = assert false

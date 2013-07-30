@@ -22,7 +22,7 @@ let check_expr_command =
       Sexp.List [
         F.Expr.sexp_of_t tm;
         Sexp.Atom ":";
-        F.Type.sexp_of_t ty;
+        F.Ty.sexp_of_t ty;
       ]
       |> Sexp.to_string_hum
       |> print_endline
@@ -32,10 +32,10 @@ let check_type_command =
   Command.basic ~summary:"kind check a type (from stdin)"
     Command.Spec.(empty)
     (fun () ->
-      let ty = Sexp.input_sexp stdin |> Enamel.Type.t_of_sexp in
-      let (ty, ki) = Enamel.Type.ok Initial_context.ctx ty in
+      let ty = Sexp.input_sexp stdin |> Enamel.Ty.t_of_sexp in
+      let (ty, ki) = Enamel.Ty.ok Initial_context.ctx ty in
       Sexp.List [
-        F.Type.sexp_of_t ty;
+        F.Ty.sexp_of_t ty;
         Sexp.Atom ":";
         F.Kind.sexp_of_t ki;
       ]
@@ -53,7 +53,7 @@ let elaborate_command =
       Sexp.List [
         F.Expr.sexp_of_t e;
         Sexp.Atom ":";
-        F.Type.sexp_of_t t;
+        F.Ty.sexp_of_t t;
       ]
       |> Sexp.to_string_hum
       |> print_endline

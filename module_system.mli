@@ -5,17 +5,17 @@ module Source (Base : sig
     type t with sexp
     val ok : Target.Context.t -> t -> Systemf.Kind.t
   end
-  module Type : sig
+  module Ty : sig
     type 'a t with sexp
     type 'a check =
-      Target.Context.t -> 'a -> Systemf.Type.t * Systemf.Kind.t
+      Target.Context.t -> 'a -> Systemf.Ty.t * Systemf.Kind.t
     val ok : 'a check -> 'a t check
   end
   module Expr : sig
     type ('a, 'b) t with sexp
     type 'b check =
-      Target.Context.t -> 'b -> Systemf.Expr.t * Systemf.Type.t
-    val ok : 'a Type.check -> 'b check -> ('a, 'b) t check
+      Target.Context.t -> 'b -> Systemf.Expr.t * Systemf.Ty.t
+    val ok : 'a Ty.check -> 'b check -> ('a, 'b) t check
   end
 end) : sig
 
@@ -28,36 +28,36 @@ end) : sig
     val ok : Target.Context.t -> t -> Systemf.Expr.t * Target.Csig.t
   end
 
-  and Type : sig
+  and Ty : sig
     type t =
-      | Wrap of t Base.Type.t
+      | Wrap of t Base.Ty.t
       | Path of Path.t
       | Let of Bnd.t * t
     with sexp
     val ok :
-      Target.Context.t -> t -> Systemf.Type.t * Systemf.Kind.t
+      Target.Context.t -> t -> Systemf.Ty.t * Systemf.Kind.t
   end
 
   and Expr : sig
     type t =
-      | Wrap of (Type.t, t) Base.Expr.t
+      | Wrap of (Ty.t, t) Base.Expr.t
       | Path of Path.t
       | Let of Bnd.t * t
     with sexp
     val ok :
-      Target.Context.t -> t -> Systemf.Expr.t * Systemf.Type.t
+      Target.Context.t -> t -> Systemf.Expr.t * Systemf.Ty.t
   end
 
   and Sig : sig
     type t =
       | Path of Path.t
-      | Val of Type.t
-      | Type of Type.t
+      | Val of Ty.t
+      | Type of Ty.t
       | Abstype of Kind.t
       | Sig of Sig.t
       | Struct of Decl.t
       | Fun of Systemf.Expr.Name.t * t * t
-      | Where of t * Systemf.Label.t list * Type.t
+      | Where of t * Systemf.Label.t list * Ty.t
       | Let of Bnd.t * t
     with sexp
     val ok : Target.Context.t -> t -> Target.Asig.t
@@ -74,7 +74,7 @@ end) : sig
     val ok :
       Target.Context.t
       -> t
-      -> (Systemf.Type.Name.t * Systemf.Kind.t) list
+      -> (Systemf.Ty.Name.t * Systemf.Kind.t) list
        * Target.Csig.t Systemf.Label.Map.t
   end
 
@@ -82,7 +82,7 @@ end) : sig
     type t =
       | Name of Systemf.Expr.Name.t
       | Val of Expr.t
-      | Type of Type.t
+      | Type of Ty.t
       | Sig of Sig.t
       | Struct of Bnd.t
       | Dot of t * Systemf.Label.t
@@ -107,7 +107,7 @@ end) : sig
     val ok :
       Target.Context.t
       -> t
-      -> (Systemf.Type.Name.t * Systemf.Kind.t) list
+      -> (Systemf.Ty.Name.t * Systemf.Kind.t) list
        * Target.Csig.t Systemf.Label.Map.t
        * (Systemf.Expr.t -> Systemf.Expr.t)
   end

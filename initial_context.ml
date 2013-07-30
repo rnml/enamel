@@ -11,7 +11,7 @@ module K = struct
 end
 
 module Ty = struct
-  let name x = F.Type.Name.raw x
+  let name x = F.Ty.Name.raw x
 
   let int  = name "int"
   let ref_ = name "ref"
@@ -29,7 +29,7 @@ let add_ty ctx ty_var kind =
   let tm_var = F.Expr.Name.cast ty_var in
   let ctx =
     Ctx.add_tm ctx tm_var
-      (Target.Csig.Type (F.Type.Name ty_var, kind))
+      (Target.Csig.Type (F.Ty.Name ty_var, kind))
   in
   ctx
 
@@ -60,7 +60,7 @@ let add_tm ctx name ty = Ctx.add_tm ctx name (Target.Csig.Val ty)
 
 module T : sig
   type t = Target.Csig.t
-  val nm : F.Type.Name.t -> t
+  val nm : F.Ty.Name.t -> t
   val forall : t list -> t -> t
   val (@->) : t -> t -> t
   val (+$) : t -> t -> t
@@ -84,10 +84,10 @@ end = struct
   let (+$) a b =
     match (a, b) with
     | (Target.Csig.Val a, Target.Csig.Val b) ->
-      Target.Csig.Val (F.Type.App (a, b))
+      Target.Csig.Val (F.Ty.App (a, b))
     | _ -> assert false
 
-  let nm x = Target.Csig.Val (F.Type.Name x)
+  let nm x = Target.Csig.Val (F.Ty.Name x)
 
   let a = nm Ty.a
   let b = nm Ty.b
@@ -95,10 +95,10 @@ end = struct
   let forall xs t =
     List.fold_right xs ~init:t ~f:(fun a t ->
       match a with
-      | Target.Csig.Val (F.Type.Name a) ->
+      | Target.Csig.Val (F.Ty.Name a) ->
         Target.Csig.Fun
           ( [(a, K.star)]
-          , Target.Csig.Type (F.Type.Name a, K.star)
+          , Target.Csig.Type (F.Ty.Name a, K.star)
           , Target.Asig.Exists ([], t))
       | _ -> assert false)
 

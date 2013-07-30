@@ -9,13 +9,13 @@ module Kind = struct
   let ok _ctx Type = F.Kind.Star
 end
 
-module Type = struct
+module Ty = struct
   type 'a t =
   | Mod of 'a
   | App of 'a t * 'a t
   with sexp
 
-  type 'a check = Ctx.t -> 'a -> F.Type.t * F.Kind.t
+  type 'a check = Ctx.t -> 'a -> F.Ty.t * F.Kind.t
 
   let rec ok check_a ctx = function
     | Mod a -> check_a ctx a
@@ -25,7 +25,7 @@ module Type = struct
       match kf with
       | F.Kind.Arr (k_dom, k_rng) ->
         if F.Kind.equal k_dom kx
-        then (F.Type.App (tf, tx), k_rng)
+        then (F.Ty.App (tf, tx), k_rng)
         else failwith "kind mismatch"
       | _ -> failwith "applied type of non-arrow kind"
 
@@ -35,21 +35,21 @@ module Expr = struct
 
   type ('a, 'b) t =
     | Mod of 'b
-    | Lam of F.Expr.Name.t * 'a Type.t * ('a, 'b) t
+    | Lam of F.Expr.Name.t * 'a Ty.t * ('a, 'b) t
     | App of ('a, 'b) t * ('a, 'b) t
   with sexp
 
-  type 'a check = Ctx.t -> 'a -> F.Expr.t * F.Type.t
+  type 'a check = Ctx.t -> 'a -> F.Expr.t * F.Ty.t
 
-  let rec ok : 'a. 'a Type.check -> 'b check -> ('a, 'b) t check = fun check_ty check_a ctx -> function
+  let rec ok : 'a. 'a Ty.check -> 'b check -> ('a, 'b) t check = fun check_ty check_a ctx -> function
     | Mod a -> check_a ctx a
     | App (f, x) ->
       let (f, tf) = ok check_ty check_a ctx f in
       let (x, tx) = ok check_ty check_a ctx x in
       begin
         match tf with
-        | F.Type.Arr (ty_dom, ty_rng) ->
-          if F.Type.equal ty_dom tx
+        | F.Ty.Arr (ty_dom, ty_rng) ->
+          if F.Ty.equal ty_dom tx
           then (F.Expr.App (f, x), ty_rng)
           else failwith "type mismatch"
         | _ -> failwith "applied term of non-arrow type"
@@ -57,15 +57,15 @@ module Expr = struct
     | Lam (x, dom, body) ->
       (* CR: freshen! *)
       begin
-        match Type.ok check_ty ctx dom with
+        match Ty.ok check_ty ctx dom with
         | (dom, F.Kind.Star) ->
           let (body, rng) =
             ok check_ty check_a
               (Ctx.add_tm ctx x (Target.Csig.Val dom))
               body
           in
-          ( Systemf.Expr.Fun (x, dom, body)
-          , Systemf.Type.Arr (dom, rng)
+          ( Systemf.Expr.mk_fun x dom body
+          , Systemf.Ty.Arr (dom, rng)
           )
         | _ ->
           failwith "lambda argument type annotation of non-star \
@@ -75,21 +75,21 @@ module Expr = struct
 end
 
 module Fix = struct
-  module Type = struct
-    type t = Fix of t Type.t | Name of F.Type.Name.t with sexp
+  module Ty = struct
+    type t = Fix of t Ty.t | Name of F.Ty.Name.t with sexp
     let rec ok ctx = function
-      | Fix o -> Type.ok ok ctx o
+      | Fix o -> Ty.ok ok ctx o
       | Name x ->
         match Ctx.find_ty ctx x with
         | None -> failwith "free type var"
-        | Some k -> (F.Type.Name x, k)
+        | Some k -> (F.Ty.Name x, k)
   end
   module Expr = struct
     type t =
-      | Fix of (Type.t, t) Expr.t
+      | Fix of (Ty.t, t) Expr.t
       | Name of F.Expr.Name.t with sexp
     let rec ok ctx = function
-      | Fix e -> Expr.ok Type.ok ok ctx e
+      | Fix e -> Expr.ok Ty.ok ok ctx e
       | Name x ->
         match Ctx.find_tm ctx x with
         | None -> failwith "free type var"

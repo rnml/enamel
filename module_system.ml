@@ -11,15 +11,15 @@ module Source (Base : sig
     type t with sexp
     val ok : Ctx.t -> t -> F.Kind.t
   end
-  module Type : sig
+  module Ty : sig
     type 'a t with sexp
-    type 'a check = Ctx.t -> 'a -> F.Type.t * F.Kind.t
+    type 'a check = Ctx.t -> 'a -> F.Ty.t * F.Kind.t
     val ok : 'a check -> 'a t check
   end
   module Expr : sig
     type ('a, 'b) t with sexp
-    type 'b check = Ctx.t -> 'b -> F.Expr.t * F.Type.t
-    val ok : 'a Type.check -> 'b check -> ('a, 'b) t check
+    type 'b check = Ctx.t -> 'b -> F.Expr.t * F.Ty.t
+    val ok : 'a Ty.check -> 'b check -> ('a, 'b) t check
   end
 end) = struct
 
@@ -33,36 +33,36 @@ end) = struct
     let ok ctx m =
       let (Target.Asig.Exists (alphas, csig), e) = Mod.ok ctx m in
       if
-        let fvs = F.Type.fvs (Target.Csig.to_f csig) in
+        let fvs = F.Ty.fvs (Target.Csig.to_f csig) in
         List.exists alphas ~f:(fun (a, _k) -> Set.mem fvs a)
       then
          failwith "path projection lets type variable escape"
       else begin
         let x = F.Expr.Name.raw "path.project" in
         ( List.fold alphas ~init:e ~f:(fun acc (a, _) ->
-            F.Expr.Unpack (a, x, acc, F.Expr.Name x))
+            F.Expr.mk_unpack a x acc (F.Expr.Name x))
         , csig )
       end
   end
 
-  and Type : sig
+  and Ty : sig
     type t =
-      | Wrap of t Base.Type.t
+      | Wrap of t Base.Ty.t
       | Path of Path.t
       | Let of Bnd.t * t
     with sexp
-    val ok : t Base.Type.check
+    val ok : t Base.Ty.check
   end = struct
 
     type t =
-      | Wrap of t Base.Type.t
+      | Wrap of t Base.Ty.t
       | Path of Path.t
       | Let of Bnd.t * t
     with sexp
 
     let rec ok ctx t =
       match t with
-      | Wrap typ -> Base.Type.ok ok ctx typ
+      | Wrap typ -> Base.Ty.ok ok ctx typ
       | Path p ->
         let (_, csig) = Path.ok ctx p in
         (match csig with
@@ -78,7 +78,7 @@ end) = struct
 
   and Expr : sig
     type t =
-      | Wrap of (Type.t, t) Base.Expr.t
+      | Wrap of (Ty.t, t) Base.Expr.t
       | Path of Path.t
       | Let of Bnd.t * t
     with sexp
@@ -86,14 +86,14 @@ end) = struct
   end = struct
 
     type t =
-      | Wrap of (Type.t, t) Base.Expr.t
+      | Wrap of (Ty.t, t) Base.Expr.t
       | Path of Path.t
       | Let of Bnd.t * t
     with sexp
 
     let rec ok ctx e =
       match e with
-      | Wrap exp -> Base.Expr.ok Type.ok ok ctx exp
+      | Wrap exp -> Base.Expr.ok Ty.ok ok ctx exp
       | Path p ->
         let (e, csig) = Path.ok ctx p in
         (match csig with
@@ -109,13 +109,13 @@ end) = struct
   and Sig : sig
     type t =
       | Path of Path.t
-      | Val of Type.t
-      | Type of Type.t
+      | Val of Ty.t
+      | Type of Ty.t
       | Abstype of Kind.t
       | Sig of Sig.t
       | Struct of Decl.t
       | Fun of F.Expr.Name.t * t * t
-      | Where of t * F.Label.t list * Type.t
+      | Where of t * F.Label.t list * Ty.t
       | Let of Bnd.t * t
     with sexp
     val ok : Ctx.t -> t -> Target.Asig.t
@@ -123,13 +123,13 @@ end) = struct
 
     type t =
       | Path of Path.t
-      | Val of Type.t
-      | Type of Type.t
+      | Val of Ty.t
+      | Type of Ty.t
       | Abstype of Kind.t
       | Sig of Sig.t
       | Struct of Decl.t
       | Fun of F.Expr.Name.t * t * t
-      | Where of t * F.Label.t list * Type.t
+      | Where of t * F.Label.t list * Ty.t
       | Let of Bnd.t * t
     with sexp
 
@@ -143,7 +143,7 @@ end) = struct
                            where a signature was expected"
         end
       | Val t ->
-        let (t, k) = Type.ok ctx t in
+        let (t, k) = Ty.ok ctx t in
         begin
           match k with
           | F.Kind.Star -> ()
@@ -151,12 +151,12 @@ end) = struct
         end;
         Target.Asig.Exists ([], Target.Csig.Val t)
       | Type t ->
-        let (t, k) = Type.ok ctx t in
+        let (t, k) = Ty.ok ctx t in
         Target.Asig.Exists ([], Target.Csig.Type (t, k))
       | Abstype k ->
         let k = Kind.ok ctx k in
-        let a = assert false (* F.Type.Name.dummy *) in
-        let t = F.Type.Name a in
+        let a = assert false (* F.Ty.Name.dummy *) in
+        let t = F.Ty.Name a in
         Target.Asig.Exists ([(a, k)], Target.Csig.Type (t, k))
       | Sig s ->
         let asig = Sig.ok ctx s in
@@ -177,7 +177,7 @@ end) = struct
         Target.Asig.Exists ([], Target.Csig.Fun (aks, csig, asig))
       | Where (s, path, t) ->
         let Target.Asig.Exists (aks, csig_orig) = Sig.ok ctx s in
-        let (t, k) = Type.ok ctx t in
+        let (t, k) = Ty.ok ctx t in
         let rec loop csig = function
           | l :: ls ->
             (match csig with
@@ -191,10 +191,10 @@ end) = struct
             | Target.Csig.Type (t', k') ->
               assert (F.Kind.equal k k');
               (match t' with
-              | F.Type.Name a ->
+              | F.Ty.Name a ->
                 let alphas =
                   List.filter aks ~f:(fun (a', _) ->
-                    not (F.Type.Name.equal a a'))
+                    not (F.Ty.Name.equal a a'))
                 in
                 Target.Asig.Exists
                   ( alphas
@@ -224,7 +224,7 @@ end) = struct
     val ok :
       Ctx.t
       -> t
-      -> (F.Type.Name.t * F.Kind.t) list
+      -> (F.Ty.Name.t * F.Kind.t) list
        * Target.Csig.t F.Label.Map.t
 
   end = struct
@@ -282,7 +282,7 @@ end) = struct
     type t =
       | Name of F.Expr.Name.t
       | Val of Expr.t
-      | Type of Type.t
+      | Type of Ty.t
       | Sig of Sig.t
       | Struct of Bnd.t
       | Dot of t * F.Label.t
@@ -297,7 +297,7 @@ end) = struct
     type t =
       | Name of F.Expr.Name.t
       | Val of Expr.t
-      | Type of Type.t
+      | Type of Ty.t
       | Sig of Sig.t
       | Struct of Bnd.t
       | Dot of t * F.Label.t
@@ -324,7 +324,7 @@ end) = struct
         ( Target.Asig.Exists ([], Target.Csig.Val t)
         , e )
       | Type t ->
-        let (t, k) = Type.ok ctx t in
+        let (t, k) = Ty.ok ctx t in
         ( Target.Asig.Exists ([], Target.Csig.Type (t, k))
         , F.Expr.type_mod t k )
       | Sig s ->
@@ -361,8 +361,8 @@ end) = struct
         let (asig, e) = ok ctx m in
         ( Target.Asig.Exists ([], Target.Csig.Fun (aks, csig, asig))
         , List.fold_right aks
-            ~f:(fun (a, k) acc -> F.Expr.Ty_fun (a, k, acc))
-            ~init:(F.Expr.Fun (x, Target.Csig.to_f csig, e)) )
+            ~f:(fun (a, k) acc -> F.Expr.mk_tyfun a k acc)
+            ~init:(F.Expr.mk_fun x (Target.Csig.to_f csig) e) )
       | App (Name x1, Name x2) ->
         let (aks, csig', asig) =
           match lookup ctx x1 with
@@ -381,7 +381,7 @@ end) = struct
         ( List.fold ~f:Target.Asig.subst ~init:asig subs
         , F.Expr.App
             ( List.fold ~init:(F.Expr.Name x1) tks
-                ~f:(fun acc (t, _k) -> F.Expr.Ty_app (acc, t))
+                ~f:(fun acc (t, _k) -> F.Expr.Tyapp (acc, t))
             , f (F.Expr.Name x2)) )
       | Seal (Name x, s) ->
         let csig = lookup ctx x in
@@ -429,13 +429,13 @@ end) = struct
     with sexp
 
     val let_val : F.Expr.Name.t -> Expr.t -> t
-    val let_typ : F.Expr.Name.t -> Type.t -> t
+    val let_typ : F.Expr.Name.t -> Ty.t -> t
     val let_sig : F.Expr.Name.t -> Sig.t -> t
 
     val ok :
       Ctx.t
       -> t
-      -> (F.Type.Name.t * F.Kind.t) list
+      -> (F.Ty.Name.t * F.Kind.t) list
        * Target.Csig.t F.Label.Map.t
        * (F.Expr.t -> F.Expr.t)
 
@@ -460,7 +460,7 @@ end) = struct
         let (Target.Asig.Exists (alphas, csig), e) = Mod.ok ctx m in
         ( alphas
         , F.Label.Map.singleton lx csig
-        , fun acc -> F.Expr.Let (x, e, acc) )
+        , fun acc -> F.Expr.mk_let x e acc )
       | Nil ->
         ( []
         , F.Label.Map.empty
@@ -495,7 +495,7 @@ end) = struct
               | F.Expr.Name m -> (m, (fun x -> x))
               | _ ->
                 let m = F.Expr.Name.raw "mod" in
-                (m, fun body -> F.Expr.Let (m, e, body))
+                (m, fun body -> F.Expr.mk_let m e body)
             in
             ( alphas
             , map
@@ -504,7 +504,7 @@ end) = struct
                   ~f:(fun ~key:lx ~data:_ acc ->
                     let x = F.Expr.Name.of_label lx in
                     (* CR: only introduce the binding if x is free in acc *)
-                    F.Expr.Let (x, F.Expr.Dot (F.Expr.Name m, lx), acc))
+                    F.Expr.mk_let x (F.Expr.Dot (F.Expr.Name m, lx)) acc)
               end)
           | _ -> failwith "included non-struct"
         end
