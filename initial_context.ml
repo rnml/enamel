@@ -26,7 +26,7 @@ end
 
 let add_ty ctx ty_var kind =
   let ctx = Ctx.add_ty ctx ty_var kind in
-  let tm_var = F.Expr.Name.cast ty_var in
+  let tm_var = F.Tm.Name.cast ty_var in
   let ctx =
     Ctx.add_tm ctx tm_var
       (Target.Csig.Type (F.Ty.Name ty_var, kind))
@@ -40,7 +40,7 @@ let ctx = add_ty ctx Ty.int   K.(star)
 let ctx = add_ty ctx Ty.unit  K.(star)
 
 module Tm = struct
-  let name x = F.Expr.Name.raw x
+  let name x = F.Tm.Name.raw x
 
   let cons  = name "cons"
   let fst   = name "fst"

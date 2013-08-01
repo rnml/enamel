@@ -15,13 +15,13 @@ module Label : Identifiable
 module Ty : sig
 
   type t =
-    | Name   of t Name.t
-    | Arr    of t * t
-    | Record of t Label.Map.t
-    | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
-    | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
-    | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t
-    | App    of t * t
+  | Name   of t Name.t
+  | Arr    of t * t
+  | Record of t Label.Map.t
+  | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
+  | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
+  | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t
+  | App    of t * t
   with sexp
 
   val type_rep : t Type.Rep.t
@@ -48,21 +48,23 @@ module Ty : sig
   val equal : t -> t -> bool
 end
 
-module Expr : sig
+module Tm : sig
 
   type t =
-    | Name   of t Name.t
-    | Fun    of (t Name.t * Ty.t Embed.t, t) Bind.t
-    | App    of t * t
-    | Record of t Label.Map.t
-    | Dot    of t * Label.t
-    | Tyfun  of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
-    | Tyapp  of t * Ty.t
-    | Pack   of (* pack <ty, tm> : exists a. ty *)
-        Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
-    | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
-    | Let of (t Name.t * t Embed.t, t) Bind.t
+  | Name   of t Name.t
+  | Fun    of (t Name.t * Ty.t Embed.t, t) Bind.t
+  | App    of t * t
+  | Record of t Label.Map.t
+  | Dot    of t * Label.t
+  | Tyfun  of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
+  | Tyapp  of t * Ty.t
+  | Pack   of (* pack <ty, tm> : exists a. ty *)
+      Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
+  | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
+  | Let of (t Name.t * t Embed.t, t) Bind.t
   with sexp
+
+  val type_rep : t Type.Rep.t
 
   val mk_fun : t Name.t -> Ty.t -> t -> t
   val un_fun : (t Name.t * Ty.t Embed.t, t) Bind.t -> t Name.t * Ty.t * t
@@ -84,16 +86,11 @@ module Expr : sig
   val type_mod : Ty.t -> Kind.t -> t
   val sig_mod : Ty.t -> t
 
-  val pack :
-    (Ty.t * Ty.Name.t * Kind.t) list -> t -> Ty.t -> t
+  val pack : (Ty.t * Ty.Name.t * Kind.t) list -> t -> Ty.t -> t
 
   val unpack : Ty.Name.t list -> Name.t -> t -> t -> t
 
 end
 
-val subtype :
-  Ty.Context.t
-  -> src:Ty.t
-  -> dst:Ty.t
-  -> [`Coerce of Expr.t -> Expr.t]
+val subtype : Ty.Context.t -> src:Ty.t -> dst:Ty.t -> [`Coerce of Tm.t -> Tm.t]
 

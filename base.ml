@@ -31,15 +31,15 @@ module Ty = struct
 
 end
 
-module Expr = struct
+module Tm = struct
 
   type ('a, 'b) t =
     | Mod of 'b
-    | Lam of F.Expr.Name.t * 'a Ty.t * ('a, 'b) t
+    | Lam of F.Tm.Name.t * 'a Ty.t * ('a, 'b) t
     | App of ('a, 'b) t * ('a, 'b) t
   with sexp
 
-  type 'a check = Ctx.t -> 'a -> F.Expr.t * F.Ty.t
+  type 'a check = Ctx.t -> 'a -> F.Tm.t * F.Ty.t
 
   let rec ok : 'a. 'a Ty.check -> 'b check -> ('a, 'b) t check = fun check_ty check_a ctx -> function
     | Mod a -> check_a ctx a
@@ -50,7 +50,7 @@ module Expr = struct
         match tf with
         | F.Ty.Arr (ty_dom, ty_rng) ->
           if F.Ty.equal ty_dom tx
-          then (F.Expr.App (f, x), ty_rng)
+          then (F.Tm.App (f, x), ty_rng)
           else failwith "type mismatch"
         | _ -> failwith "applied term of non-arrow type"
       end
@@ -64,7 +64,7 @@ module Expr = struct
               (Ctx.add_tm ctx x (Target.Csig.Val dom))
               body
           in
-          ( Systemf.Expr.mk_fun x dom body
+          ( Systemf.Tm.mk_fun x dom body
           , Systemf.Ty.Arr (dom, rng)
           )
         | _ ->
@@ -84,16 +84,16 @@ module Fix = struct
         | None -> failwith "free type var"
         | Some k -> (F.Ty.Name x, k)
   end
-  module Expr = struct
+  module Tm = struct
     type t =
-      | Fix of (Ty.t, t) Expr.t
-      | Name of F.Expr.Name.t with sexp
+      | Fix of (Ty.t, t) Tm.t
+      | Name of F.Tm.Name.t with sexp
     let rec ok ctx = function
-      | Fix e -> Expr.ok Ty.ok ok ctx e
+      | Fix e -> Tm.ok Ty.ok ok ctx e
       | Name x ->
         match Ctx.find_tm ctx x with
         | None -> failwith "free type var"
-        | Some csig -> (F.Expr.Name x, Target.Csig.to_f csig)
+        | Some csig -> (F.Tm.Name x, Target.Csig.to_f csig)
   end
 end
 

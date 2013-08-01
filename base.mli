@@ -12,10 +12,10 @@ module Ty : sig
   val ok : 'a check -> 'a t check
 end
 
-module Expr : sig
+module Tm : sig
   type ('a, 'b) t with sexp
   type 'a check =
-    Target.Context.t -> 'a -> Systemf.Expr.t * Systemf.Ty.t
+    Target.Context.t -> 'a -> Systemf.Tm.t * Systemf.Ty.t
   val ok : 'a Ty.check -> 'b check -> ('a, 'b) t check
 end
 
@@ -24,9 +24,9 @@ module Fix : sig
     type t with sexp
     val ok : t Ty.check
   end
-  module Expr : sig
+  module Tm : sig
     type t with sexp
-    val ok : t Expr.check
+    val ok : t Tm.check
   end
 end
 

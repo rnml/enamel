@@ -19,11 +19,11 @@ module rec Csig : sig
 
   val swap : Ty.Name.t * Ty.Name.t -> t -> t
 
-  val sub : Ty.Context.t -> t -> t -> [`Coerce of Expr.t -> Expr.t]
+  val sub : Ty.Context.t -> t -> t -> [`Coerce of Tm.t -> Tm.t]
 
   val matches :
     Ty.Context.t -> t -> Asig.t ->
-      (Ty.t * Kind.t) list * [`Coerce of Expr.t -> Expr.t]
+      (Ty.t * Kind.t) list * [`Coerce of Tm.t -> Tm.t]
 
 end = struct
   type t =
@@ -68,7 +68,7 @@ end = struct
     | (Csig.Sig s1, Csig.Sig s2) ->
       let `Coerce _ = Asig.sub ctx s1 s2 in
       let `Coerce _ = Asig.sub ctx s2 s1 in
-      `Coerce (fun _ -> Expr.sig_mod (Asig.to_f s2))
+      `Coerce (fun _ -> Tm.sig_mod (Asig.to_f s2))
     | (Csig.Struct map1, Csig.Struct map2) ->
       let map =
         Label.Map.merge map1 map2 (fun ~key:_ cs ->
@@ -80,9 +80,9 @@ end = struct
             Some f)
       in
       `Coerce (fun e ->
-        Expr.Record
+        Tm.Record
           (Map.mapi map
-             ~f:(fun ~key:lx ~data:f -> f (Expr.Dot (e, lx)))))
+             ~f:(fun ~key:lx ~data:f -> f (Tm.Dot (e, lx)))))
     | (Fun (aks1, csig1, asig1), Fun (aks2, csig2, asig2)) ->
       let ctx =
         (* CR: this must be wrong -- we should be freshening as
@@ -102,17 +102,17 @@ end = struct
       in
       `Coerce (fun f ->
         List.fold_right aks2
-          ~f:(fun (a, k) e -> Expr.mk_tyfun a k e)
+          ~f:(fun (a, k) e -> Tm.mk_tyfun a k e)
           ~init:begin
-            let x = assert false (* Expr.Name.dummy *) in
-            Expr.mk_fun
+            let x = assert false (* Tm.Name.dummy *) in
+            Tm.mk_fun
               x
               (Csig.to_f csig2)
               (frng begin
-                Expr.App
+                Tm.App
                   ( List.fold tks ~init:f
-                      ~f:(fun e (t, _k) -> Expr.Tyapp (e, t))
-                      , fdom (Expr.Name x) )
+                      ~f:(fun e (t, _k) -> Tm.Tyapp (e, t))
+                      , fdom (Tm.Name x) )
               end)
           end)
     | _ -> failwith "signature mismatch"
@@ -166,7 +166,7 @@ and Asig : sig
 
   val to_f : t -> Ty.t
 
-  val sub : Ty.Context.t -> t -> t -> [`Coerce of Expr.t -> Expr.t]
+  val sub : Ty.Context.t -> t -> t -> [`Coerce of Tm.t -> Tm.t]
 
   val subst : t -> Ty.Name.t * Ty.t -> t
 
@@ -208,25 +208,25 @@ end = struct
     | (Exists (aks1, csig1), (Exists (aks2, csig2) as asig2)) ->
       let (ts, `Coerce f) = Csig.matches ctx csig1 asig2 in
       `Coerce (fun x ->
-        let y = assert false (* Expr.Name.dummy *) in
+        let y = assert false (* Tm.Name.dummy *) in
         let taks =
           List.map ~f:(fun ((a, k), (t, _)) -> (t, a, k))
             (List.zip_exn aks2 ts)
         in
-        Expr.unpack (List.map ~f:fst aks1) y x
-          (Expr.pack taks (f (Expr.Name y)) (Csig.to_f csig2)))
+        Tm.unpack (List.map ~f:fst aks1) y x
+          (Tm.pack taks (f (Tm.Name y)) (Csig.to_f csig2)))
 
 end
 
 module Context = struct
   type t = {
     ty_ctx : Ty.Context.t;
-    tm_ctx : Csig.t Expr.Name.Map.t;
+    tm_ctx : Csig.t Tm.Name.Map.t;
   } with sexp
 
   let empty = {
     ty_ctx = Ty.Context.empty;
-    tm_ctx = Expr.Name.Map.empty;
+    tm_ctx = Tm.Name.Map.empty;
   }
 
   let add_ty g a k = {g with ty_ctx = Ty.Context.add g.ty_ctx a k}

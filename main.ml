@@ -17,10 +17,10 @@ let check_expr_command =
   Command.basic ~summary:"type check a expr (from stdin)"
     Command.Spec.(empty)
     (fun () ->
-      let tm = Sexp.input_sexp stdin |> Enamel.Expr.t_of_sexp in
-      let (tm, ty) = Enamel.Expr.ok Initial_context.ctx tm in
+      let tm = Sexp.input_sexp stdin |> Enamel.Tm.t_of_sexp in
+      let (tm, ty) = Enamel.Tm.ok Initial_context.ctx tm in
       Sexp.List [
-        F.Expr.sexp_of_t tm;
+        F.Tm.sexp_of_t tm;
         Sexp.Atom ":";
         F.Ty.sexp_of_t ty;
       ]
@@ -51,7 +51,7 @@ let elaborate_command =
       let (t, e) = Enamel.Mod.ok Initial_context.ctx m in
       let t = Target.Asig.to_f t in
       Sexp.List [
-        F.Expr.sexp_of_t e;
+        F.Tm.sexp_of_t e;
         Sexp.Atom ":";
         F.Ty.sexp_of_t t;
       ]

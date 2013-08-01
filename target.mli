@@ -11,9 +11,11 @@ module rec Csig : sig
     | Fun of (Ty.Name.t * Kind.t) list * t * Asig.t
   val to_f : t -> Ty.t
   val subst : t -> (Ty.Name.t * Ty.t) -> t
-  val matches :
-    Ty.Context.t -> t -> Asig.t ->
-      (Ty.t * Kind.t) list * [`Coerce of Expr.t -> Expr.t]
+  val matches
+    :  Ty.Context.t
+    -> t
+    -> Asig.t
+    -> (Ty.t * Kind.t) list * [`Coerce of Tm.t -> Tm.t]
 end
 
 and Asig : sig
@@ -29,8 +31,8 @@ module Context : sig
      take it in *)
   val add_ty  : t -> Ty.Name.t -> Kind.t -> t
   val find_ty : t -> Ty.Name.t -> Kind.t option
-  val add_tm  : t -> Expr.Name.t -> Csig.t -> t
-  val find_tm : t -> Expr.Name.t -> Csig.t option
+  val add_tm  : t -> Tm.Name.t -> Csig.t -> t
+  val find_tm : t -> Tm.Name.t -> Csig.t option
   val ty_ctx  : t -> Ty.Context.t
 end
 

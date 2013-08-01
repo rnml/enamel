@@ -206,7 +206,7 @@ module Ty = struct
 
 end
 
-module Expr = struct
+module Tm = struct
 
   type t =
     | Name of t Name.t
