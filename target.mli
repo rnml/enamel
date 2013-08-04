@@ -1,26 +1,50 @@
 open Std_internal
 
+open Unbound
 open Systemf
+
+module Args : sig
+  type t = (Ty.Name.t * Kind.t Embed.t) list
+end
 
 module rec Csig : sig
   type t =
-    | Val of Ty.t
-    | Type of Ty.t * Kind.t
-    | Sig of Asig.t
-    | Struct of t Label.Map.t
-    | Fun of (Ty.Name.t * Kind.t) list * t * Asig.t
+  | Val of Ty.t
+  | Type of Ty.t * Kind.t
+  | Sig of Asig.t
+  | Struct of t Label.Map.t
+  | Fun of ((Ty.Name.t * Kind.t Embed.t) list, t * Asig.t) Bind.t
+
+  val mk_fun : (Ty.Name.t * Kind.t) list -> t -> Asig.t -> t
+
+  val un_fun
+    :  (Args.t, t * Asig.t) Bind.t
+    -> (Ty.Name.t * Kind.t) list * t * Asig.t
+
   val to_f : t -> Ty.t
+
   val subst : t -> (Ty.Name.t * Ty.t) -> t
+
   val matches
     :  Ty.Context.t
     -> t
     -> Asig.t
     -> (Ty.t * Kind.t) list * [`Coerce of Tm.t -> Tm.t]
+
 end
 
 and Asig : sig
-  type t = Exists of (Ty.Name.t * Kind.t) list * Csig.t
+  type t =
+  | Exists of ((Ty.Name.t * Kind.t Embed.t) list, Csig.t) Bind.t
+
+  val mk_exists : (Ty.Name.t * Kind.t) list -> Csig.t -> t
+
+  val un_exists
+    :  (Args.t, Csig.t) Bind.t
+    -> (Ty.Name.t * Kind.t) list * Csig.t
+
   val to_f : t -> Ty.t
+
   val subst : t -> Ty.Name.t * Ty.t -> t
 end
 

@@ -31,33 +31,34 @@ end) = struct
   end = struct
     type t = Mod.t with sexp
     let ok ctx m =
-      let (Target.Asig.Exists (alphas, csig), e) = Mod.ok ctx m in
+      let (Target.Asig.Exists b, e) = Mod.ok ctx m in
+      let (alphas, csig) = Target.Asig.un_exists b in
       if
         let fvs = F.Ty.fvs (Target.Csig.to_f csig) in
         List.exists alphas ~f:(fun (a, _k) -> Set.mem fvs a)
       then
-         failwith "path projection lets type variable escape"
+        failwith "path projection lets type variable escape"
       else begin
         let x = F.Tm.Name.raw "path.project" in
         ( List.fold alphas ~init:e ~f:(fun acc (a, _) ->
-            F.Tm.mk_unpack a x acc (F.Tm.Name x))
-        , csig )
+          F.Tm.mk_unpack a x acc (F.Tm.Name x))
+            , csig )
       end
   end
 
   and Ty : sig
     type t =
-      | Wrap of t Base.Ty.t
-      | Path of Path.t
-      | Let of Bnd.t * t
+    | Wrap of t Base.Ty.t
+    | Path of Path.t
+    | Let of Bnd.t * t
     with sexp
     val ok : t Base.Ty.check
   end = struct
 
     type t =
-      | Wrap of t Base.Ty.t
-      | Path of Path.t
-      | Let of Bnd.t * t
+    | Wrap of t Base.Ty.t
+    | Path of Path.t
+    | Let of Bnd.t * t
     with sexp
 
     let rec ok ctx t =
@@ -78,17 +79,17 @@ end) = struct
 
   and Tm : sig
     type t =
-      | Wrap of (Ty.t, t) Base.Tm.t
-      | Path of Path.t
-      | Let of Bnd.t * t
+    | Wrap of (Ty.t, t) Base.Tm.t
+    | Path of Path.t
+    | Let of Bnd.t * t
     with sexp
     val ok : t Base.Tm.check
   end = struct
 
     type t =
-      | Wrap of (Ty.t, t) Base.Tm.t
-      | Path of Path.t
-      | Let of Bnd.t * t
+    | Wrap of (Ty.t, t) Base.Tm.t
+    | Path of Path.t
+    | Let of Bnd.t * t
     with sexp
 
     let rec ok ctx e =
@@ -108,29 +109,29 @@ end) = struct
 
   and Sig : sig
     type t =
-      | Path of Path.t
-      | Val of Ty.t
-      | Type of Ty.t
-      | Abstype of Kind.t
-      | Sig of Sig.t
-      | Struct of Decl.t
-      | Fun of F.Tm.Name.t * t * t
-      | Where of t * F.Label.t list * Ty.t
-      | Let of Bnd.t * t
+    | Path of Path.t
+    | Val of Ty.t
+    | Type of Ty.t
+    | Abstype of Kind.t
+    | Sig of Sig.t
+    | Struct of Decl.t
+    | Fun of F.Tm.Name.t * t * t
+    | Where of t * F.Label.t list * Ty.t
+    | Let of Bnd.t * t
     with sexp
     val ok : Ctx.t -> t -> Target.Asig.t
   end = struct
 
     type t =
-      | Path of Path.t
-      | Val of Ty.t
-      | Type of Ty.t
-      | Abstype of Kind.t
-      | Sig of Sig.t
-      | Struct of Decl.t
-      | Fun of F.Tm.Name.t * t * t
-      | Where of t * F.Label.t list * Ty.t
-      | Let of Bnd.t * t
+    | Path of Path.t
+    | Val of Ty.t
+    | Type of Ty.t
+    | Abstype of Kind.t
+    | Sig of Sig.t
+    | Struct of Decl.t
+    | Fun of F.Tm.Name.t * t * t
+    | Where of t * F.Label.t list * Ty.t
+    | Let of Bnd.t * t
     with sexp
 
     let rec ok ctx = function
@@ -149,34 +150,35 @@ end) = struct
           | F.Kind.Star -> ()
           | _ -> failwith "improper type"
         end;
-        Target.Asig.Exists ([], Target.Csig.Val t)
+        Target.Asig.mk_exists [] (Target.Csig.Val t)
       | Type t ->
         let (t, k) = Ty.ok ctx t in
-        Target.Asig.Exists ([], Target.Csig.Type (t, k))
+        Target.Asig.mk_exists [] (Target.Csig.Type (t, k))
       | Abstype k ->
         let k = Kind.ok ctx k in
         let a = assert false (* F.Ty.Name.dummy *) in
         let t = F.Ty.Name a in
-        Target.Asig.Exists ([(a, k)], Target.Csig.Type (t, k))
+        Target.Asig.mk_exists [(a, k)] (Target.Csig.Type (t, k))
       | Sig s ->
         let asig = Sig.ok ctx s in
-        Target.Asig.Exists ([], Target.Csig.Sig asig)
+        Target.Asig.mk_exists [] (Target.Csig.Sig asig)
       | Struct d ->
         let (alphas, map) = Decl.ok ctx d in
-        Target.Asig.Exists
-          ( alphas
-          , Target.Csig.Struct map )
+        Target.Asig.mk_exists alphas (Target.Csig.Struct map)
       | Fun (x, s, s') ->
-        let Target.Asig.Exists (aks, csig) = Sig.ok ctx s in
+        let Target.Asig.Exists b = Sig.ok ctx s in
+        let (aks, csig) = Target.Asig.un_exists b in
         let ctx =
           List.fold aks ~init:ctx ~f:(fun ctx (a, k) ->
             Target.Context.add_ty ctx a k)
         in
         let ctx = Target.Context.add_tm ctx x csig in
         let asig = Sig.ok ctx s' in
-        Target.Asig.Exists ([], Target.Csig.Fun (aks, csig, asig))
+        Target.Asig.mk_exists []
+          (Target.Csig.mk_fun aks csig asig)
       | Where (s, path, t) ->
-        let Target.Asig.Exists (aks, csig_orig) = Sig.ok ctx s in
+        let Target.Asig.Exists b = Sig.ok ctx s in
+        let (aks, csig_orig) = Target.Asig.un_exists b in
         let (t, k) = Ty.ok ctx t in
         let rec loop csig = function
           | l :: ls ->
@@ -196,9 +198,8 @@ end) = struct
                   List.filter aks ~f:(fun (a', _) ->
                     not (F.Ty.Name.equal a a'))
                 in
-                Target.Asig.Exists
-                  ( alphas
-                  , Target.Csig.subst csig_orig (a, t) )
+                Target.Asig.mk_exists alphas
+                  (Target.Csig.subst csig_orig (a, t))
               | _ -> failwith "where constraint mentions non-abstract type")
             | _ -> failwith "bad path in where constraint (type 3)")
         in
@@ -239,7 +240,8 @@ end) = struct
 
     let rec ok ctx = function
       | Decl (x, s) ->
-        let (Target.Asig.Exists (aks, csig)) = Sig.ok ctx s in
+        let Target.Asig.Exists b = Sig.ok ctx s in
+        let (aks, csig) = Target.Asig.un_exists b in
         let lx = F.Tm.Name.to_label x in
         ( aks
         , F.Label.Map.singleton lx csig )
@@ -266,7 +268,8 @@ end) = struct
             | `Right x -> Some x
             | `Both (_, x) -> Some x))
       | Include s ->
-        let Target.Asig.Exists (aks, csig) = Sig.ok ctx s in
+        let Target.Asig.Exists b = Sig.ok ctx s in
+        let (aks, csig) = Target.Asig.un_exists b in
         let map =
           match csig with
           | Target.Csig.Struct map -> map
@@ -318,61 +321,64 @@ end) = struct
         (match Ctx.find_tm ctx x with
         | None ->
           failwithf "unbound var %s" (F.Tm.Name.to_string x) ()
-        | Some csig -> (Target.Asig.Exists ([], csig), F.Tm.Name x))
+        | Some csig -> (Target.Asig.mk_exists [] csig, F.Tm.Name x))
       | Val e ->
         let (e, t) = Tm.ok ctx e in
-        ( Target.Asig.Exists ([], Target.Csig.Val t)
+        ( Target.Asig.mk_exists [] (Target.Csig.Val t)
         , e )
       | Type t ->
         let (t, k) = Ty.ok ctx t in
-        ( Target.Asig.Exists ([], Target.Csig.Type (t, k))
+        ( Target.Asig.mk_exists [] (Target.Csig.Type (t, k))
         , F.Tm.type_mod t k )
       | Sig s ->
         let asig = Sig.ok ctx s in
-        ( Target.Asig.Exists ([], Target.Csig.Sig asig)
+        ( Target.Asig.mk_exists [] (Target.Csig.Sig asig)
         , F.Tm.sig_mod (Target.Asig.to_f asig) )
       | Struct bnd ->
         let (aks, map, bnd) = Bnd.ok ctx bnd in
         let asig =
-          Target.Asig.Exists (aks, Target.Csig.Struct map)
+          Target.Asig.mk_exists aks (Target.Csig.Struct map)
         in
         ( asig
         , bnd (F.Tm.Record
             (Map.mapi map ~f:(fun ~key:x ~data:_ ->
               F.Tm.Name (F.Tm.Name.of_label x)))) )
       | Dot (m, x) ->
-        let (Target.Asig.Exists (alphas, csig), e) = ok ctx m in
+        let (Target.Asig.Exists b, e) = ok ctx m in
+        let (alphas, csig) = Target.Asig.un_exists b in
         begin
           match csig with
           | Target.Csig.Struct map ->
             (match F.Label.Map.find map x with
             | None -> failwith "unknown field"
             | Some xsig ->
-              (Target.Asig.Exists (alphas, xsig), F.Tm.Dot (e, x)))
+              (Target.Asig.mk_exists alphas xsig, F.Tm.Dot (e, x)))
           | _ -> failwith "field projection from non-struct"
         end
       | Fun (x, s, m) ->
-        let Target.Asig.Exists (aks, csig) = Sig.ok ctx s in
+        let Target.Asig.Exists b = Sig.ok ctx s in
+        let (aks, csig) = Target.Asig.un_exists b in
         let ctx =
           List.fold aks ~init:ctx ~f:(fun ctx (a, k) ->
             Target.Context.add_ty ctx a k)
         in
         let ctx = Target.Context.add_tm ctx x csig in
         let (asig, e) = ok ctx m in
-        ( Target.Asig.Exists ([], Target.Csig.Fun (aks, csig, asig))
+        ( Target.Asig.mk_exists []
+            (Target.Csig.mk_fun aks csig asig)
         , List.fold_right aks
             ~f:(fun (a, k) acc -> F.Tm.mk_tyfun a k acc)
             ~init:(F.Tm.mk_fun x (Target.Csig.to_f csig) e) )
       | App (Name x1, Name x2) ->
         let (aks, csig', asig) =
           match lookup ctx x1 with
-          | Target.Csig.Fun (aks, csig', asig) -> (aks, csig', asig)
+          | Target.Csig.Fun b -> Target.Csig.un_fun b
           | _ -> failwith "applied non-function"
         in
         let csig = lookup ctx x2 in
         let (tks, `Coerce f) =
           Target.Csig.matches (Ctx.ty_ctx ctx) csig
-            (Target.Asig.Exists (aks, csig'))
+            (Target.Asig.mk_exists aks csig')
         in
         let subs =
           List.zip_exn (List.map ~f:fst aks) (List.map ~f:fst tks)
@@ -390,7 +396,8 @@ end) = struct
           Target.Csig.matches (Ctx.ty_ctx ctx) csig asig
         in
         (match asig with
-        | Target.Asig.Exists (alphas, csig') ->
+        | Target.Asig.Exists b ->
+          let (alphas, csig') = Target.Asig.un_exists b in
           let taks =
             List.map (List.zip_exn alphas tks)
               ~f:(fun ((a, k), (t, _k)) -> (t, a, k))
@@ -457,7 +464,8 @@ end) = struct
       match t with
       | Let (x, m) ->
         let lx = F.Tm.Name.to_label x in
-        let (Target.Asig.Exists (alphas, csig), e) = Mod.ok ctx m in
+        let (Target.Asig.Exists b, e) = Mod.ok ctx m in
+        let (alphas, csig) = Target.Asig.un_exists b in
         ( alphas
         , F.Label.Map.singleton lx csig
         , fun acc -> F.Tm.mk_let x e acc )
@@ -486,7 +494,8 @@ end) = struct
             | `Both (_, x) -> Some x)
         , fun acc -> b1 (b2 acc) )
       | Include m ->
-        let (Target.Asig.Exists (alphas, csig), e) = Mod.ok ctx m in
+        let (Target.Asig.Exists b, e) = Mod.ok ctx m in
+        let (alphas, csig) = Target.Asig.un_exists b in
         begin
           match csig with
           | Target.Csig.Struct map ->

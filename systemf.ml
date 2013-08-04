@@ -9,7 +9,6 @@ module Kind = struct
     Type.Rep.Variant (module struct
       type o = t
       let orep = type_rep
-
       type t = o
       let name : t Type.Name.t = Type.Name.create ~name:"Systemf.Kind.t"
       module Label = struct
@@ -69,13 +68,13 @@ end
 module Ty = struct
 
   type t =
-    | Name   of t Name.t
-    | Arr    of t * t
-    | Record of t Label.Map.t
-    | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
-    | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
-    | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t
-    | App    of t * t
+  | Name   of t Name.t
+  | Arr    of t * t
+  | Record of t Label.Map.t
+  | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
+  | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
+  | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t
+  | App    of t * t
   with sexp
 
   let rec type_rep =

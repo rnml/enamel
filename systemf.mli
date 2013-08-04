@@ -10,7 +10,11 @@ module Kind : sig
   val type_rep : t Type.Rep.t
 end
 
-module Label : Identifiable
+module Label : sig
+  include Identifiable
+  val type_rep : t Type.Rep.t
+  val map_type_rep : 'a Type.Rep.t -> 'a Map.t Type.Rep.t
+end
 
 module Ty : sig
 

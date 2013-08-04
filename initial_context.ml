@@ -74,12 +74,13 @@ end = struct
   type t = Target.Csig.t
 
   let forall xs = function
-    | Target.Csig.Fun (ys, a, b) ->
-      Target.Csig.Fun (xs @ ys, a, b)
+    | Target.Csig.Fun b ->
+      let (ys, a, b) = Target.Csig.un_fun b in
+      Target.Csig.mk_fun (xs @ ys) a b
     | _ -> assert false
 
   let (@->) a b =
-    Target.Csig.Fun ([], a, Target.Asig.Exists ([], b))
+    Target.Csig.mk_fun [] a (Target.Asig.mk_exists [] b)
 
   let (+$) a b =
     match (a, b) with
@@ -96,10 +97,10 @@ end = struct
     List.fold_right xs ~init:t ~f:(fun a t ->
       match a with
       | Target.Csig.Val (F.Ty.Name a) ->
-        Target.Csig.Fun
-          ( [(a, K.star)]
-          , Target.Csig.Type (F.Ty.Name a, K.star)
-          , Target.Asig.Exists ([], t))
+        Target.Csig.mk_fun
+          [(a, K.star)]
+          (Target.Csig.Type (F.Ty.Name a, K.star))
+          (Target.Asig.mk_exists [] t)
       | _ -> assert false)
 
   let pair a b = nm Ty.pair +$ a +$ b
