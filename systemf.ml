@@ -133,6 +133,8 @@ module Ty = struct
       let inject = fun (Tagged (tag, arg)) -> put tag arg
     end : Type.Rep.Variant.T with type t = t)
 
+  module X = Name
+
   module Name = Name.Make (struct
     type nonrec a = t
     let name = "Type.Name"
@@ -157,7 +159,11 @@ module Ty = struct
     |! List.filter_map ~f:Name.of_univ
     |! Name.Set.of_list
 
-  let swap _ = assert false
+  let swap (a, b) t =
+    let a = Name.to_univ a in
+    let b = Name.to_univ b in
+    Swap.swap type_rep (X.Univ.Perm.swap a b) t
+
   let subst _ _ = assert false
   let whnf _ = assert false
   let equal _ _ = assert false
