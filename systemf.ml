@@ -151,7 +151,12 @@ module Ty = struct
   let exists xkt = Exists (bind xkt)
   let fun_   xkt = Fun    (bind xkt)
 
-  let fvs _ = assert false
+  let fvs t =
+    Free_vars.Term.fv type_rep t
+    |! Set.to_list
+    |! List.filter_map ~f:Name.of_univ
+    |! Name.Set.of_list
+
   let swap _ = assert false
   let subst _ _ = assert false
   let whnf _ = assert false
@@ -208,16 +213,16 @@ end
 module Tm = struct
 
   type t =
-    | Name of t Name.t
-    | Fun of (t Name.t * Ty.t Embed.t, t) Bind.t
-    | App of t * t
-    | Record of t Label.Map.t
-    | Dot of t * Label.t
-    | Tyfun of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
-    | Tyapp of t * Ty.t
-    | Pack of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
-    | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
-    | Let of (t Name.t * t Embed.t, t) Bind.t
+  | Name of t Name.t
+  | Fun of (t Name.t * Ty.t Embed.t, t) Bind.t
+  | App of t * t
+  | Record of t Label.Map.t
+  | Dot of t * Label.t
+  | Tyfun of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
+  | Tyapp of t * Ty.t
+  | Pack of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
+  | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
+  | Let of (t Name.t * t Embed.t, t) Bind.t
   with sexp
 
   let rec type_rep =
@@ -249,20 +254,20 @@ module Tm = struct
           | Pack   -> "pack"
           | Unpack -> "unpack"
           | Let    -> "let"
-        let type_of : type a. a t -> a Type.Rep.t = function
-        | Name   -> Name.type_rep orep
-        | Fun    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep Ty.type_rep)) orep
-        | App    -> Type.Rep.Pair (orep, orep)
-        | Record -> Label.map_type_rep orep
-        | Dot    -> Type.Rep.Pair (orep, Label.type_rep)
-        | Tyfun -> Bind.type_rep (Type.Rep.Pair (Ty.Name.type_rep, Embed.type_rep Kind.type_rep)) orep
-        | Tyapp  -> Type.Rep.Pair (orep, Ty.type_rep)
-        | Pack   -> Type.Rep.Triple (Ty.type_rep, orep, Bind.type_rep Ty.Name.type_rep Ty.type_rep)
-        | Unpack -> Bind.type_rep (Type.Rep.Triple (Ty.Name.type_rep, Name.type_rep orep, Embed.type_rep orep)) orep
-        | Let    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep orep)) orep
-        type univ = Label : 'a t -> univ
-        let all = [ Label Name; Label Fun; Label App; Label Record; Label Dot;
-                    Label Tyfun; Label Tyapp; Label Pack; Label Unpack; Label Let ]
+                      let type_of : type a. a t -> a Type.Rep.t = function
+                        | Name   -> Name.type_rep orep
+                        | Fun    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep Ty.type_rep)) orep
+                        | App    -> Type.Rep.Pair (orep, orep)
+                        | Record -> Label.map_type_rep orep
+                        | Dot    -> Type.Rep.Pair (orep, Label.type_rep)
+                        | Tyfun -> Bind.type_rep (Type.Rep.Pair (Ty.Name.type_rep, Embed.type_rep Kind.type_rep)) orep
+                        | Tyapp  -> Type.Rep.Pair (orep, Ty.type_rep)
+                        | Pack   -> Type.Rep.Triple (Ty.type_rep, orep, Bind.type_rep Ty.Name.type_rep Ty.type_rep)
+                        | Unpack -> Bind.type_rep (Type.Rep.Triple (Ty.Name.type_rep, Name.type_rep orep, Embed.type_rep orep)) orep
+                        | Let    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep orep)) orep
+                                    type univ = Label : 'a t -> univ
+                                    let all = [ Label Name; Label Fun; Label App; Label Record; Label Dot;
+                                                Label Tyfun; Label Tyapp; Label Pack; Label Unpack; Label Let ]
       end
       type 'a tag = 'a Label.t
       type rep = Tagged : 'a tag * 'a -> rep
