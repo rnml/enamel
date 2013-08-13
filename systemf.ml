@@ -166,6 +166,7 @@ module Ty = struct
 
   let subst _ _ = assert false
   let whnf _ = assert false
+
   let equal _ _ = assert false
 
   module Context : sig
