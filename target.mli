@@ -18,9 +18,7 @@ module rec Csig : sig
 
   val mk_fun : (Ty.Name.t * Kind.t) list -> t -> Asig.t -> t
 
-  val un_fun
-    :  (Args.t, t * Asig.t) Bind.t
-    -> (Ty.Name.t * Kind.t) list * t * Asig.t
+  val un_fun : (Args.t, t * Asig.t) Bind.t -> (Ty.Name.t * Kind.t) list * t * Asig.t
 
   val to_f : t -> Ty.t
 
@@ -40,9 +38,7 @@ and Asig : sig
 
   val mk_exists : (Ty.Name.t * Kind.t) list -> Csig.t -> t
 
-  val un_exists
-    :  (Args.t, Csig.t) Bind.t
-    -> (Ty.Name.t * Kind.t) list * Csig.t
+  val un_exists : (Args.t, Csig.t) Bind.t -> (Ty.Name.t * Kind.t) list * Csig.t
 
   val to_f : t -> Ty.t
 
