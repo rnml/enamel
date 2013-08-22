@@ -9,9 +9,9 @@
 ** DONE migrate systemf.ml over to generic implementation
 ** DONE factored out unbound library
 ** DONE switch target language to iterated binders
+** ACTV SystemF parser, interpreter, pretty printer
 ** ACTV fill in stubbed out definitions
 ** define alpha_eq as a generic
-** migrate "F-ing modules" types over as well
 * elisp-like auto-documentation
 * syntax
 ** lua-style balanced keywords
