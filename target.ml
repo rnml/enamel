@@ -256,9 +256,7 @@ end
 
 and Asig : sig
 
-  type t =
-  | Exists of (Args.t, Csig.t) Bind.t
-  with sexp
+  type t = Exists of (Args.t, Csig.t) Bind.t with sexp
 
   val type_rep : t Type.Rep.t Lazy.t
 

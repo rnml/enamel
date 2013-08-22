@@ -7,7 +7,8 @@
 ** DONE define generics for Unbound type constructors
 ** DONE define binders and then freshen
 ** DONE migrate systemf.ml over to generic implementation
-** ACTV switch systemf to iterated binders
+** DONE factored out unbound library
+** DONE switch target language to iterated binders
 ** PEND fill in stubbed out definitions
 ** define alpha_eq as a generic
 ** migrate "F-ing modules" types over as well
