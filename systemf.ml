@@ -407,8 +407,6 @@ module Tm = struct
     let find_tm g x = Map.find g.tm_ctx x
   end
 
-  let rec ftvs _ = assert false
-
   let swap_ty _ = assert false
 
   let rec ok ctx = function
