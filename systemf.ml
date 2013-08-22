@@ -407,8 +407,6 @@ module Tm = struct
     let find_tm g x = Map.find g.tm_ctx x
   end
 
-  let swap_ty _ = assert false
-
   let rec ok ctx = function
     | Name x ->
       (match Context.find_tm ctx x with
@@ -435,11 +433,6 @@ module Tm = struct
       | _ -> failwith "expected record type")
     | Tyfun b ->
       let (a, k, e) = un_tyfun b in
-      let (a, e) =
-        let a' = assert false in
-        let e' = swap_ty (a, a') e in
-        (a', e')
-      in
       Ty.forall (a, k, ok (Context.add_ty ctx a k) e)
     | Tyapp (e, targ) ->
       let karg = Ty.ok (Context.ty_ctx ctx) targ in
@@ -463,11 +456,9 @@ module Tm = struct
       (match ok ctx edef with
       | Ty.Exists bnd ->
         let (a2, k, tbody) = Ty.unbind bnd in
-        let (a, ebody, tbody) =
-          let a = assert false in
-          let ebody = swap_ty   (a, a1) ebody in
-          let tbody = Ty.swap (a, a2) tbody in
-          (a, ebody, tbody)
+        let (a, tbody) =
+          let tbody = Ty.swap (a1, a2) tbody in
+          (a1, tbody)
         in
         let ctx = Context.add_ty ctx a k in
         let ctx = Context.add_tm ctx x tbody in
