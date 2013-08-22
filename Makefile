@@ -1,8 +1,8 @@
 ### PARAMETERS #####################################################
 
 PACKAGES=core core_extended
-INCLUDES= -I typerep
-LIBRARIES= typerep
+INCLUDES= -I typerep -I unbound
+LIBRARIES= typerep unbound
 SYNTAX=comparelib sexplib bin_prot
 
 MODULES=\
@@ -10,14 +10,7 @@ MODULES=\
   string_pad \
   pretty \
   scc \
-  perm \
   constant \
-  name \
-  free_vars \
-  binders \
-  swap \
-  freshen \
-  unbound \
   systemf \
   target \
   module_system \

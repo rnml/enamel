@@ -1,21 +1,27 @@
 ### PARAMETERS #####################################################
 
 PACKAGES=core
-INCLUDES=
-LIBRARIES=
-SYNTAX=comparelib sexplib
+INCLUDES= -I ../typerep
+LIBRARIES= typerep
+SYNTAX=comparelib sexplib bin_prot
 MODULES=\
-  type \
-  generic \
-  sexp_conv \
-  type_rep_example \
-  fold \
+  std_internal \
+  perm \
+  name \
+  binders \
+  free_vars \
+  swap \
+  freshen \
+  bind \
+  rebind \
+  rec \
+  embed \
   std
 
-B= typerep
+B= unbound
 T=$B.cmxa
 
-FOR_PACK_OPT=-for-pack Typerep
+FOR_PACK_OPT=-for-pack Unbound
 
 ### RULES ##########################################################
 
@@ -62,7 +68,7 @@ $B.cmo: $(OBJECTS)
 	$(OCAMLC) -pack $(OBJECTS) -o $B.cmo
 
 std.cmx: std.ml
-	$(OCAMLOPTBARE) $(OCAMLOPT_FLAGS) $(FOR_PACK_OPT) -c std.ml
+	$(OCAMLOPT) $(OCAMLOPT_FLAGS) $(FOR_PACK_OPT) -c std.ml
 
 std_internal.cmo: std_internal.ml
 	$(OCAMLC) $(OCAMLOPT_FLAGS) -c std_internal.ml
