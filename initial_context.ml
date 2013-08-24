@@ -1,6 +1,5 @@
 open Std_internal
 
-module F = Systemf
 module Ctx = Target.Context
 
 let ctx = Ctx.empty

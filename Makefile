@@ -11,7 +11,7 @@ MODULES=\
   pretty \
   scc \
   constant \
-  systemf \
+  f \
   target \
   module_system \
   initial_context \

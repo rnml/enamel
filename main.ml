@@ -10,7 +10,6 @@ include struct
   open Module_system
 end
 
-module F = Systemf
 module Enamel = Module_system.Source (Base)
 
 let check_expr_command =

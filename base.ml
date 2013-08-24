@@ -1,7 +1,5 @@
 open Std_internal
 
-module F = Systemf
-
 module Ctx = Target.Context
 
 module Kind = struct
@@ -64,8 +62,8 @@ module Tm = struct
               (Ctx.add_tm ctx x (Target.Csig.Val dom))
               body
           in
-          ( Systemf.Tm.mk_fun x dom body
-          , Systemf.Ty.Arr (dom, rng)
+          ( F.Tm.mk_fun x dom body
+          , F.Ty.Arr (dom, rng)
           )
         | _ ->
           failwith "lambda argument type annotation of non-star \

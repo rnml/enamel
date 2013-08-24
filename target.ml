@@ -1,7 +1,7 @@
 open Std_internal
 
 open Unbound
-open Systemf
+open F
 
 module Args = struct
   type t = (Ty.Name.t * Kind.t Embed.t) list with sexp
@@ -67,7 +67,7 @@ end = struct
       type o = t
       let orep = type_rep
       type t = o
-      let name : t Type.Name.t = Type.Name.create ~name:"Systemf.Kind.t"
+      let name : t Type.Name.t = Type.Name.create ~name:"F.Kind.t"
       module Label = struct
         type 'a t =
         | Val : Ty.t t
@@ -154,9 +154,9 @@ end = struct
   let rec sub ctx csig1 csig2 =
     match (csig1, csig2) with
     | (Csig.Val t1, Csig.Val t2) ->
-      Systemf.subtype ctx ~src:t1 ~dst:t2
+      F.subtype ctx ~src:t1 ~dst:t2
     | (Csig.Type (t1, _), Csig.Type (t2, _)) ->
-      if not (Systemf.Ty.equal t1 t2) then failwith "type mismatch";
+      if not (F.Ty.equal t1 t2) then failwith "type mismatch";
       `Coerce (fun x -> x)
     | (Csig.Sig s1, Csig.Sig s2) ->
       let `Coerce _ = Asig.sub ctx s1 s2 in
@@ -284,7 +284,7 @@ end = struct
     Type.Rep.Variant (module struct
       type o = t
       type t = o
-      let name : t Type.Name.t = Type.Name.create ~name:"Systemf.Kind.t"
+      let name : t Type.Name.t = Type.Name.create ~name:"F.Kind.t"
       module Label = struct
         type 'a t =
         | Exists : (Args.t, Csig.t) Bind.t t

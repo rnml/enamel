@@ -2,7 +2,7 @@ open Std_internal
 
 (* CR: always normalize signatures by using set-binders *)
 
-module F = Systemf
+module F = F
 
 module Ctx = Target.Context
 

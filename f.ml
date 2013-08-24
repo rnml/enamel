@@ -10,7 +10,7 @@ module Kind = struct
       type o = t
       let orep = type_rep
       type t = o
-      let name : t Type.Name.t = Type.Name.create ~name:"Systemf.Kind.t"
+      let name : t Type.Name.t = Type.Name.create ~name:"F.Kind.t"
       module Label = struct
         type 'a t =
         | Star : unit t
@@ -82,7 +82,7 @@ module Ty = struct
       type o = t
       let orep = type_rep
       type t = o
-      let name : t Type.Name.t = Type.Name.create ~name:"Systemf.Type.t"
+      let name : t Type.Name.t = Type.Name.create ~name:"F.Type.t"
       module Label = struct
         type 'a t =
         | Name   : o Name.t t
@@ -237,7 +237,7 @@ module Tm = struct
       type o = t
       let orep = type_rep
       type t = o
-      let name : t Type.Name.t = Type.Name.create ~name:"Systemf.Term.t"
+      let name : t Type.Name.t = Type.Name.create ~name:"F.Term.t"
       module Label = struct
         type 'a t =
         | Name   : o Name.t t
@@ -500,5 +500,5 @@ end
 let rec subtype _ctx ~src ~dst =
   match (src, dst) with
   | (Ty.Name a, Ty.Name b) when Ty.Name.equal a b -> `Coerce (fun x -> x)
-  | _ -> failwith "UNIMPLEMENTED: Systemf.subtype"
+  | _ -> failwith "UNIMPLEMENTED: F.subtype"
 

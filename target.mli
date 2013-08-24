@@ -1,7 +1,7 @@
 open Std_internal
 
 open Unbound
-open Systemf
+open F
 
 module Args : sig
   type t = (Ty.Name.t * Kind.t Embed.t) list
