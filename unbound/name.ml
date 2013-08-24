@@ -136,9 +136,14 @@ module Make (X : sig
   val name : string
   val type_rep : a Type.Rep.t
 end) = struct
-  include Univ
-  let kind = Uid.create ()
-  let of_string x = { kind; basic = Basic.of_string x }
+
+  module V = struct
+    include Univ
+    let kind = Uid.create ()
+    let of_string x = { kind; basic = Basic.of_string x }
+  end
+  include V
+  include Sexpable.Of_stringable (V)
 
   let to_univ u = u
   let of_univ u = if Uid.equal u.kind kind then Some u else None

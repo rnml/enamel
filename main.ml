@@ -67,25 +67,63 @@ let init_ctx_command =
       |! print_endline
     )
 
+module Check_f_type = struct
+  let command =
+    Command.basic ~summary:"validate a F type from stdin"
+      Command.Spec.(empty)
+      (fun () ->
+        In_channel.input_all stdin
+        |! (fun x -> print_endline "1"; x)
+        |! String.strip
+        |! (fun x -> print_endline "2"; x)
+        |! Sexp.of_string
+        |! (fun x -> print_endline "3"; x)
+        |! F.Ty.t_of_sexp
+        |! (fun x -> print_endline "4"; x)
+        |! F.Ty.ok F.Ty.Context.empty
+        |! (fun x -> print_endline "5"; x)
+        |! Or_error.ok_exn
+        |! (fun x -> print_endline "6"; x)
+        |! F.Kind.sexp_of_t
+        |! (fun x -> print_endline "7"; x)
+        |! Sexp.to_string_hum
+        |! (fun x -> print_endline "8"; x)
+        |! print_endline
+      )
+end
+
+module Check_f_term = struct
+  let command =
+    Command.basic ~summary:"validate a F term from stdin"
+      Command.Spec.(empty)
+      (fun () ->
+        In_channel.input_all stdin
+        |! String.strip
+        |! Sexp.of_string
+        |! F.Tm.t_of_sexp
+        |! F.Tm.ok F.Tm.Context.empty
+        |! Or_error.ok_exn
+        |! F.Ty.sexp_of_t
+        |! Sexp.to_string_hum
+        |! print_endline
+      )
+end
+
 module Z = struct
 
   let command =
     Command.basic ~summary:"scratch work command"
       Command.Spec.(empty)
       (fun () ->
-        let open Typerep.Type_rep_example in
-        let animal =
-          { Animal.
-            name = "lion";
-            size = 55;
-            sound = Sound.Meow (Dollars.of_int 23);
-          }
-        in
-        let sexp = Sexp_conv.to_sexp Animal.type_rep animal in
-        print_endline (Sexp.to_string_hum sexp);
-        let animal' = Sexp_conv.of_sexp Animal.type_rep sexp in
-        let open Polymorphic_compare in
-        assert (animal = animal')
+        In_channel.input_all stdin
+        |! String.strip
+        |! Sexp.of_string
+        |! F.Tm.t_of_sexp
+        |! F.Tm.ok F.Tm.Context.empty
+        |! Or_error.ok_exn
+        |! F.Ty.sexp_of_t
+        |! Sexp.to_string_hum
+        |! print_endline
       )
 end
 
@@ -93,10 +131,14 @@ let command =
   Command.group ~summary:"enamel: my little language" [
     ("check-expr",   check_expr_command);
     ("check-type",   check_type_command);
+    ("check-f-type", Check_f_type.command);
+    ("check-f-term", Check_f_term.command);
     ("elaborate",    elaborate_command);
     ("initial-ctx",  init_ctx_command);
     ("z",            Z.command);
   ]
+
+let () = print_endline "WHO"
 
 let main () = Command.run command
 

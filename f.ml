@@ -1,6 +1,8 @@
 open Std_internal
 open Unbound
 
+open Or_error.Monad_infix
+
 module Kind = struct
 
   type t = Star | Arr of t * t with sexp
@@ -188,32 +190,46 @@ module Ty = struct
   let rec ok ctx = function
     | Name a ->
       (match Context.find ctx a with
-      | None -> failwith "unbound type variable"
-      | Some k -> k)
+      | None -> Or_error.error_string "unbound type variable"
+      | Some k -> Ok k)
     | Arr (t1, t2) ->
-      check_star ctx t1;
-      check_star ctx t2;
-      Kind.Star
+      check_star ctx t1
+      >>= fun () ->
+      check_star ctx t2
+      >>= fun () ->
+      Ok Kind.Star
     | Record entries ->
-      Label.Map.iter entries ~f:(fun ~key:_ ~data:t -> check_star ctx t);
-      Kind.Star
+      Or_error.all_ignore (List.map (Map.to_alist entries) ~f:(fun (_, t) -> check_star ctx t))
+      >>= fun () ->
+      Ok Kind.Star
     | Forall b | Exists b ->
       let (a, k, t) = unbind b in
-      check_star (Context.add ctx a k) t; Kind.Star
+      check_star (Context.add ctx a k) t
+      >>= fun () ->
+      Ok Kind.Star
     | Fun b ->
-      let (a, k, t) = unbind b in
-      Kind.Arr (k, ok (Context.add ctx a k) t)
+      let (a, k1, t) = unbind b in
+      ok (Context.add ctx a k1) t
+      >>= fun k2 ->
+      Ok (Kind.Arr (k1, k2))
     | App (tfun, targ) ->
-      let karg = ok ctx targ in
-      (match ok ctx tfun with
+      ok ctx targ
+      >>= fun karg ->
+      ok ctx tfun
+      >>= function
       | Kind.Arr (kdom, krng) ->
-        if Kind.equal karg kdom then krng else failwith "kind mismatch"
-      | _ -> failwith "expected arrow kind")
+        if Kind.equal karg kdom then Ok krng else
+          Or_error.error "argument kind mismatch" (`expected kdom, `observed karg)
+          <:sexp_of<[`expected of Kind.t] * [`observed of Kind.t]>>
+      | k -> Or_error.error "expected arrow kind instead of" k Kind.sexp_of_t
 
   and check_star ctx t =
-    match ok ctx t with
-    | Kind.Star -> ()
-    | _ -> failwith "expected kind star"
+    ok ctx t
+    >>= function
+    | Kind.Star -> Ok ()
+    | k ->
+      Or_error.error "kind mismatch" (`expected Kind.Star, `observed k)
+      <:sexp_of<[`expected of Kind.t] * [`observed of Kind.t]>>
 
 end
 
@@ -410,66 +426,105 @@ module Tm = struct
   let rec ok ctx = function
     | Name x ->
       (match Context.find_tm ctx x with
-      | None -> failwith "unbound term variable"
-      | Some t -> t)
+      | None -> Or_error.error "unbound term variable" x Name.sexp_of_t
+      | Some t -> Ok t)
     | Fun b ->
-      let (x, t, e) = un_fun b in
-      Ty.check_star (Context.ty_ctx ctx) t;
-      Ty.Arr (t, ok (Context.add_tm ctx x t) e)
+      let (x, t1, e) = un_fun b in
+      Ty.check_star (Context.ty_ctx ctx) t1
+      >>= fun () ->
+      ok (Context.add_tm ctx x t1) e
+      >>= fun t2 ->
+      Ok (Ty.Arr (t1, t2))
     | App (efun, earg) ->
-      let targ = ok ctx earg in
-      (match ok ctx efun with
-      | Ty.Arr (tdom, trng) ->
-        if Ty.equal targ tdom then trng else
-          failwith "type mismatch"
-      | _ -> failwith "expected arrow type")
-    | Record xes -> Ty.Record (Label.Map.map xes ~f:(fun e -> ok ctx e))
+      begin
+        ok ctx earg
+        >>= fun targ ->
+        ok ctx efun
+        >>= function
+        | Ty.Arr (tdom, trng) ->
+          if Ty.equal targ tdom then Ok trng else
+            Or_error.error "argument type mismatch" (`expected tdom, `observed targ)
+            <:sexp_of<[`expected of Ty.t] * [`observed of Ty.t]>>
+        | t -> Or_error.error "expected function type instead of" t Ty.sexp_of_t
+      end
+    | Record xes ->
+      begin
+        Map.to_alist xes
+        |! List.map ~f:(fun (key, e) -> ok ctx e >>= fun t -> Ok (key, t))
+        |! Or_error.all
+        |! Or_error.map ~f:Label.Map.of_alist_exn
+      end
+      >>= fun types_by_field ->
+      Ok (Ty.Record types_by_field)
     | Dot (e, x) ->
-      (match ok ctx e with
-      | Ty.Record map ->
-        (match Label.Map.find map x with
-        | Some t -> t
-        | None -> failwith "undefined field")
-      | _ -> failwith "expected record type")
+      begin
+        ok ctx e
+        >>= function
+        | Ty.Record map ->
+          begin
+            match Label.Map.find map x with
+            | Some t -> Ok t
+            | None -> Or_error.error "undefined field" x Label.sexp_of_t
+          end
+        | t -> Or_error.error "expected record type rather than" t Ty.sexp_of_t
+      end
     | Tyfun b ->
-      let (a, k, e) = un_tyfun b in
-      Ty.forall (a, k, ok (Context.add_ty ctx a k) e)
+      let (a, k1, e) = un_tyfun b in
+      ok (Context.add_ty ctx a k1) e
+      >>= fun k2 ->
+      Ok (Ty.forall (a, k1, k2))
     | Tyapp (e, targ) ->
-      let karg = Ty.ok (Context.ty_ctx ctx) targ in
-      (match ok ctx e with
-      | Ty.Forall bnd ->
-        let (a, kdom, trng) = Ty.unbind bnd in
-        if Kind.equal kdom karg then Ty.subst trng (a, targ) else
-          failwith "kind mismatch"
-      | _ -> failwith "expected forall type")
+      begin
+        Ty.ok (Context.ty_ctx ctx) targ
+        >>= fun karg ->
+        ok ctx e
+        >>= function
+        | Ty.Forall bnd ->
+          let (a, kdom, trng) = Ty.unbind bnd in
+          if Kind.equal kdom karg then Ok (Ty.subst trng (a, targ)) else
+            Or_error.error "argument kind mismatch" (`expected kdom, `observed karg)
+            <:sexp_of<[`expected of Kind.t] * [`observed of Kind.t]>>
+        | t -> Or_error.error "expected forall type rather than" t Ty.sexp_of_t
+      end
     | Pack (tsub, e, exty) ->
       let (a, tintf) = un_pack exty in
       let ty_ctx = Context.ty_ctx ctx in
-      let k = Ty.ok ty_ctx tsub in
+      Ty.ok ty_ctx tsub
+      >>= fun k ->
       let t = Ty.exists (a, k, tintf) in
-      Ty.check_star ty_ctx t;
-      let tfull = ok ctx e in
-      if Ty.equal tfull (Ty.subst tintf (a, tsub)) then t else
-        failwith "existential type mismatch"
+      Ty.check_star ty_ctx t
+      >>= fun () ->
+      ok ctx e
+      >>= fun t_body ->
+      let t_pkg = Ty.subst tintf (a, tsub) in
+      if Ty.equal t_body t_pkg then Ok t else
+        Or_error.error "package body type mismatch"
+          (`expected t_pkg, `observed t_body)
+        <:sexp_of<[`expected of Ty.t] * [`observed of Ty.t]>>
     | Unpack b ->
-      let (a1, x, edef, ebody) = un_unpack b in
-      (match ok ctx edef with
-      | Ty.Exists bnd ->
-        let (a2, k, tbody) = Ty.unbind bnd in
-        let (a, tbody) =
-          let tbody = Ty.swap (a1, a2) tbody in
-          (a1, tbody)
-        in
-        let ctx = Context.add_ty ctx a k in
-        let ctx = Context.add_tm ctx x tbody in
-        let t = ok ctx ebody in
-        if Set.mem (Ty.fvs t) a
-        then failwith "existential type escaping its scope"
-        else t
-      | _ -> failwith "unpacking a non-existential")
+      begin
+        let (a1, x, edef, ebody) = un_unpack b in
+        ok ctx edef
+        >>= function
+        | Ty.Exists bnd ->
+          let (a2, k, tbody) = Ty.unbind bnd in
+          let (a, tbody) =
+            let tbody = Ty.swap (a1, a2) tbody in
+            (a1, tbody)
+          in
+          let ctx = Context.add_ty ctx a k in
+          let ctx = Context.add_tm ctx x tbody in
+          ok ctx ebody
+          >>= fun t ->
+          if Set.mem (Ty.fvs t) a
+          then Or_error.error_string "existential type escaping its scope"
+          else Ok t
+        | t -> Or_error.error "expected an existential type instead of" t Ty.sexp_of_t
+      end
     | Let b ->
       let (x, edef, ebody) = un_let b in
-      let t = ok ctx edef in
+      ok ctx edef
+      >>= fun t ->
       let ctx = Context.add_tm ctx x t in
       ok ctx ebody
 

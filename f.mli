@@ -34,8 +34,7 @@ module Ty : sig
 
   module Name : Name.S with type a := t
 
-  val unbind :
-    (Name.t * Kind.t Embed.t, t) Bind.t -> Name.t * Kind.t * t
+  val unbind : (Name.t * Kind.t Embed.t, t) Bind.t -> Name.t * Kind.t * t
 
   val forall : Name.t * Kind.t * t -> t
   val exists : Name.t * Kind.t * t -> t
@@ -52,6 +51,8 @@ module Ty : sig
   val swap : Name.t * Name.t -> t -> t
   val subst : t -> Name.t * t -> t
   val equal : t -> t -> bool
+
+  val ok : Context.t -> t -> Kind.t Or_error.t
 end
 
 module Tm : sig
@@ -95,6 +96,16 @@ module Tm : sig
 
   val unpack : Ty.Name.t list -> Name.t -> t -> t -> t
 
+  module Context : sig
+    type t
+    val empty   : t
+    val add_tm  : t -> Name.t -> Ty.t -> t
+    val find_tm : t -> Name.t -> Ty.t option
+    val add_ty  : t -> Ty.Name.t -> Kind.t -> t
+    val ty_ctx  : t -> Ty.Context.t
+  end
+
+  val ok : Context.t -> t -> Ty.t Or_error.t
 end
 
 val subtype : Ty.Context.t -> src:Ty.t -> dst:Ty.t -> [`Coerce of Tm.t -> Tm.t]
