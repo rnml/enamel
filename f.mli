@@ -64,8 +64,7 @@ module Tm : sig
   | Dot    of t * Label.t
   | Tyfun  of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
   | Tyapp  of t * Ty.t
-  | Pack   of (* pack <ty, tm> : exists a. ty *)
-      Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
+  | Pack   of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t (* pack <ty, tm> : exists a. ty *)
   | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
   | Let of (t Name.t * t Embed.t, t) Bind.t
   with sexp
