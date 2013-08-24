@@ -374,8 +374,8 @@ module Tm = struct
       let name = "Type.Name"
       let type_rep = type_rep
     end)
-    let to_label t = to_univ t |> Name.Univ.to_string |> Label.of_string
-    let of_label l = Label.to_string l |> raw
+    let to_label t = to_univ t |! Name.Univ.to_string |! Label.of_string
+    let of_label l = Label.to_string l |! raw
   end
 
   module Context : sig

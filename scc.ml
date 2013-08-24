@@ -49,7 +49,7 @@ end) = struct
 
     let build es = Vertex.Map.of_alist_multi es
 
-    let transpose t = edges t |> List.map ~f:Edge.flip |> build
+    let transpose t = edges t |! List.map ~f:Edge.flip |! build
 
     let outgoing t v = Option.value ~default:[] (Map.find t v)
 
@@ -74,7 +74,7 @@ end) = struct
 
     let post_order t = Forest.post_order (dff t)
 
-    let scc t = transpose t |> post_order |> List.rev |> dfs t |> List.rev
+    let scc t = transpose t |! post_order |! List.rev |! dfs t |> List.rev
   end
 
 end
@@ -85,5 +85,5 @@ module Make (Vertex : sig
   include Hashable.S with type t := t
 end) = struct
   include Graph (Vertex)
-  let scc es = Graph.build es |> Graph.scc |> List.map ~f:Tree.pre_order
+  let scc es = Graph.build es |! Graph.scc |! List.map ~f:Tree.pre_order
 end
