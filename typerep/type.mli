@@ -7,13 +7,22 @@ module type of Type_equal
 module Name : sig
   include module type of Type_equal.Id
     with type 'a t = 'a Type_equal.Id.t
-  module Make1 (X : T1) : sig
+  module Make1 (X : sig
+    val name : string
+    type 'a t
+  end) : sig
     val lookup : 'a t -> 'a X.t t
   end
-  module Make2 (X : T2) : sig
+  module Make2 (X : sig
+    val name : string
+    type ('a, 'b) t
+  end) : sig
     val lookup : 'a t -> 'b t -> ('a, 'b) X.t t
   end
-  module Make3 (X : T3) : sig
+  module Make3 (X : sig
+    val name : string
+    type ('a, 'b, 'c) t
+  end) : sig
     val lookup : 'a t -> 'b t -> 'c t -> ('a, 'b, 'c) X.t t
   end
 end

@@ -15,7 +15,12 @@ let fvs_term a b acc (p, t) =
     Set.diff t p
   end
 
-module Type_name = Type.Name.Make2 (struct type nonrec ('p, 't) t = ('p, 't) t end)
+module Type_name =
+  Type.Name.Make2 (struct
+    let name = "Unbound.Bind"
+    type nonrec ('p, 't) t = ('p, 't) t
+  end)
+
 let type_name = Type_name.lookup
 
 let type_rep a b =

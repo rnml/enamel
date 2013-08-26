@@ -57,9 +57,5 @@ module Make (X : T) = struct
     | Type.Rep.Abstract id ->
       match X.lookup id with
       | Some x -> x
-      | None ->
-        failwithf "%s undefined for %s"
-          X.generic_name
-          (Type.Name.name id)
-          ()
+      | None -> failwithf "%s undefined for %s" X.generic_name (Type.Name.name id) ()
 end

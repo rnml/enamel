@@ -105,7 +105,11 @@ module Registry = struct
   end)
 end
 
-module Rep = Type.Name.Make1 (struct type nonrec 'a t = 'a t end)
+module Rep =
+  Type.Name.Make1 (struct
+    let name = "Name"
+    type nonrec 'a t = 'a t
+  end)
 
 let type_rep ty =
   let type_name = Rep.lookup (Type.Rep.id ty) in

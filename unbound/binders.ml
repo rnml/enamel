@@ -7,3 +7,4 @@ include Type_fold.Make (struct
 end)
 
 let binders ty x = fold ty Name.Univ.Set.empty x
+include Name.Registry.Binders

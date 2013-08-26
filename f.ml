@@ -3,9 +3,35 @@ open Unbound
 
 open Or_error.Monad_infix
 
+let fold_right_non_empty (x, xs) ~f =
+  let g x acc =
+    match acc with
+    | None -> x
+    | Some y -> f x y
+  in
+  g x (List.fold_right xs ~init:None ~f:(fun x acc -> Some (g x acc)))
+
 module Kind = struct
 
+  (* CR: rename to Type and Fun *)
   type t = Star | Arr of t * t with sexp
+
+  let sexp_of_t = function
+    | Star -> Sexp.Atom "Type"
+    | Arr (a, b) ->
+      let rec unravel = function
+        | Arr (u, v) -> u :: unravel v
+        | other -> [other]
+      in
+      Sexp.List (Sexp.Atom "Fun" :: List.map ~f:sexp_of_t (a :: unravel b))
+
+  let t_of_sexp = function
+    | Sexp.Atom "Type" -> Star
+    | Sexp.List (Sexp.Atom "Fun" :: a :: b) ->
+      let a = t_of_sexp a in
+      let b = List.map b ~f:t_of_sexp in
+      fold_right_non_empty (a, b) ~f:(fun a b -> Arr (a, b))
+    | sexp -> of_sexp_error "Kind.t_of_sexp" sexp
 
   let rec type_rep =
     Type.Rep.Variant (module struct
@@ -53,7 +79,10 @@ module Label = struct
     let module_name = "Label"
   end)
   let type_rep = Type.Rep.String
-  module Map_type_rep = Type.Name.Make1 (struct type 'a t = 'a Map.t end)
+  module Map_type_rep = Type.Name.Make1 (struct
+    let name = "F.Label.Map"
+    type 'a t = 'a Map.t
+  end)
   let map_type_rep_name = Map_type_rep.lookup
   let map_type_rep x =
     let name = map_type_rep_name (Type.Rep.id x) in
@@ -71,13 +100,12 @@ module Ty = struct
 
   type t =
   | Name   of t Name.t
-  | Arr    of t * t
+  | Arr    of t * t (* CR: rename to Fun *)
   | Record of t Label.Map.t
   | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
   | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
-  | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t
+  | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t (* CR: rename to Lambda *)
   | App    of t * t
-  with sexp
 
   let rec type_rep =
     Type.Rep.Variant (module struct
@@ -190,7 +218,7 @@ module Ty = struct
   let rec ok ctx = function
     | Name a ->
       (match Context.find ctx a with
-      | None -> Or_error.error_string "unbound type variable"
+      | None -> Or_error.error "unbound type variable" a Name.sexp_of_t
       | Some k -> Ok k)
     | Arr (t1, t2) ->
       check_star ctx t1
@@ -230,6 +258,91 @@ module Ty = struct
     | k ->
       Or_error.error "kind mismatch" (`expected Kind.Star, `observed k)
       <:sexp_of<[`expected of Kind.t] * [`observed of Kind.t]>>
+
+  module Sexp_conv : sig
+    val sexp_of_t : t -> Sexp.t
+    val t_of_sexp : Sexp.t -> t
+  end = struct
+
+    let rec unravel_bind t ~p =
+      match p t with
+      | None -> ([], t)
+      | Some bnd ->
+        let (a, k, t) = unbind bnd in
+        let (aks, body) = unravel_bind t ~p in
+        ((a, k) :: aks, body)
+
+    let rec sexp_of_t = function
+      | Name x -> Name.sexp_of_t x
+      | Arr (a, b) ->
+        let rec unravel = function
+          | Arr (u, v) -> u :: unravel v
+          | other -> [other]
+        in
+        Sexp.List (Sexp.Atom "Fun" :: List.map ~f:sexp_of_t (a :: unravel b))
+      | Record m ->
+        Sexp.List
+          (Sexp.Atom "Record" :: List.map (Map.to_alist m) ~f:<:sexp_of<Label.t * t>>)
+      | Forall bnd ->
+        sexp_of_bnds (Forall bnd)
+          ~name:"Forall"
+          ~p:(function Forall bnd -> Some bnd | _ -> None)
+      | Exists bnd ->
+        sexp_of_bnds (Exists bnd)
+          ~name:"Exists"
+          ~p:(function Exists bnd -> Some bnd | _ -> None)
+      | Fun bnd ->
+        sexp_of_bnds (Fun bnd)
+          ~name:"Lambda"
+          ~p:(function Fun bnd -> Some bnd | _ -> None)
+      | App (a, b) ->
+        let rec app f args =
+          match f with
+          | App (p, n) -> app p (n :: args)
+          | head -> (head, args)
+        in
+        let (head, args) = app a [b] in
+        Sexp.List (sexp_of_t head :: List.map args ~f:sexp_of_t)
+
+    and sexp_of_bnds t ~p ~name =
+      let (aks, body) = unravel_bind t ~p in
+      Sexp.List [
+        Sexp.Atom name;
+        <:sexp_of<(Name.t * Kind.t) list>> aks;
+        sexp_of_t body;
+      ]
+
+    let rec t_of_sexp = function
+      | Sexp.List (Sexp.Atom "Fun" :: a :: b) ->
+        let a = t_of_sexp a in
+        let b = List.map b ~f:t_of_sexp in
+        fold_right_non_empty (a, b) ~f:(fun a b -> Arr (a, b))
+      | Sexp.List (Sexp.Atom "Record" :: entries) as sexp ->
+        begin
+          match Label.Map.of_alist (List.map entries ~f:<:of_sexp<Label.t * t>>) with
+          | `Ok map -> Record map
+          | `Duplicate_key key ->
+            let msg = sprintf "F.Ty.Record duplicate key: %s" (Label.to_string key) in
+            of_sexp_error msg sexp
+        end
+      | Sexp.List [Sexp.Atom "Forall"; bnds; body] ->
+        bnds_of_sexp bnds body ~c:(fun bnd -> Forall bnd)
+      | Sexp.List [Sexp.Atom "Exists"; bnds; body] ->
+        bnds_of_sexp bnds body ~c:(fun bnd -> Exists bnd)
+      | Sexp.List [Sexp.Atom "Lambda"; bnds; body] ->
+        bnds_of_sexp bnds body ~c:(fun bnd -> Fun bnd)
+      | Sexp.Atom _ as sexp ->
+        Name (Name.t_of_sexp sexp)
+      | Sexp.List (fn :: args) ->
+        List.fold ~init:(t_of_sexp fn) args ~f:(fun fn arg -> App (fn, t_of_sexp arg))
+      | sexp -> of_sexp_error "F.Ty.t_of_sexp" sexp
+
+    and bnds_of_sexp bnds body ~c =
+      let aks = (<:of_sexp<(Name.t * Kind.t) list>> bnds) in
+      List.fold_right aks ~init:(t_of_sexp body) ~f:(fun (a, k) t -> c (bind (a, k, t)))
+  end
+
+  include Sexp_conv
 
 end
 

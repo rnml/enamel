@@ -24,31 +24,40 @@ module Name = struct
 
   let table = Key.Table.create ()
 
-  module Make1 (X : T1) : sig
+  module Make1 (X : sig
+    val name : string
+    type 'a t
+  end) : sig
     val lookup : 'a t -> 'a X.t t
   end = struct
     let hd = Uid.create ()
     let lookup t =
       let key = (hd, [uid t]) in
-      Obj.magic (Key.Table.find_or_add table key ~default:(fun () -> create ~name:""))
+      Obj.magic (Key.Table.find_or_add table key ~default:(fun () -> create ~name:X.name))
   end
 
-  module Make2 (X : T2) : sig
+  module Make2 (X : sig
+    val name : string
+    type ('a, 'b) t
+  end) : sig
     val lookup : 'a t -> 'b t -> ('a, 'b) X.t t
   end = struct
     let hd = Uid.create ()
     let lookup a b =
       let key = (hd, [uid a; uid b]) in
-      Obj.magic (Key.Table.find_or_add table key ~default:(fun () -> create ~name:""))
+      Obj.magic (Key.Table.find_or_add table key ~default:(fun () -> create ~name:X.name))
   end
 
-  module Make3 (X : T3) : sig
+  module Make3 (X : sig
+    val name : string
+    type ('a, 'b, 'c) t
+  end ) : sig
     val lookup : 'a t -> 'b t -> 'c t -> ('a, 'b, 'c) X.t t
   end = struct
     let hd = Uid.create ()
     let lookup a b c =
       let key = (hd, [uid a; uid b; uid c]) in
-      Obj.magic (Key.Table.find_or_add table key ~default:(fun () -> create ~name:""))
+      Obj.magic (Key.Table.find_or_add table key ~default:(fun () -> create ~name:X.name))
   end
 end
 
@@ -172,11 +181,35 @@ end = struct
 
   module Id = struct
 
-    module Option_name = Name.Make1 (struct type 'a t = 'a option end)
-    module List_name   = Name.Make1 (struct type 'a t = 'a list end)
-    module Lazy_name   = Name.Make1 (struct type 'a t = 'a Lazy.t end)
-    module Pair_name   = Name.Make2 (struct type ('a, 'b) t = 'a * 'b end)
-    module Triple_name = Name.Make3 (struct type ('a, 'b, 'c) t = 'a * 'b * 'c end)
+    module Option_name =
+      Name.Make1 (struct
+        let name = "option"
+        type 'a t = 'a option
+      end)
+
+    module List_name =
+      Name.Make1 (struct
+        let name = "list"
+        type 'a t = 'a list
+      end)
+
+    module Lazy_name =
+      Name.Make1 (struct
+        let name = "lazy"
+        type 'a t = 'a Lazy.t
+      end)
+
+    module Pair_name =
+      Name.Make2 (struct
+        let name = "pair"
+        type ('a, 'b) t = 'a * 'b
+      end)
+
+    module Triple_name =
+      Name.Make3 (struct
+        let name = "triple"
+        type ('a, 'b, 'c) t = 'a * 'b * 'c
+      end)
 
     let rec id : type a. a t -> a Name.t = function
       | Abstract id -> id

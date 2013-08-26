@@ -6,6 +6,7 @@ let create p1 p2 = (p1, p2)
 
 module Type_name =
   Type.Name.Make2 (struct
+    let name = "Unbound.Rebind"
     type nonrec ('p1, 'p2) t = ('p1, 'p2) t
   end)
 
