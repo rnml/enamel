@@ -667,58 +667,98 @@ module Tm = struct
     val t_of_sexp : Sexp.t -> t
   end = struct
 
-  (* type t =
-   * | Dot of t * Label.t
-   * | Tyfun of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
-   * | Tyapp of t * Ty.t
-   * | Pack of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
-   * | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
-   * | Let of (t Name.t * t Embed.t, t) Bind.t *)
-
     let rec sexp_of_t = function
       | Name x -> Name.sexp_of_t x
-      | Fun bnd ->
-        let (x, a, body) = un_fun bnd in
-        let rec unravel acc = function
-          | Fun bnd ->
-            let (x, a, body) = un_fun bnd in
-            unravel ((x, a) :: acc) body
-          | other -> (List.rev acc, other)
-        in
-        let (bnds, body) = unravel [(x, a)] body in
-        Sexp.List [
-          Sexp.Atom "Fun";
-          Sexp.List (List.map bnds ~f:(fun (x, a) ->
-            Sexp.List [Name.sexp_of_t x; Ty.sexp_of_t a]));
-          sexp_of_t body;
-        ]
-      | App (a, b) ->
-        let rec app f args =
-          match f with
-          | App (p, n) -> app p (n :: args)
-          | head -> (head, args)
-        in
-        let (head, args) = app a [b] in
-        Sexp.List (sexp_of_t head :: List.map args ~f:sexp_of_t)
+      | Fun _ | Tyfun _ as fn -> sexp_of_fun fn
+      | App _ | Tyapp _ as ap -> sexp_of_app ap
       | Record m ->
         Sexp.List
           (Sexp.Atom "Record" :: List.map (Map.to_alist m) ~f:<:sexp_of<Label.t * t>>)
       | Dot (m, x) ->
-        Sexp.List [Sexp.Atom "Dot"; sexp_of_t m; Label.sexp_of_t x]
-      (* | Forall bnd ->
-       *   sexp_of_bnds (Forall bnd)
-       *     ~name:"Forall"
-       *     ~p:(function Forall bnd -> Some bnd | _ -> None)
-       * | Exists bnd ->
-       *   sexp_of_bnds (Exists bnd)
-       *     ~name:"Exists"
-       *     ~p:(function Exists bnd -> Some bnd | _ -> None)
-       * | Fun bnd ->
-       *   sexp_of_bnds (Fun bnd)
-       *     ~name:"Lambda"
-       *     ~p:(function Fun bnd -> Some bnd | _ -> None) *)
+        let rec unravel m acc =
+          match m with
+          | Dot (m, x) -> unravel m (x :: acc)
+          | head -> (head, acc)
+        in
+        let (m, xs) = unravel m [x] in
+        Sexp.List (Sexp.Atom "Dot" :: sexp_of_t m :: List.map xs ~f:Label.sexp_of_t)
+      | Pack (ty, tm_body, bnd) ->
+        let (a, ty_body) = un_pack bnd in
+        Sexp.List [
+          Sexp.Atom "Pack";
+          Ty.sexp_of_t ty;
+          sexp_of_t tm_body;
+          Sexp.Atom ":";
+          Sexp.Atom "Exists";
+          Ty.Name.sexp_of_t a;
+          Sexp.Atom ".";
+          Ty.sexp_of_t ty_body;
+        ]
+      | Unpack bnd ->
+        let (a, x, scrutinee, body) = un_unpack bnd in
+        Sexp.List [
+          Sexp.Atom "Unpack";
+          Ty.Name.sexp_of_t a;
+          Name.sexp_of_t x;
+          Sexp.Atom "=";
+          sexp_of_t scrutinee;
+          Sexp.Atom "in";
+          sexp_of_t body;
+        ]
+      | Let _ as tm ->
+        let rec unravel acc = function
+          | Let bnd ->
+            let (x, t, body) = un_let bnd in
+            unravel ((x, t) :: acc) body
+          | body -> (List.rev acc, body)
+        in
+        let (bnds, body) = unravel [] tm in
+        Sexp.List [
+          Sexp.Atom "Let";
+          Sexp.List (List.map bnds ~f:<:sexp_of<Name.t * t>>);
+          sexp_of_t body;
+        ]
+
+    and un_app f args =
+      match f with
+      | App (p, a) -> un_app p (`Tm a :: args)
+      | Tyapp (p, a) -> un_app p (`Ty a :: args)
+      | head -> (head, args)
+
+    and sexp_of_app tm =
+      let (head, args) = un_app tm [] in
+      Sexp.List
+        (sexp_of_t head
+         :: List.map args ~f:(function
+         | `Tm n -> sexp_of_t n
+         | `Ty a -> Ty.sexp_of_t a))
+
+    and unravel_fun acc = function
+      | Fun bnd ->
+        let (x, a, body) = un_fun bnd in
+        unravel_fun (`Tm (x, a) :: acc) body
+      | Tyfun bnd ->
+        let (a, k, body) = un_tyfun bnd in
+        unravel_fun (`Ty (a, k) :: acc) body
+      | other -> (List.rev acc, other)
+
+    and sexp_of_fun tm =
+      let (bnds, body) = unravel_fun [] tm in
+      Sexp.List [
+        Sexp.Atom "Fun";
+        Sexp.List (List.map bnds ~f:(fun bnd ->
+          Sexp.List begin
+            match bnd with
+            | `Tm (x, a) -> [Name.sexp_of_t x; Ty.sexp_of_t a]
+            | `Ty (a, k) -> [Ty.Name.sexp_of_t a; Kind.sexp_of_t k]
+          end));
+        sexp_of_t body;
+      ]
+
+    let t_of_sexp _ = failwith "unimplemented: F.Tm.t_of_sexp"
 
   end
+  include Sexp_conv
 
 end
 
