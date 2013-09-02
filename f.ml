@@ -14,9 +14,9 @@ let fold_right_non_empty (x, xs) ~f =
 module Kind = struct
 
   (* CR: rename to Type and Fun *)
-  type t = Star | Arr of t * t with sexp
+  type t = Star | Arr of t * t
 
-  let sexp_of_t = function
+  let rec sexp_of_t = function
     | Star -> Sexp.Atom "Type"
     | Arr (a, b) ->
       let rec unravel = function
@@ -25,7 +25,7 @@ module Kind = struct
       in
       Sexp.List (Sexp.Atom "Fun" :: List.map ~f:sexp_of_t (a :: unravel b))
 
-  let t_of_sexp = function
+  let rec t_of_sexp = function
     | Sexp.Atom "Type" -> Star
     | Sexp.List (Sexp.Atom "Fun" :: a :: b) ->
       let a = t_of_sexp a in
@@ -359,7 +359,6 @@ module Tm = struct
   | Pack of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
   | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
   | Let of (t Name.t * t Embed.t, t) Bind.t
-  with sexp
 
   let rec type_rep =
     Type.Rep.Variant (module struct
@@ -445,7 +444,6 @@ module Tm = struct
         b
     in
     (x, ((ty : Ty.t Embed.t) :> Ty.t), body)
-  ;;
 
   let mk_tyfun a k body =
     Tyfun (Bind.create (a, Embed.create k) body)
@@ -460,7 +458,6 @@ module Tm = struct
         b
     in
     (a, ((k : Kind.t Embed.t) :> Kind.t), body)
-  ;;
 
   let mk_pack ty tm (a, body) =
     Pack (ty, tm, Bind.create a body)
@@ -496,6 +493,8 @@ module Tm = struct
         b
     in
     (x, ((e : t Embed.t) :> t), body)
+
+  module X = Name
 
   module Name = struct
     include Name.Make (struct
@@ -662,6 +661,64 @@ module Tm = struct
     | [a] -> mk_unpack a x edef ebody
     | a :: rest ->
       mk_unpack a x edef (unpack rest x (Name x) ebody)
+
+  module Sexp_conv : sig
+    val sexp_of_t : t -> Sexp.t
+    val t_of_sexp : Sexp.t -> t
+  end = struct
+
+  (* type t =
+   * | Dot of t * Label.t
+   * | Tyfun of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
+   * | Tyapp of t * Ty.t
+   * | Pack of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
+   * | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
+   * | Let of (t Name.t * t Embed.t, t) Bind.t *)
+
+    let rec sexp_of_t = function
+      | Name x -> Name.sexp_of_t x
+      | Fun bnd ->
+        let (x, a, body) = un_fun bnd in
+        let rec unravel acc = function
+          | Fun bnd ->
+            let (x, a, body) = un_fun bnd in
+            unravel ((x, a) :: acc) body
+          | other -> (List.rev acc, other)
+        in
+        let (bnds, body) = unravel [(x, a)] body in
+        Sexp.List [
+          Sexp.Atom "Fun";
+          Sexp.List (List.map bnds ~f:(fun (x, a) ->
+            Sexp.List [Name.sexp_of_t x; Ty.sexp_of_t a]));
+          sexp_of_t body;
+        ]
+      | App (a, b) ->
+        let rec app f args =
+          match f with
+          | App (p, n) -> app p (n :: args)
+          | head -> (head, args)
+        in
+        let (head, args) = app a [b] in
+        Sexp.List (sexp_of_t head :: List.map args ~f:sexp_of_t)
+      | Record m ->
+        Sexp.List
+          (Sexp.Atom "Record" :: List.map (Map.to_alist m) ~f:<:sexp_of<Label.t * t>>)
+      | Dot (m, x) ->
+        Sexp.List [Sexp.Atom "Dot"; sexp_of_t m; Label.sexp_of_t x]
+      (* | Forall bnd ->
+       *   sexp_of_bnds (Forall bnd)
+       *     ~name:"Forall"
+       *     ~p:(function Forall bnd -> Some bnd | _ -> None)
+       * | Exists bnd ->
+       *   sexp_of_bnds (Exists bnd)
+       *     ~name:"Exists"
+       *     ~p:(function Exists bnd -> Some bnd | _ -> None)
+       * | Fun bnd ->
+       *   sexp_of_bnds (Fun bnd)
+       *     ~name:"Lambda"
+       *     ~p:(function Fun bnd -> Some bnd | _ -> None) *)
+
+  end
 
 end
 
