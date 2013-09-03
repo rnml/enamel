@@ -90,21 +90,13 @@ module Check_f_term = struct
       Command.Spec.(empty)
       (fun () ->
         In_channel.input_all stdin
-        |! (fun x -> print_endline "1"; x)
         |! String.strip
-        |! (fun x -> print_endline "2"; x)
         |! Sexp.of_string
-        |! (fun x -> print_endline "3"; x)
         |! F.Tm.t_of_sexp
-        |! (fun x -> print_endline "4"; x)
         |! F.Tm.ok F.Tm.Context.empty
-        |! (fun x -> print_endline "5"; x)
         |! Or_error.ok_exn
-        |! (fun x -> print_endline "6"; x)
         |! F.Ty.sexp_of_t
-        |! (fun x -> print_endline "7"; x)
         |! Sexp.to_string_hum
-        |! (fun x -> print_endline "8"; x)
         |! print_endline
       )
 end

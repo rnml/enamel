@@ -13,11 +13,10 @@ let fold_right_non_empty (x, xs) ~f =
 
 module Kind = struct
 
-  (* CR: rename to Type and Fun *)
   type t = Star | Arr of t * t
 
   let rec sexp_of_t = function
-    | Star -> Sexp.Atom "Type"
+    | Star -> Sexp.Atom "*"
     | Arr (a, b) ->
       let rec unravel = function
         | Arr (u, v) -> u :: unravel v
@@ -26,7 +25,7 @@ module Kind = struct
       Sexp.List (Sexp.Atom "Fun" :: List.map ~f:sexp_of_t (a :: unravel b))
 
   let rec t_of_sexp = function
-    | Sexp.Atom "Type" -> Star
+    | Sexp.Atom "*" -> Star
     | Sexp.List (Sexp.Atom "Fun" :: a :: b) ->
       let a = t_of_sexp a in
       let b = List.map b ~f:t_of_sexp in
@@ -389,20 +388,20 @@ module Tm = struct
           | Pack   -> "pack"
           | Unpack -> "unpack"
           | Let    -> "let"
-                      let type_of : type a. a t -> a Type.Rep.t = function
-                        | Name   -> Name.type_rep orep
-                        | Fun    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep Ty.type_rep)) orep
-                        | App    -> Type.Rep.Pair (orep, orep)
-                        | Record -> Label.map_type_rep orep
-                        | Dot    -> Type.Rep.Pair (orep, Label.type_rep)
-                        | Tyfun -> Bind.type_rep (Type.Rep.Pair (Ty.Name.type_rep, Embed.type_rep Kind.type_rep)) orep
-                        | Tyapp  -> Type.Rep.Pair (orep, Ty.type_rep)
-                        | Pack   -> Type.Rep.Triple (Ty.type_rep, orep, Bind.type_rep Ty.Name.type_rep Ty.type_rep)
-                        | Unpack -> Bind.type_rep (Type.Rep.Triple (Ty.Name.type_rep, Name.type_rep orep, Embed.type_rep orep)) orep
-                        | Let    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep orep)) orep
-                                    type univ = Label : 'a t -> univ
-                                    let all = [ Label Name; Label Fun; Label App; Label Record; Label Dot;
-                                                Label Tyfun; Label Tyapp; Label Pack; Label Unpack; Label Let ]
+        let type_of : type a. a t -> a Type.Rep.t = function
+          | Name   -> Name.type_rep orep
+          | Fun    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep Ty.type_rep)) orep
+          | App    -> Type.Rep.Pair (orep, orep)
+          | Record -> Label.map_type_rep orep
+          | Dot    -> Type.Rep.Pair (orep, Label.type_rep)
+          | Tyfun  -> Bind.type_rep (Type.Rep.Pair (Ty.Name.type_rep, Embed.type_rep Kind.type_rep)) orep
+          | Tyapp  -> Type.Rep.Pair (orep, Ty.type_rep)
+          | Pack   -> Type.Rep.Triple (Ty.type_rep, orep, Bind.type_rep Ty.Name.type_rep Ty.type_rep)
+          | Unpack -> Bind.type_rep (Type.Rep.Triple (Ty.Name.type_rep, Name.type_rep orep, Embed.type_rep orep)) orep
+          | Let    -> Bind.type_rep (Type.Rep.Pair (Name.type_rep orep, Embed.type_rep orep)) orep
+        type univ = Label : 'a t -> univ
+        let all = [ Label Name; Label Fun; Label App; Label Record; Label Dot;
+                    Label Tyfun; Label Tyapp; Label Pack; Label Unpack; Label Let ]
       end
       type 'a tag = 'a Label.t
       type rep = Tagged : 'a tag * 'a -> rep
@@ -433,6 +432,7 @@ module Tm = struct
     end : Type.Rep.Variant.T with type t = t)
 
   let mk_fun x ty body =
+    let x : t Name.t = x in
     Fun (Bind.create (x, Embed.create ty) body)
 
   let un_fun b =
@@ -446,6 +446,7 @@ module Tm = struct
     (x, ((ty : Ty.t Embed.t) :> Ty.t), body)
 
   let mk_tyfun a k body =
+    let a : Ty.t Name.t = a in
     Tyfun (Bind.create (a, Embed.create k) body)
 
   let un_tyfun b =
@@ -731,7 +732,7 @@ module Tm = struct
         (sexp_of_t head
          :: List.map args ~f:(function
          | `Tm n -> sexp_of_t n
-         | `Ty a -> Ty.sexp_of_t a))
+         | `Ty a -> Sexp.List [Sexp.Atom "Type"; Ty.sexp_of_t a]))
 
     and unravel_fun acc = function
       | Fun bnd ->
@@ -750,12 +751,72 @@ module Tm = struct
           Sexp.List begin
             match bnd with
             | `Tm (x, a) -> [Name.sexp_of_t x; Ty.sexp_of_t a]
-            | `Ty (a, k) -> [Ty.Name.sexp_of_t a; Kind.sexp_of_t k]
+            | `Ty (a, k) -> [Sexp.Atom "Type"; Ty.Name.sexp_of_t a; Kind.sexp_of_t k]
           end));
         sexp_of_t body;
       ]
 
-    let t_of_sexp _ = failwith "unimplemented: F.Tm.t_of_sexp"
+    let rec t_of_sexp = function
+      | Sexp.List [Sexp.Atom "Fun"; Sexp.List bnds; body] ->
+        let bnd_of_sexp = function
+          | Sexp.List [x; a] ->
+            `Tm (Name.t_of_sexp x, Ty.t_of_sexp a)
+          | Sexp.List [Sexp.Atom "Type"; a; k] ->
+            `Ty (Ty.Name.t_of_sexp a, Kind.t_of_sexp k)
+          | sexp -> of_sexp_error "F.Tm.Fun.bnd_of_sexp" sexp
+        in
+        List.map bnds ~f:bnd_of_sexp
+        |! List.fold_right ~init:(t_of_sexp body) ~f:(fun bnd acc ->
+          match bnd with
+          | `Tm (x, a) -> mk_fun x a acc
+          | `Ty (a, k) -> mk_tyfun a k acc)
+      | Sexp.List [Sexp.Atom "Let"; Sexp.List bnds; body] ->
+        List.map bnds ~f:<:of_sexp<Name.t * t>>
+        |! List.fold_right ~init:(t_of_sexp body) ~f:(fun (x, tm) acc ->
+          mk_let x tm acc)
+      | Sexp.List [
+          Sexp.Atom "Unpack"; a; x;
+          Sexp.Atom "="; scrutinee;
+          Sexp.Atom "in"; body;
+      ] ->
+        let a = Ty.Name.t_of_sexp a in
+        let x = Name.t_of_sexp x in
+        let scrutinee = t_of_sexp scrutinee in
+        let body = t_of_sexp body in
+        mk_unpack a x scrutinee body
+      | Sexp.List [
+          Sexp.Atom "Pack"; ty; tm_body;
+          Sexp.Atom ":";
+          Sexp.Atom "Exists"; a; Sexp.Atom "."; ty_body;
+        ] ->
+        let ty = Ty.t_of_sexp ty in
+        let tm_body = t_of_sexp tm_body in
+        let a = Ty.Name.t_of_sexp a in
+        let ty_body = Ty.t_of_sexp ty_body in
+        mk_pack ty tm_body (a, ty_body)
+      | Sexp.List (Sexp.Atom "Record" :: entries) as sexp ->
+        begin
+          match Label.Map.of_alist (List.map entries ~f:<:of_sexp<Label.t * t>>) with
+          | `Ok map -> Record map
+          | `Duplicate_key label ->
+            let msg = sprintf "F.Tm.Record.Duplicate_key %s" (Label.to_string label) in
+            of_sexp_error msg sexp
+        end
+      | Sexp.List (Sexp.Atom "Dot" :: m :: xs) ->
+        let xs = List.map xs ~f:Label.t_of_sexp in
+        List.fold xs ~init:(t_of_sexp m) ~f:(fun acc x -> Dot (acc, x))
+      | Sexp.Atom _ as x -> Name (Name.t_of_sexp x)
+      | Sexp.List (fn :: args) ->
+        let fn = t_of_sexp fn in
+        let args =
+          List.map args ~f:(function
+          | Sexp.List [Sexp.Atom "Type"; a] -> `Ty (Ty.t_of_sexp a)
+          | n -> `Tm (t_of_sexp n))
+        in
+        List.fold args ~init:fn ~f:(fun acc -> function
+        | `Tm n -> App (acc, n)
+        | `Ty a -> Tyapp (acc, a))
+      | sexp -> of_sexp_error "F.Tm.t_of_sexp" sexp
 
   end
   include Sexp_conv
