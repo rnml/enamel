@@ -9,7 +9,8 @@
 ** DONE migrate systemf.ml over to generic implementation
 ** DONE factored out unbound library
 ** DONE switch target language to iterated binders
-** ACTV SystemF parser, interpreter, pretty printer
+** DONE SystemF parser and pretty printer
+** ACTV SystemF interpreter
 ** ACTV fill in stubbed out definitions
 ** define alpha_eq as a generic
 * elisp-like auto-documentation
