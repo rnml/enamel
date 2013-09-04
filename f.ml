@@ -210,9 +210,44 @@ module Ty = struct
     let (x, k, t) = unbind bnd in
     bind (x, k, subst t sub)
 
-  let whnf _ = assert false
+  let rec un_app f args =
+    match f with
+    | App (p, a) -> un_app p (a :: args)
+    | head -> (head, args)
 
-  let equal _ _ = assert false
+  let re_app head args =
+    List.fold args ~init:head ~f:(fun fn arg -> App (fn, arg))
+
+  let rec apply = function
+    | (Fun bnd, arg :: args) ->
+      let (a, _k, body) = unbind bnd in
+      apply (subst body (a, arg), args)
+    | (head, args) -> re_app head args
+
+  let whnf t = apply (un_app t [])
+
+  let unbind2 bnd1 bnd2 =
+    let (x,  k1, t1) = unbind bnd1 in
+    let (x', k2, t2) = unbind bnd2 in
+    let t2 = subst t2 (x', Name x) in
+    (x, (k1, k2), (t1, t2))
+
+  let rec equal t1 t2 =
+    match (whnf t1, whnf t2) with
+    | (Name a, Name b) -> Name.equal a b
+    | (Arr (t11, t12), Arr (t21, t22))
+    | (App (t11, t12), App (t21, t22)) -> equal t11 t21 && equal t12 t22
+    | (Record m1, Record m2) ->
+      with_return (fun {return} ->
+        Map.is_empty (Map.merge m1 m2 ~f:(fun ~key:_ -> function
+        | `Left _ | `Right _ -> return false
+        | `Both (t1, t2) -> if equal t1 t2 then None else return false)))
+    | (Forall bnd1, Forall bnd2)
+    | (Exists bnd1, Exists bnd2)
+    | (Fun    bnd1, Fun    bnd2) ->
+      let (_x, (k1, k2), (t1, t2)) = unbind2 bnd1 bnd2 in
+      Kind.equal k1 k2 && equal t1 t2
+    | (_, (Name _ | Arr _ | App _ | Record _ | Forall _ | Exists _ | Fun _)) -> false
 
   module Context : sig
     type t with sexp
@@ -311,12 +346,7 @@ module Ty = struct
           ~name:"Lambda"
           ~p:(function Fun bnd -> Some bnd | _ -> None)
       | App (a, b) ->
-        let rec app f args =
-          match f with
-          | App (p, n) -> app p (n :: args)
-          | head -> (head, args)
-        in
-        let (head, args) = app a [b] in
+        let (head, args) = un_app a [b] in
         Sexp.List (sexp_of_t head :: List.map args ~f:sexp_of_t)
 
     and sexp_of_bnds t ~p ~name =
@@ -349,7 +379,9 @@ module Ty = struct
       | Sexp.Atom _ as sexp ->
         Name (Name.t_of_sexp sexp)
       | Sexp.List (fn :: args) ->
-        List.fold ~init:(t_of_sexp fn) args ~f:(fun fn arg -> App (fn, t_of_sexp arg))
+        let fn = t_of_sexp fn in
+        let args = List.map ~f:t_of_sexp args in
+        re_app fn args
       | sexp -> of_sexp_error "F.Ty.t_of_sexp" sexp
 
     and bnds_of_sexp bnds body ~c =

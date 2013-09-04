@@ -13,9 +13,7 @@ EOF
 echo 'checking an F term ...'
 ./main.exe check-f-term <<EOF
 (Pack
-(Forall ((a *)) (Fun a a))
-(Fun ((Type a *) (x a)) x)
-:
-Exists a . a
-)
+  (Forall ((a *)) (Fun a a))
+  (Fun ((Type a *) (x a)) x)
+  : Exists a . a)
 EOF
