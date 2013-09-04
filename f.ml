@@ -193,7 +193,23 @@ module Ty = struct
     let b = Name.to_univ b in
     Swap.swap type_rep (X.Univ.Perm.swap a b) t
 
-  let subst _ _ = assert false
+  let rec subst t sub =
+    match t with
+    | Name b ->
+      let (a, tsub) = sub in
+      if Name.equal a b then tsub else t
+    | Arr (t1, t2) -> Arr (subst t1 sub, subst t2 sub)
+    | App (t1, t2) -> App (subst t1 sub, subst t2 sub)
+    | Record m ->
+      Record (Map.map m ~f:(fun t -> subst t sub))
+    | Forall bnd -> Forall (subst_bnd bnd sub)
+    | Exists bnd -> Exists (subst_bnd bnd sub)
+    | Fun    bnd -> Fun    (subst_bnd bnd sub)
+
+  and subst_bnd bnd sub =
+    let (x, k, t) = unbind bnd in
+    bind (x, k, subst t sub)
+
   let whnf _ = assert false
 
   let equal _ _ = assert false
