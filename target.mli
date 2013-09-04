@@ -10,11 +10,11 @@ end
 module rec Csig : sig
 
   type t =
-  | Val of Ty.t
-  | Type of Ty.t * Kind.t
-  | Sig of Asig.t
-  | Struct of t Label.Map.t
-  | Fun of (Args.t, t * Asig.t) Bind.t
+    | Val of Ty.t
+    | Type of Ty.t * Kind.t
+    | Sig of Asig.t
+    | Struct of t Label.Map.t
+    | Fun of (Args.t, t * Asig.t) Bind.t
 
   val mk_fun : (Ty.Name.t * Kind.t) list -> t -> Asig.t -> t
 

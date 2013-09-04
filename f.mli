@@ -21,13 +21,13 @@ end
 module Ty : sig
 
   type t =
-  | Name   of t Name.t
-  | Arr    of t * t
-  | Record of t Label.Map.t
-  | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
-  | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
-  | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t
-  | App    of t * t
+    | Name   of t Name.t
+    | Arr    of t * t
+    | Record of t Label.Map.t
+    | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
+    | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
+    | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t
+    | App    of t * t
   with sexp
 
   val type_rep : t Type.Rep.t
@@ -58,16 +58,16 @@ end
 module Tm : sig
 
   type t =
-  | Name   of t Name.t
-  | Fun    of (t Name.t * Ty.t Embed.t, t) Bind.t
-  | App    of t * t
-  | Record of t Label.Map.t
-  | Dot    of t * Label.t
-  | Tyfun  of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
-  | Tyapp  of t * Ty.t
-  | Pack   of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t (* pack <ty, tm> : exists a. ty *)
-  | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
-  | Let of (t Name.t * t Embed.t, t) Bind.t
+    | Name   of t Name.t
+    | Fun    of (t Name.t * Ty.t Embed.t, t) Bind.t
+    | App    of t * t
+    | Record of t Label.Map.t
+    | Dot    of t * Label.t
+    | Tyfun  of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
+    | Tyapp  of t * Ty.t
+    | Pack   of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t (* pack <ty, tm> : exists a. ty *)
+    | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
+    | Let of (t Name.t * t Embed.t, t) Bind.t
   with sexp
 
   val type_rep : t Type.Rep.t

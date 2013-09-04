@@ -38,13 +38,13 @@ module type S = sig
   val type_name : t Type.Name.t
   val type_rep : t Type.Rep.t
 end
-  with type 'a name := 'a t
+with type 'a name := 'a t
 
 module Make (X : sig
-  type a
-  val name : string
-  val type_rep : a Type.Rep.t
-end) :
+               type a
+               val name : string
+               val type_rep : a Type.Rep.t
+             end) :
   S with type a := X.a
 
 module Registry : sig

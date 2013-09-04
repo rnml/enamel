@@ -98,13 +98,13 @@ end
 module Ty = struct
 
   type t =
-  | Name   of t Name.t
-  | Arr    of t * t (* CR: rename to Fun *)
-  | Record of t Label.Map.t
-  | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
-  | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
-  | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t (* CR: rename to Lambda *)
-  | App    of t * t
+    | Name   of t Name.t
+    | Arr    of t * t (* CR: rename to Fun *)
+    | Record of t Label.Map.t
+    | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
+    | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
+    | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t (* CR: rename to Lambda *)
+    | App    of t * t
 
   let rec type_rep =
     Type.Rep.Variant (module struct
@@ -114,13 +114,13 @@ module Ty = struct
       let name : t Type.Name.t = Type.Name.create ~name:"F.Type.t"
       module Label = struct
         type 'a t =
-        | Name   : o Name.t t
-        | Arr    : (o * o) t
-        | Record : o Label.Map.t t
-        | Forall : (o Name.t * Kind.t Embed.t, o) Bind.t t
-        | Exists : (o Name.t * Kind.t Embed.t, o) Bind.t t
-        | Fun    : (o Name.t * Kind.t Embed.t, o) Bind.t t
-        | App    : (o * o) t
+          | Name   : o Name.t t
+          | Arr    : (o * o) t
+          | Record : o Label.Map.t t
+          | Forall : (o Name.t * Kind.t Embed.t, o) Bind.t t
+          | Exists : (o Name.t * Kind.t Embed.t, o) Bind.t t
+          | Fun    : (o Name.t * Kind.t Embed.t, o) Bind.t t
+          | App    : (o * o) t
         let name_of : type a. a t -> string = function
           | Name   -> "name"
           | Arr    -> "arr"

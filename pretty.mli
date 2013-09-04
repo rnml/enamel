@@ -41,7 +41,7 @@ val break : doc
 val break_with : string -> doc
 (* [break_with s] acts like [break] except that it is not turned into a
    space or a newline but into [s] or a newline (followed by spaces).
-   *)
+*)
 
 val nest : int -> doc -> doc
 (* [nest i doc]: all breaks inside [doc] which are turned into

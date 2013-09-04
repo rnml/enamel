@@ -20,15 +20,15 @@ end
 
 module Tree : sig
   type t =
-  | Empty
-  | Node of t * int * t
+    | Empty
+    | Node of t * int * t
   val type_rep : t Type.Rep.t
 end
 
 module Even_odd_lists : sig
   type even =
-  | Nil
-  | Cons of int * odd
+    | Nil
+    | Cons of int * odd
   and odd = {
     head : int;
     tail : even;

@@ -1,23 +1,23 @@
 open Std_internal
 
 module Source (Base : sig
-  module Kind : sig
-    type t with sexp
-    val ok : Target.Context.t -> t -> F.Kind.t
-  end
-  module Ty : sig
-    type 'a t with sexp
-    type 'a check =
-      Target.Context.t -> 'a -> F.Ty.t * F.Kind.t
-    val ok : 'a check -> 'a t check
-  end
-  module Tm : sig
-    type ('a, 'b) t with sexp
-    type 'b check =
-      Target.Context.t -> 'b -> F.Tm.t * F.Ty.t
-    val ok : 'a Ty.check -> 'b check -> ('a, 'b) t check
-  end
-end) : sig
+                 module Kind : sig
+                   type t with sexp
+                   val ok : Target.Context.t -> t -> F.Kind.t
+                 end
+                 module Ty : sig
+                   type 'a t with sexp
+                   type 'a check =
+                       Target.Context.t -> 'a -> F.Ty.t * F.Kind.t
+                   val ok : 'a check -> 'a t check
+                 end
+                 module Tm : sig
+                   type ('a, 'b) t with sexp
+                   type 'b check =
+                       Target.Context.t -> 'b -> F.Tm.t * F.Ty.t
+                   val ok : 'a Ty.check -> 'b check -> ('a, 'b) t check
+                 end
+               end) : sig
 
   module Kind : sig
     type t = Base.Kind.t with sexp
@@ -75,7 +75,7 @@ end) : sig
       Target.Context.t
       -> t
       -> (F.Ty.Name.t * F.Kind.t) list
-       * Target.Csig.t F.Label.Map.t
+         * Target.Csig.t F.Label.Map.t
   end
 
   and Mod : sig
@@ -108,8 +108,8 @@ end) : sig
       Target.Context.t
       -> t
       -> (F.Ty.Name.t * F.Kind.t) list
-       * Target.Csig.t F.Label.Map.t
-       * (F.Tm.t -> F.Tm.t)
+         * Target.Csig.t F.Label.Map.t
+         * (F.Tm.t -> F.Tm.t)
   end
 
 end
