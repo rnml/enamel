@@ -42,7 +42,7 @@ module Make (Elt : Identifiable) = struct
       | `Left src -> map src ~to_:mid
       | `Right tgt -> map mid ~to_:tgt
     )
-    |! Map.fold ~init:id ~f:(fun ~key:_ ~data:(src, tgt) t ->
+    |> Map.fold ~init:id ~f:(fun ~key:_ ~data:(src, tgt) t ->
       { map = Map.add t.map ~key:src ~data:tgt;
         inv = Map.add t.inv ~key:tgt ~data:src; })
 

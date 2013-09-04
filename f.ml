@@ -184,9 +184,9 @@ module Ty = struct
 
   let fvs t =
     Free_vars.Term.fv type_rep t
-    |! Set.to_list
-    |! List.filter_map ~f:Name.of_univ
-    |! Name.Set.of_list
+    |> Set.to_list
+    |> List.filter_map ~f:Name.of_univ
+    |> Name.Set.of_list
 
   let swap (a, b) t =
     let a = Name.to_univ a in
@@ -551,8 +551,8 @@ module Tm = struct
       let name = "Type.Name"
       let type_rep = type_rep
     end)
-    let to_label t = to_univ t |! Name.Univ.to_string |! Label.of_string
-    let of_label l = Label.to_string l |! raw
+    let to_label t = to_univ t |> Name.Univ.to_string |> Label.of_string
+    let of_label l = Label.to_string l |> raw
   end
 
   module Context : sig
@@ -611,9 +611,9 @@ module Tm = struct
     | Record xes ->
       begin
         Map.to_alist xes
-        |! List.map ~f:(fun (key, e) -> ok ctx e >>= fun t -> Ok (key, t))
-        |! Or_error.all
-        |! Or_error.map ~f:Label.Map.of_alist_exn
+        |> List.map ~f:(fun (key, e) -> ok ctx e >>= fun t -> Ok (key, t))
+        |> Or_error.all
+        |> Or_error.map ~f:Label.Map.of_alist_exn
       end
       >>= fun types_by_field ->
       Ok (Ty.Record types_by_field)
@@ -814,13 +814,13 @@ module Tm = struct
           | sexp -> of_sexp_error "F.Tm.Fun.bnd_of_sexp" sexp
         in
         List.map bnds ~f:bnd_of_sexp
-        |! List.fold_right ~init:(t_of_sexp body) ~f:(fun bnd acc ->
+        |> List.fold_right ~init:(t_of_sexp body) ~f:(fun bnd acc ->
           match bnd with
           | `Tm (x, a) -> mk_fun x a acc
           | `Ty (a, k) -> mk_tyfun a k acc)
       | Sexp.List [Sexp.Atom "Let"; Sexp.List bnds; body] ->
         List.map bnds ~f:<:of_sexp<Name.t * t>>
-        |! List.fold_right ~init:(t_of_sexp body) ~f:(fun (x, tm) acc ->
+        |> List.fold_right ~init:(t_of_sexp body) ~f:(fun (x, tm) acc ->
           mk_let x tm acc)
       | Sexp.List [
           Sexp.Atom "Unpack"; a; x;

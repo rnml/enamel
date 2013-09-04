@@ -111,8 +111,8 @@ let rec of_sexp : type a. a Type.Rep.t -> Sexp.t -> a = function
         | entry ->
           failwiths "Record.of_sexp entry does not match\
                   \ (ATOM VALUE) pattern" entry Fn.id)
-        |! String.Map.of_alist
-        |! function
+        |> String.Map.of_alist
+        |> function
           | `Duplicate_key key ->
             failwiths "Record.of_sexp duplicate key"
               key String.sexp_of_t
@@ -125,7 +125,7 @@ let rec of_sexp : type a. a Type.Rep.t -> Sexp.t -> a = function
               | `Right sexp ->
                 failwiths "unknown field" (key, sexp)
                 <:sexp_of< string * Sexp.t >>)
-            |! fun map ->
+            |> fun map ->
               R.inject
                 { R.lookup = fun field ->
                   let key = R.Label.name_of field in

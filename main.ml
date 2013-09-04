@@ -16,37 +16,37 @@ let check_expr_command =
   Command.basic ~summary:"type check a expr (from stdin)"
     Command.Spec.(empty)
     (fun () ->
-      let tm = Sexp.input_sexp stdin |! Enamel.Tm.t_of_sexp in
+      let tm = Sexp.input_sexp stdin |> Enamel.Tm.t_of_sexp in
       let (tm, ty) = Enamel.Tm.ok Initial_context.ctx tm in
       Sexp.List [
         F.Tm.sexp_of_t tm;
         Sexp.Atom ":";
         F.Ty.sexp_of_t ty;
       ]
-      |! Sexp.to_string_hum
-      |! print_endline
+      |> Sexp.to_string_hum
+      |> print_endline
     )
 
 let check_type_command =
   Command.basic ~summary:"kind check a type (from stdin)"
     Command.Spec.(empty)
     (fun () ->
-      let ty = Sexp.input_sexp stdin |! Enamel.Ty.t_of_sexp in
+      let ty = Sexp.input_sexp stdin |> Enamel.Ty.t_of_sexp in
       let (ty, ki) = Enamel.Ty.ok Initial_context.ctx ty in
       Sexp.List [
         F.Ty.sexp_of_t ty;
         Sexp.Atom ":";
         F.Kind.sexp_of_t ki;
       ]
-      |! Sexp.to_string_hum
-      |! print_endline
+      |> Sexp.to_string_hum
+      |> print_endline
     )
 
 let elaborate_command =
   Command.basic ~summary:"elaborate a module (from stdin)"
     Command.Spec.(empty)
     (fun () ->
-      let m = Sexp.input_sexp stdin |! Enamel.Mod.t_of_sexp in
+      let m = Sexp.input_sexp stdin |> Enamel.Mod.t_of_sexp in
       let (t, e) = Enamel.Mod.ok Initial_context.ctx m in
       let t = Target.Asig.to_f t in
       Sexp.List [
@@ -54,8 +54,8 @@ let elaborate_command =
         Sexp.Atom ":";
         F.Ty.sexp_of_t t;
       ]
-      |! Sexp.to_string_hum
-      |! print_endline
+      |> Sexp.to_string_hum
+      |> print_endline
     )
 
 let init_ctx_command =
@@ -63,8 +63,8 @@ let init_ctx_command =
     Command.Spec.(empty)
     (fun () ->
       Target.Context.sexp_of_t Initial_context.ctx
-      |! Sexp.to_string_hum
-      |! print_endline
+      |> Sexp.to_string_hum
+      |> print_endline
     )
 
 module Check_f_type = struct
@@ -73,14 +73,14 @@ module Check_f_type = struct
       Command.Spec.(empty)
       (fun () ->
         In_channel.input_all stdin
-        |! String.strip
-        |! Sexp.of_string
-        |! F.Ty.t_of_sexp
-        |! F.Ty.ok F.Ty.Context.empty
-        |! Or_error.ok_exn
-        |! F.Kind.sexp_of_t
-        |! Sexp.to_string_hum
-        |! print_endline
+        |> String.strip
+        |> Sexp.of_string
+        |> F.Ty.t_of_sexp
+        |> F.Ty.ok F.Ty.Context.empty
+        |> Or_error.ok_exn
+        |> F.Kind.sexp_of_t
+        |> Sexp.to_string_hum
+        |> print_endline
       )
 end
 
@@ -90,14 +90,14 @@ module Check_f_term = struct
       Command.Spec.(empty)
       (fun () ->
         In_channel.input_all stdin
-        |! String.strip
-        |! Sexp.of_string
-        |! F.Tm.t_of_sexp
-        |! F.Tm.ok F.Tm.Context.empty
-        |! Or_error.ok_exn
-        |! F.Ty.sexp_of_t
-        |! Sexp.to_string_hum
-        |! print_endline
+        |> String.strip
+        |> Sexp.of_string
+        |> F.Tm.t_of_sexp
+        |> F.Tm.ok F.Tm.Context.empty
+        |> Or_error.ok_exn
+        |> F.Ty.sexp_of_t
+        |> Sexp.to_string_hum
+        |> print_endline
       )
 end
 
@@ -108,14 +108,14 @@ module Z = struct
       Command.Spec.(empty)
       (fun () ->
         In_channel.input_all stdin
-        |! String.strip
-        |! Sexp.of_string
-        |! F.Tm.t_of_sexp
-        |! F.Tm.ok F.Tm.Context.empty
-        |! Or_error.ok_exn
-        |! F.Ty.sexp_of_t
-        |! Sexp.to_string_hum
-        |! print_endline
+        |> String.strip
+        |> Sexp.of_string
+        |> F.Tm.t_of_sexp
+        |> F.Tm.ok F.Tm.Context.empty
+        |> Or_error.ok_exn
+        |> F.Ty.sexp_of_t
+        |> Sexp.to_string_hum
+        |> print_endline
       )
 end
 

@@ -231,8 +231,8 @@ end = struct
               | `Left _ | `Right _ -> None
               | `Both (a, b) -> Some (a, b)
             )
-            |! Map.data
-            |! List.find_map ~f:(fun (csig, csig') -> lookup csig csig')
+            |> Map.data
+            |> List.find_map ~f:(fun (csig, csig') -> lookup csig csig')
           | _ -> None
         in
         match lookup csig csig' with
