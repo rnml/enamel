@@ -10,7 +10,7 @@
 ** DONE factored out unbound library
 ** DONE switch target language to iterated binders
 ** DONE SystemF parser and pretty printer
-** ACTV SystemF define subst
+** DONE SystemF define subst, equal
 ** ACTV SystemF interpreter
 ** ACTV fill in stubbed out definitions
 ** define alpha_eq as a generic

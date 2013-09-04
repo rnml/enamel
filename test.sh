@@ -5,6 +5,16 @@ echo 'checking an F type ...'
 (Forall ((a *)) (Fun a a))
 EOF
 
+echo 'checking an F type ...'
+./main.exe check-f-type <<EOF
+(Exists ((a *)) a)
+EOF
+
+echo 'checking an F type ...'
+./main.exe check-f-type <<EOF
+(Lambda ((a *)) a)
+EOF
+
 echo 'checking an F term ...'
 ./main.exe check-f-term <<EOF
 (Fun ((Type a *) (x a)) x)
