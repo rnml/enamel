@@ -35,6 +35,7 @@ module type S = sig
   val cast    : _ name -> t
   val raw : string -> t
   val preferred : t -> t
+  val create : string -> t
   val type_name : t Type.Name.t
   val type_rep : t Type.Rep.t
 end

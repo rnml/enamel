@@ -130,6 +130,7 @@ module type S = sig
   val cast    : _ name -> t
   val raw : string -> t
   val preferred : t -> t
+  val create : string -> t
   val type_name : t Type.Name.t
   val type_rep : t Type.Rep.t
 end
@@ -156,6 +157,8 @@ end) = struct
 
   let raw name = {kind; basic = Basic.create ~name ~stamp:None}
   let preferred t = {kind; basic = Basic.preferred t.basic}
+
+  let create name = freshen (raw name)
 
   let type_name = Type.Name.create ~name:X.name
   let type_rep = Type.Rep.Abstract type_name
