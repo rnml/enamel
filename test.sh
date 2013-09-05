@@ -12,7 +12,12 @@ EOF
 
 echo 'checking an F type ...'
 ./main.exe check-f-type <<EOF
-(Lambda ((a *)) a)
+(Lambda ((a *) (b *) (c *)) (Fun a b c))
+EOF
+
+echo 'checking an F type ...'
+./main.exe check-f-type <<EOF
+(Lambda ((b (Fun * *)) (c *)) (Fun (b c) c))
 EOF
 
 echo 'checking an F term ...'

@@ -690,13 +690,13 @@ module Tm = struct
       ok ctx ebody
 
   let type_mod t k =
-    let a = assert false in
-    let x = assert false (* Name.dummy *) in
+    let a = Ty.Name.create "a" in
+    let x = Name.create "x" in
     mk_tyfun a (Kind.Arr (k, Kind.Star))
       (mk_fun x (Ty.App (Ty.Name a, t)) (Name x))
 
   let sig_mod t =
-    let x = assert false (* Name.dummy *) in
+    let x = Name.create "x" in
     mk_fun x t (Name x)
 
   let pack taks e t =

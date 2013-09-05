@@ -6,22 +6,26 @@ module F = F
 
 module Ctx = Target.Context
 
-module Source (Base : sig
+module type T = sig
   module Kind : sig
     type t with sexp
-    val ok : Ctx.t -> t -> F.Kind.t
+    val ok : Target.Context.t -> t -> F.Kind.t
   end
   module Ty : sig
     type 'a t with sexp
-    type 'a check = Ctx.t -> 'a -> F.Ty.t * F.Kind.t
+    type 'a check =
+        Target.Context.t -> 'a -> F.Ty.t * F.Kind.t
     val ok : 'a check -> 'a t check
   end
   module Tm : sig
     type ('a, 'b) t with sexp
-    type 'b check = Ctx.t -> 'b -> F.Tm.t * F.Ty.t
+    type 'b check =
+        Target.Context.t -> 'b -> F.Tm.t * F.Ty.t
     val ok : 'a Ty.check -> 'b check -> ('a, 'b) t check
   end
-end) = struct
+end
+
+module Source (Base : T) = struct
 
   module Kind = Base.Kind
 
@@ -156,7 +160,7 @@ end) = struct
         Target.Asig.mk_exists [] (Target.Csig.Type (t, k))
       | Abstype k ->
         let k = Kind.ok ctx k in
-        let a = assert false (* F.Ty.Name.dummy *) in
+        let a = F.Ty.Name.create "a" in
         let t = F.Ty.Name a in
         Target.Asig.mk_exists [(a, k)] (Target.Csig.Type (t, k))
       | Sig s ->
@@ -406,7 +410,7 @@ end) = struct
           ( asig
           , F.Tm.pack taks (f (F.Tm.Name x)) (Target.Csig.to_f csig') ))
       | Let (b, m) -> (* derived form *)
-        let x = assert false (* F.Tm.Name.dummy *) in
+        let x = F.Tm.Name.create "x" in
         let lx = F.Tm.Name.to_label x in
         let m =  Dot (Struct (Bnd.Cat (b, Bnd.Let (x, m))), lx) in
         ok ctx m
