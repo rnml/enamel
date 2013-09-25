@@ -107,5 +107,23 @@ module Term = struct
     let type_rep = type_rep
   end)
 
+  let bind (xas, t) =
+    let s =
+      List.fold_right xas ~init:Nil ~f:(fun (x, a) s ->
+        Cons (Rebind.create (x, Embed.create a) s))
+    in
+    Bind.create s t
+
+  let unbind b =
+    let (s, t) = Bind.unbind s_type_rep type_rep b in
+    let rec aux = function
+      | Nil -> []
+      | Cons r ->
+        let ((x, a), s) = (r :> ((Name.t * t Embed.t) * s)) in
+        let a = (a :> t) in
+        (x, a) :: aux s
+    in
+    (aux s, t)
+
 end
 
