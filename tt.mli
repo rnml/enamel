@@ -15,7 +15,7 @@ module Term : sig
     | Cons of (t Name.t * 'a Embed.t, 'a s) Rebind.t
 
   val type_rep   : t Type.Rep.t
-  val s_type_rep : 'a Type.Rep.t -> 'a s Type.Rep.t
+  val type_rep_of_s : 'a Type.Rep.t -> 'a s Type.Rep.t
 
   module Name : Name.S with type a := t
 

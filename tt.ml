@@ -39,9 +39,9 @@ module Term = struct
           | Typ -> Type.Rep.Int
           | Var -> Name.type_rep orep
           | Con -> Constant.type_rep
-          | Lam -> Bind.type_rep (s_type_rep orep) orep
+          | Lam -> Bind.type_rep (type_rep_of_s orep) orep
           | App -> Type.Rep.Pair (orep, Type.Rep.List orep)
-          | Fun -> Bind.type_rep (s_type_rep orep) orep
+          | Fun -> Bind.type_rep (type_rep_of_s orep) orep
         type univ = Label : 'a t -> univ
         let all = [Label Typ; Label Var; Label Con; Label Lam; Label App; Label Fun]
       end
@@ -65,7 +65,7 @@ module Term = struct
       let inject = fun (Tagged (tag, arg)) -> put tag arg
     end : Type.Rep.Variant.T with type t = t)
 
-  and s_type_rep : 'a. 'a Type.Rep.t -> 'a s Type.Rep.t =
+  and type_rep_of_s : 'a. 'a Type.Rep.t -> 'a s Type.Rep.t =
     fun (type a) arep ->
       let rec sa_rep : a s Type.Rep.t =
         Type.Rep.Variant (module struct
@@ -124,7 +124,7 @@ module Term = struct
     Bind.create s t
 
   let unbind b =
-    let (s, t) = Bind.unbind (s_type_rep type_rep) type_rep b in
+    let (s, t) = Bind.unbind (type_rep_of_s type_rep) type_rep b in
     (unbind_s s, t)
 
 end
