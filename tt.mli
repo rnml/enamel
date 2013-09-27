@@ -38,6 +38,10 @@ module Inductive_type : sig
 
   type t = (Term.t Term.s, body) Bind.t
 
+  val type_rep_of_arg  : arg  Type.Rep.t
+  (* val type_rep_of_body : body Type.Rep.t *)
+  (* val type_rep         : t    Type.Rep.t *)
+
   (*
      data T (Gamma) : (Delta) -> Type =
      | ...

@@ -143,6 +143,36 @@ module Inductive_type = struct
 
   type t = (Term.t Term.s, body) Bind.t
 
+  let type_rep_of_arg : arg  Type.Rep.t =
+    Type.Rep.Variant (module struct
+      type t = arg
+      let name : arg Type.Name.t = Type.Name.create ~name:"Tt.Inductive_type.arg"
+      module Label = struct
+        type 'a t =
+          | Rec : Term.t list t
+          | Nonrec : Term.t t
+        let name_of : type a. a t -> string = function
+          | Rec -> "rec"
+          | Nonrec -> "nonrec"
+        let type_of : type a. a t -> a Type.Rep.t = function
+          | Rec -> Type.Rep.List Term.type_rep
+          | Nonrec -> Term.type_rep
+        type univ = Label : 'a t -> univ
+        let all = [Label Rec; Label Nonrec]
+      end
+      type 'a tag = 'a Label.t
+      type rep = Tagged : 'a tag * 'a -> rep
+      let project = function
+        | Rec i    -> Tagged (Label.Rec, i)
+        | Nonrec x -> Tagged (Label.Nonrec, x)
+      let put (type a) (tag : a tag) (arg : a) : arg =
+        match (tag, arg) with
+        | (Label.Rec, i)    -> Rec i
+        | (Label.Nonrec, x) -> Nonrec x
+      let inject = fun (Tagged (tag, arg)) -> put tag arg
+    end : Type.Rep.Variant.T with type t = arg)
+
+
   (*
      data T (Gamma) : (Delta) -> Type =
      | ...
