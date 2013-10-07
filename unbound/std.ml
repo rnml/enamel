@@ -1,5 +1,6 @@
 module Bind      = Bind
 module Binders   = Binders
+module Constant  = Constant
 module Embed     = Embed
 module Free_vars = Free_vars
 module Freshen   = Freshen

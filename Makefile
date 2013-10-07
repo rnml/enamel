@@ -10,14 +10,11 @@ MODULES=\
   string_pad \
   pretty \
   scc \
-  constant \
   f \
   target \
   module_system \
   initial_context \
   base \
-  level \
-  tt \
   main \
 
 B=

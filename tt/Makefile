@@ -1,28 +1,19 @@
 ### PARAMETERS #####################################################
 
-PACKAGES=core
-INCLUDES= -I ../typerep
-LIBRARIES= typerep
+PACKAGES=core core_extended
+INCLUDES= -I ../typerep -I ../unbound
+LIBRARIES= typerep unbound
 SYNTAX=comparelib sexplib bin_prot
+
 MODULES=\
   std_internal \
-  perm \
-  name \
-  binders \
-  free_vars \
-  swap \
-  freshen \
-  bind \
-  rebind \
-  rec \
-  embed \
-  constant \
-  std
+  level \
+  tt \
+  main \
 
-B= unbound
-T=$B.cmxa
-
-FOR_PACK_OPT=-for-pack Unbound
+B=
+T=main.exe
+FOR_PACK_OPT=
 
 ### RULES ##########################################################
 
@@ -45,8 +36,7 @@ OCAMLOPT_FLAGS=\
   -warn-error YSPUZ
 
 OCAMLC=ocamlfind ocamlc $(INCLUDES)
-OCAMLOPTBARE=ocamlfind ocamlopt
-OCAMLOPT=$(OCAMLOPTBARE) $(INCLUDES)
+OCAMLOPT=ocamlfind ocamlopt $(INCLUDES)
 OCAMLDEP=ocamlfind ocamldep
 OCAMLYACC=ocamlfind ocamlyacc
 OCAMLLEX=ocamlfind ocamllex -q
@@ -63,7 +53,7 @@ OBJECTS=$(addsuffix .cmx, $(MODULES))
 SYNTAX_EXT_PACKAGES=$(addsuffix .syntax, $(SYNTAX_EXTS))
 
 $B.cmx: $(OBJECTS)
-	$(OCAMLOPTBARE) -pack $(OBJECTS) -o $B.cmx
+	$(OCAMLOPT) -pack $(OBJECTS) -o $B.cmx
 
 $B.cmo: $(OBJECTS)
 	$(OCAMLC) -pack $(OBJECTS) -o $B.cmo
@@ -84,7 +74,7 @@ std_internal.cmx: std_internal.ml
 	$(OCAMLC) -thread -a $*.cmo -o $*.cma
 
 %.cmxa: %.cmx
-	$(OCAMLOPTBARE) -a $*.cmx -o $*.cmxa
+	$(OCAMLOPT) -a $*.cmx -o $*.cmxa
 
 %_intf.mli: %_intf.ml
 	ln -sf $*_intf.ml $*_intf.mli
