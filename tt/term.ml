@@ -34,7 +34,7 @@ let rec type_rep : t Type.Rep.t =
         | App -> "app"
         | Fun -> "fun"
       let type_of : type a. a t -> a Type.Rep.t = function
-        | Typ -> Type.Rep.Int
+        | Typ -> Level.type_rep
         | Var -> Name.type_rep orep
         | Con -> Constant.type_rep
         | Lam -> Bind.type_rep (type_rep_of_s orep) orep

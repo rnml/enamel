@@ -10,3 +10,5 @@ syntax: glob
 *.o
 .depend
 .\#*
+tt/parser.mli
+tt/parser.ml
