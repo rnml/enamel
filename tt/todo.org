@@ -1,0 +1,7 @@
+* ACTV parser
+* pretty printer
+* typechecker
+* evaluator
+** whnf
+** normalizer
+* parametricity transform

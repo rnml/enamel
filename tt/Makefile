@@ -7,8 +7,10 @@ SYNTAX=comparelib sexplib bin_prot
 
 MODULES=\
   std_internal \
+  diff_logic \
   level \
-  tt \
+  term \
+  ind_type \
   main \
 
 B=
