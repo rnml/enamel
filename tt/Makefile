@@ -12,6 +12,7 @@ MODULES=\
   term \
   ind_type \
   parser \
+  lexer \
   main \
 
 B=
@@ -42,7 +43,7 @@ OCAMLC=ocamlfind ocamlc $(INCLUDES)
 OCAMLOPT=ocamlfind ocamlopt $(INCLUDES)
 OCAMLDEP=ocamlfind ocamldep
 OCAMLYACC=ocamlyacc
-OCAMLLEX=ocamlfind ocamllex -q
+OCAMLLEX=ocamllex -q
 
 LIB_FILES=$(addsuffix .cmxa, $(LIBRARIES))
 

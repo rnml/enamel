@@ -2,18 +2,13 @@
 
 open Std_internal
 
-(* type t =
- *   | Lam of (t s, t) Bind.t
- *   | App of t * t list
- *   | Fun of (t s, t) Bind.t
-*)
-
-let cons x a g =
-  Term.Cons (Rebind.create (x, Embed.create a) g)
+let cons x a g = Term.Cons (Rebind.create (x, Embed.create a) g)
 
 %}
 
-%token Arrow Comma Period Backslash Colon Lparen Rparen Kw_type
+%token Arrow Comma Period Backslash Colon Kw_type
+%token Lparen Rparen
+%token Semi EOF
 %token <Term.Name.t> Var
 %token <Unbound.Std.Constant.t> Con
 
@@ -33,8 +28,8 @@ tele
 term
   : Backslash tele Period term
       { Term.Lam (Bind.create $2 $4) }
-  | Lparen tele Rparen term
-      { Term.Fun (Bind.create $2 $4) }
+  | Lparen tele Rparen Arrow term
+      { Term.Fun (Bind.create $2 $5) }
   | application
       { let (hd, args) = $1 in Term.App (hd, List.rev args)
 }
