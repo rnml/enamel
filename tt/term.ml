@@ -11,6 +11,7 @@ type t =
 and 'a s = (* telescope *)
   | Nil
   | Cons of (t Name.t * 'a Embed.t, 'a s) Rebind.t
+with sexp_of
 
 let rec type_rep : t Type.Rep.t =
   Type.Rep.Variant (module struct

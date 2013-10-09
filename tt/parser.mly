@@ -12,16 +12,24 @@ let cons x a g = Term.Cons (Rebind.create (x, Embed.create a) g)
 %token <Term.Name.t> Var
 %token <Unbound.Std.Constant.t> Con
 
-%start term, tele
-%type <Term.t> term
-%type <Term.t Term.s> tele
+%start term_top, tele_top
+%type <Term.t> term_top
+%type <Term.t Term.s> tele_top
 
 %right Arrow
 
 %%
 
+term_top : term EOF { $1 } ;
+
+tele_top
+  : EOF                          { Term.Nil }
+  | Var Colon term Semi tele_top { cons $1 $3 $5 }
+  ;
+
 tele
-  : Var Colon term             { cons $1 $3 Term.Nil }
+  :                            { Term.Nil }
+  | Var Colon term             { cons $1 $3 Term.Nil }
   | Var Colon term Comma tele  { cons $1 $3 $5 }
   ;
 
@@ -31,8 +39,11 @@ term
   | Lparen tele Rparen Arrow term
       { Term.Fun (Bind.create $2 $5) }
   | application
-      { let (hd, args) = $1 in Term.App (hd, List.rev args)
-}
+      { let (hd, args) = $1 in
+        if List.is_empty args
+        then hd
+        else Term.App (hd, List.rev args)
+      }
   ;
 
 application

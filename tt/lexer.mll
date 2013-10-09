@@ -1,4 +1,5 @@
 {
+
 open Std_internal
 open Parser
 
@@ -41,8 +42,7 @@ rule token = parse
 
 and after_eol = parse
   | space* eol { Lexing.new_line lexbuf; after_eol lexbuf }
-  | space* as indent
-      { if String.length indent = 0 then Semi else token lexbuf }
+  | space* { token lexbuf }
 
 and comment n = parse
   | eol { Lexing.new_line lexbuf; comment n lexbuf }

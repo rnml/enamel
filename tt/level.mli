@@ -1,6 +1,6 @@
 open Std_internal
 
-type t
+type t with sexp_of
 
 val create : unit -> t
 

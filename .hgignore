@@ -12,3 +12,4 @@ syntax: glob
 .\#*
 tt/parser.mli
 tt/parser.ml
+tt/lexer.ml

@@ -71,7 +71,8 @@ module Univ = struct
         type t = {
           kind : Uid.t;
           basic : Basic.t;
-        } with compare, sexp, bin_io
+        } with compare, of_sexp, bin_io
+        let sexp_of_t t = Basic.sexp_of_t t.basic
         let hash (t:t) = Hashtbl.hash t
       end
       include T

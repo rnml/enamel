@@ -11,6 +11,7 @@ type t =
 and 'a s = (* telescope *)
   | Nil
   | Cons of (t Name.t * 'a Embed.t, 'a s) Rebind.t
+with sexp_of
 
 val type_rep   : t Type.Rep.t
 val type_rep_of_s : 'a Type.Rep.t -> 'a s Type.Rep.t
