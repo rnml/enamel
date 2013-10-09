@@ -1,8 +1,8 @@
 open Core.Std
 
 type t =
-| Nil
-| Snoc of t * string
+  | Nil
+  | Snoc of t * string
 
 let to_list t =
   let rec loop t acc =

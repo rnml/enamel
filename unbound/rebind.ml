@@ -16,6 +16,10 @@ let type_rep a b =
   let name = type_name (Type.Rep.id a) (Type.Rep.id b) in
   let rep = Type.Rep.Pair (a, b) in
   Free_vars.Pat.register name (Free_vars.Pat.fold rep);
+  Binders.register name (fun names (p1, p2) ->
+    let names = Binders.fold a names p1 in
+    let names = Binders.fold b names p2 in
+    names);
   Swap.register name (Swap.swap rep);
   Type.Rep.Abstract name
 

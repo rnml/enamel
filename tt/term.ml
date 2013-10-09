@@ -122,7 +122,66 @@ let bind (xas, t) =
   in
   Bind.create s t
 
-let unbind b =
-  let (s, t) = Bind.unbind (type_rep_of_s type_rep) type_rep b in
-  (unbind_s s, t)
+let unbind_raw b =
+  Bind.unbind (type_rep_of_s type_rep) type_rep b
 
+let unbind b = let (s, t) = unbind_raw b in (unbind_s s, t)
+
+let pretty_s pretty_a s =
+  let bnds = unbind_s s in
+  let bnds =
+    List.fold_right bnds ~init:None ~f:(fun (x, a) acc ->
+      Some begin
+      let elem =
+        Pretty.agrp (
+          Pretty.text (Name.to_string x ^ " :")
+          ^^ Pretty.nest 2 (Pretty.break ^^ pretty_a a))
+      in
+      match acc with
+      | None -> elem
+      | Some acc -> elem ^^ Pretty.text "," ^^ Pretty.break ^^ acc
+    end)
+  in
+  match bnds with
+  | None -> Pretty.empty
+  | Some bnds -> Pretty.fgrp bnds
+
+let paren x p =
+  if x then Pretty.text "(" ^^ p ^^ Pretty.text ")" else p
+;;
+
+let rec pretty p = function
+  | Typ _ -> Pretty.text "U"
+  | Var x -> Pretty.text (Name.to_string x)
+  | Con c -> Constant.pretty c
+  | Lam b ->
+    paren (p > 0) begin
+      let (g, t) = unbind_raw b in
+      let g = pretty_s (fun a -> pretty 0 a) g in
+      Pretty.text "\\ "
+      ^^ Pretty.agrp g
+      ^^ Pretty.text "."
+      ^^ Pretty.nest 2 (Pretty.break ^^ pretty 0 t)
+    end
+  | Fun b ->
+    paren (p > 0) begin
+      let (g, t) = unbind_raw b in
+      let g = pretty_s (fun a -> pretty 0 a) g in
+      Pretty.text "("
+      ^^ Pretty.agrp g
+      ^^ Pretty.text ") ->"
+      ^^ Pretty.nest 2 (Pretty.break ^^ pretty 0 t);
+    end
+  | App (hd, args) ->
+    paren (p > 1) begin
+      let args =
+        List.fold_right args ~init:Pretty.empty
+          ~f:(fun arg acc -> pretty 2 arg ^+^ acc)
+      in
+      Pretty.agrp
+        (pretty 2 hd ^^ Pretty.nest 2 (Pretty.break ^^ args))
+    end
+
+let pretty t = pretty 0 t
+
+(* App of t * t list *)

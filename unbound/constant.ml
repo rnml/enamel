@@ -18,3 +18,5 @@ let type_name_of_map = Map_type_name.lookup
 let type_rep_of_map a =
   let name = type_name_of_map (Type.Rep.id a) in
   Type.Rep.Abstract name
+
+let pretty t = Pretty.text (to_string t)

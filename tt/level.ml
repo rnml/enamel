@@ -11,3 +11,5 @@ let type_name = Type.Name.create ~name:"Level.t"
 let type_rep  = Type.Rep.Abstract type_name
 
 let sexp_of_t = sexp_of_opaque
+
+let () = Swap.register type_name (fun _ x -> x)

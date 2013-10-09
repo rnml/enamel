@@ -20,3 +20,6 @@ module Name : Name.S with type a := t
 
 val bind : (Name.t * t) list * t -> (t s, t) Bind.t
 val unbind : (t s, t) Bind.t -> (Name.t * t) list * t
+
+val pretty : t -> Pretty.t
+val pretty_s : ('a -> Pretty.t) -> 'a s -> Pretty.t

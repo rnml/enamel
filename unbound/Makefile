@@ -16,6 +16,8 @@ MODULES=\
   rebind \
   rec \
   embed \
+  string_pad \
+  pretty \
   constant \
   std
 
