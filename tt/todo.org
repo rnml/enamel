@@ -1,5 +1,5 @@
-* ACTV parser
-* pretty printer
+* DONE parser
+* ACTV pretty printer
 * typechecker
 * evaluator
 ** whnf
