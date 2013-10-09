@@ -7,8 +7,7 @@ type arg =
 type body = {
   tycon : Constant.t;
   kind : (Term.t Term.s, Level.t) Bind.t;
-  tmcons :
-    ((Term.t, arg) Bind.t Term.s, Term.t list) Bind.t Constant.Map.t;
+  tmcons : ((Term.t, arg) Bind.t Term.s, Term.t list) Bind.t Constant.Map.t;
 }
 
 type t = (Term.t Term.s, body) Bind.t
