@@ -1,7 +1,7 @@
 * syntax
 ** universes
-   - "Type"                   (implicit level)
-   - "Type#0", "Type#1", ...  (explicit level)
+   - "U"                (implicit level)
+   - "U#0", "U#1", ...  (explicit level)
 ** constants
    - upper-case identifiers: List, Cons, Nil, Univalence
    - examples:
@@ -11,10 +11,10 @@
 ** variables
    - lower case identifiers: x, foo, length 
 ** function type
-   - "(X:A) -> B"    (one argument)
+   - "(x:A) -> B"    (one argument)
    - "(Gamma) -> A"  (multiple arguments)
 ** function application
-   - "\X:A. M"
+   - "\x:A. M"
    - "\(Gamma). M"
 ** function abstraction
    - "M N"
