@@ -133,7 +133,7 @@ let pretty_s pretty_a s =
     List.fold_right bnds ~init:None ~f:(fun (x, a) acc ->
       Some begin
       let elem =
-        Pretty.agrp (
+        Pretty.fgrp (
           Pretty.text (Name.to_string x ^ " :")
           ^^ Pretty.nest 2 (Pretty.break ^^ pretty_a a))
       in
@@ -144,7 +144,7 @@ let pretty_s pretty_a s =
   in
   match bnds with
   | None -> Pretty.empty
-  | Some bnds -> Pretty.fgrp bnds
+  | Some bnds -> Pretty.agrp bnds
 
 let paren x p =
   if x then Pretty.text "(" ^^ p ^^ Pretty.text ")" else p
@@ -159,7 +159,7 @@ let rec pretty p = function
       let (g, t) = unbind_raw b in
       let g = pretty_s (fun a -> pretty 0 a) g in
       Pretty.text "\\ "
-      ^^ Pretty.agrp g
+      ^^ Pretty.fgrp g
       ^^ Pretty.text "."
       ^^ Pretty.nest 2 (Pretty.break ^^ pretty 0 t)
     end
@@ -168,7 +168,7 @@ let rec pretty p = function
       let (g, t) = unbind_raw b in
       let g = pretty_s (fun a -> pretty 0 a) g in
       Pretty.text "("
-      ^^ Pretty.agrp g
+      ^^ Pretty.fgrp g
       ^^ Pretty.text ") ->"
       ^^ Pretty.nest 2 (Pretty.break ^^ pretty 0 t);
     end
@@ -178,7 +178,7 @@ let rec pretty p = function
         List.fold_right args ~init:Pretty.empty
           ~f:(fun arg acc -> pretty 2 arg ^+^ acc)
       in
-      Pretty.agrp
+      Pretty.fgrp
         (pretty 2 hd ^^ Pretty.nest 2 (Pretty.break ^^ args))
     end
 
