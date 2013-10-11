@@ -94,10 +94,12 @@ let kind t =
       ~body:(Level.type_rep, fun level -> Term.Typ level)
   end
 
+let vars ctx = List.map ctx ~f:(fun (x, _) -> Term.Var x)
+
 let cons t =
   let (params, body) = Term.Binds.unbind Term.type_rep type_rep_of_body t in
-  let param_args = List.map params ~f:(fun (x, _) -> Term.Var x) in
-  let ty_app indices = Term.App (Term.Con body.tycon, param_args @ indices) in
+  let param_vars = vars params in
+  let ty_app indices = Term.App (Term.Con body.tycon, param_vars @ indices) in
   Map.map body.cons ~f:(fun b ->
     Term.Fun begin
       Term.Binds.map b
@@ -116,5 +118,47 @@ let cons t =
                end)))
     end)
 
-let elim _ = assert false
+let dummy name = Term.Name.freshen (Term.Name.create name)
+
+let fun_bind bnd = Term.Fun (Term.Binds.bind bnd)
+
+let elim t =
+  let (params, body) = Term.Binds.unbind Term.type_rep type_rep_of_body t in
+  let param_vars = vars params in
+  let ty_app indices = Term.App (Term.Con body.tycon, param_vars @ indices) in
+  let (indices, level) = Term.Binds.unbind Term.type_rep Level.type_rep body.kind in
+  let index_vars = vars indices in
+  let p = Term.Name.create "p" in
+  let p_app args = Term.App (Term.Var p, args) in
+  let motive = (p, fun_bind (indices @ [dummy "", ty_app index_vars], Term.Typ level)) in
+  let means =
+    List.map (Map.to_alist body.cons) ~f:(fun (con, con_ty) ->
+      let (args, indices) =
+        Term.Binds.unbind
+          (Term.Binds.type_rep Term.type_rep type_rep_of_arg)
+          (Type.Rep.List Term.type_rep)
+          con_ty
+      in
+      let args' =
+        List.concat_map args ~f:(fun (x, b) ->
+          let (arg_args, arg_ty) = Term.Binds.unbind Term.type_rep type_rep_of_arg b in
+          match arg_ty with
+          | Nonrec t -> [(x, Term.Fun (Term.Binds.bind (arg_args, t)))]
+          | Rec indices ->
+            let body = ty_app indices in
+            let px = Term.Name.freshen x in
+            let ind_hyp = p_app (indices @ [Term.Var x]) in
+            [
+              (x,  fun_bind (arg_args, body));
+              (px, fun_bind (arg_args, ind_hyp));
+            ])
+      in
+      ( Term.Name.create (Constant.to_string con)
+      , fun_bind
+          ( args'
+          , p_app (indices @ [Term.App (Term.Con con, param_vars @ vars args)]))))
+  in
+  let target = indices @ [dummy "tgt", ty_app index_vars] in
+  let goal = p_app (vars target) in
+  fun_bind (params @ [motive] @ means @ target, goal)
 
