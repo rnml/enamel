@@ -4,7 +4,7 @@ open Std_internal
 open Parser
 
 let con_or_kw = function
-  | "U" -> Kw_type
+  | "Type" -> Kw_type
   | c -> Con (Constant.of_string c)
 
 let var_or_kw = function

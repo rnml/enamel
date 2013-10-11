@@ -170,7 +170,7 @@ let paren x p =
 ;;
 
 let rec pretty p = function
-  | Typ _ -> Pretty.text "U"
+  | Typ _ -> Pretty.text "Type"
   | Var x -> Pretty.text (Name.to_string x)
   | Con c -> Constant.pretty c
   | Lam b ->

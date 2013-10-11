@@ -1,5 +1,6 @@
 * DONE parser
 * DONE pretty printer
+* DONE inductive type eliminator types
 * typechecker
 * evaluator
 ** whnf
