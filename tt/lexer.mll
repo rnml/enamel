@@ -36,13 +36,9 @@ rule token = parse
   | con as c { con_or_kw c }
   | var as v { var_or_kw v }
   | space { token lexbuf }
-  | eol { Lexing.new_line lexbuf; after_eol lexbuf }
+  | eol { Lexing.new_line lexbuf; token lexbuf }
   | _ as ch { failwithf "unrecognized character '%c'" ch () }
   | eof { EOF }
-
-and after_eol = parse
-  | space* eol { Lexing.new_line lexbuf; after_eol lexbuf }
-  | space* { token lexbuf }
 
 and comment n = parse
   | eol { Lexing.new_line lexbuf; comment n lexbuf }
