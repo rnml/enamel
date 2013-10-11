@@ -112,28 +112,23 @@ let cons t =
     Term.App (Term.Con body.tycon, param_args @ indices)
   in
   Map.map body.cons ~f:(fun b ->
-    let (args, indices) =
-      Term.Binds.unbind
-        (Term.Binds.type_rep Term.type_rep type_rep_of_arg)
-        (Type.Rep.List Term.type_rep)
-        b
-    in
-    let args =
-      List.map args ~f:(fun (arg_name, arg) ->
-        let arg =
-          let (arg_args, arg_ty) =
-            Term.Binds.unbind Term.type_rep type_rep_of_arg arg
-          in
-          let arg_ty =
-            match arg_ty with
-            | Rec indices -> ty_app indices
-            | Nonrec t -> t
-          in
-          Term.Fun (Term.Binds.bind (arg_args, arg_ty))
-        in
-        (arg_name, arg))
-    in
-    Term.Fun (Term.Binds.bind (params @ args, ty_app indices)))
+    Term.Fun begin
+      Term.Binds.map b
+        ~body:(Type.Rep.List Term.type_rep, ty_app)
+        ~args:(Term.Binds.type_rep Term.type_rep type_rep_of_arg, fun args ->
+          params @
+            List.map args ~f:(fun (arg_name, arg) ->
+              let arg =
+                Term.Fun begin
+                  Term.Binds.map arg
+                    ~args:(Term.type_rep, Fn.id)
+                    ~body:(type_rep_of_arg, function
+                      | Nonrec t -> t
+                      | Rec indices -> ty_app indices)
+                end
+              in
+              (arg_name, arg)))
+    end)
 
 let elim _ = assert false
 

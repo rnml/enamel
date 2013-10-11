@@ -32,7 +32,7 @@ module Binds : sig
 
   val map
     :  ('a1, 'b1) t
-    -> args:('a1 Type.Rep.t * ('a1 -> 'a2))
+    -> args:('a1 Type.Rep.t * ((Name.t * 'a1) list -> (Name.t * 'a2) list))
     -> body:('b1 Type.Rep.t * ('b1 -> 'b2))
     -> ('a2, 'b2) t
 
