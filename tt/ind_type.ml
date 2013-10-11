@@ -1,14 +1,31 @@
 open Std_internal
 
+module Binds = struct
+
+  type ('a, 'b) t = ('a Term.s, 'b) Bind.t
+
+  type ('a, 'b) e = (Term.Name.t * 'a) list * 'b
+
+  let type_rep a b = Bind.type_rep (Term.type_rep_of_s a) b
+
+  let unbind typerep_of_a typerep_of_b t =
+    let (s, b) = Bind.unbind (Term.type_rep_of_s typerep_of_a) typerep_of_b t in
+    let xas = Term.unbind_s s in
+    (xas, b)
+
+  let bind (xas, b) = Bind.create (Term.bind_s xas) b
+
+end
+
 type arg =
   | Rec of Term.t list
   | Nonrec of Term.t
 
 type body = {
   tycon : Constant.t;
-  kind : (Term.t Term.s, Level.t) Bind.t;
-  tmcons :
-    ((Term.t, arg) Bind.t Term.s, Term.t list) Bind.t Constant.Map.t;
+  kind : (Term.t, Level.t) Binds.t;
+  cons :
+    ((Term.t, arg) Binds.t, Term.t list) Binds.t Constant.Map.t;
 }
 
 type t = (Term.t Term.s, body) Bind.t
@@ -51,45 +68,104 @@ let type_rep_of_body : body Type.Rep.t =
       type 'a t =
         | Tycon  : Constant.t t
         | Kind : (Term.t Term.s, Level.t) Bind.t t
-        | Tmcons : ((Term.t, arg) Bind.t Term.s, Term.t list) Bind.t Constant.Map.t t
+        | Cons :
+            ( (Term.t Term.s, arg) Bind.t Term.s
+            , Term.t list
+            ) Bind.t Constant.Map.t t
       let name_of : type a. a t -> string = function
-        | Tycon  -> "tycon"
-        | Kind   -> "kind"
-        | Tmcons -> "tmcons"
+        | Tycon -> "tycon"
+        | Kind  -> "kind"
+        | Cons  -> "cons"
       let type_of : type a. a t -> a Type.Rep.t = function
         | Tycon  -> Constant.type_rep
         | Kind   -> Bind.type_rep (Term.type_rep_of_s Term.type_rep) Level.type_rep
-        | Tmcons ->
+        | Cons ->
           Constant.type_rep_of_map
             (Bind.type_rep
                (Term.type_rep_of_s
-                  (Bind.type_rep Term.type_rep type_rep_of_arg))
+                  (Bind.type_rep
+                     (Term.type_rep_of_s Term.type_rep)
+                     type_rep_of_arg))
                (Type.Rep.List Term.type_rep))
       type univ = Label : 'a t -> univ
-      let all = [Label Tycon; Label Kind; Label Tmcons]
+      let all = [Label Tycon; Label Kind; Label Cons]
     end
     type 'a field = 'a Label.t
     type rep = { lookup : 'a. 'a field -> 'a }
     let inject {lookup} = {
-      tycon  = lookup Label.Tycon;
-      kind   = lookup Label.Kind;
-      tmcons = lookup Label.Tmcons;
+      tycon = lookup Label.Tycon;
+      kind  = lookup Label.Kind;
+      cons  = lookup Label.Cons;
     }
     let get (type a) (f : a field) (t:t) : a =
       match f with
-      | Label.Tycon  -> t.tycon
-      | Label.Kind   -> t.kind
-      | Label.Tmcons -> t.tmcons
+      | Label.Tycon -> t.tycon
+      | Label.Kind  -> t.kind
+      | Label.Cons  -> t.cons
     let project r = { lookup = fun field -> get field r }
   end : Type.Rep.Record.T with type t = body)
 
 let type_rep =
   Bind.type_rep (Term.type_rep_of_s Term.type_rep) type_rep_of_body
 
-  (*
-   data T (Gamma) : (Delta) -> Type =
-   | ...
-   | C (Gamma) : (Theta) -> T (Gamma) (Row)
-   | ...
-*)
+let kind t =
+  let (params, body) =
+    Bind.unbind (Term.type_rep_of_s Term.type_rep)
+      type_rep_of_body t
+  in
+  let params = Term.unbind_s params in
+  let (indices, univ) =
+    Bind.unbind (Term.type_rep_of_s Term.type_rep) Level.type_rep
+      body.kind
+  in
+  let indices = Term.unbind_s indices in
+  Term.Fun
+    (Bind.create (Term.bind_s (params @ indices)) (Term.Typ univ))
+
+let cons t =
+  let (params, body) =
+    Bind.unbind (Term.type_rep_of_s Term.type_rep)
+      type_rep_of_body t
+  in
+  let params = Term.unbind_s params in
+  let ty_app indices =
+    let ty_args =
+      List.map params ~f:(fun (x, _) -> Term.Var x) @ indices
+    in
+    Term.App (Term.Con body.tycon, ty_args)
+  in
+  Map.map body.cons ~f:(fun b ->
+    let (args, indices) =
+      Bind.unbind
+        (Term.type_rep_of_s
+           (Bind.type_rep
+              (Term.type_rep_of_s Term.type_rep)
+              type_rep_of_arg))
+        (Type.Rep.List Term.type_rep) b
+    in
+    let args = Term.unbind_s args in
+    let args =
+      params @ begin
+        List.map args ~f:(fun (arg_name, arg) ->
+          let arg =
+            let (arg_args, arg_ty) =
+              Bind.unbind (Term.type_rep_of_s Term.type_rep)
+                type_rep_of_arg arg
+            in
+            let arg_ty =
+              match arg_ty with
+              | Rec indices -> ty_app indices
+              | Nonrec t -> t
+            in
+            Term.Fun (Bind.create arg_args arg_ty)
+          in
+          (arg_name, arg))
+      end
+    in
+    Term.Fun
+      (Bind.create
+         (Term.bind_s (params @ args))
+         (ty_app indices)))
+
+let elim _ = assert false
 

@@ -18,8 +18,11 @@ val type_rep_of_s : 'a Type.Rep.t -> 'a s Type.Rep.t
 
 module Name : Name.S with type a := t
 
-val bind : (Name.t * t) list * t -> (t s, t) Bind.t
+val bind   : (Name.t * t) list * t -> (t s, t) Bind.t
 val unbind : (t s, t) Bind.t -> (Name.t * t) list * t
 
-val pretty : t -> Pretty.t
+val unbind_s : 'a s -> (Name.t * 'a) list
+val bind_s   : (Name.t * 'a) list -> 'a s
+
+val pretty   : t -> Pretty.t
 val pretty_s : ('a -> Pretty.t) -> 'a s -> Pretty.t

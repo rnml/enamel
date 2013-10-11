@@ -115,12 +115,11 @@ let rec unbind_s : 'a. 'a s -> (Name.t * 'a) list = fun (type a) -> function
     let ((x, a), s) = ((r : (Name.t * a Embed.t, a s) Rebind.t) :> ((Name.t * a) * a s)) in
     (x, a) :: unbind_s s
 
-let bind (xas, t) =
-  let s =
-    List.fold_right xas ~init:Nil ~f:(fun (x, a) s ->
-      Cons (Rebind.create (x, Embed.create a) s))
-  in
-  Bind.create s t
+let bind_s xas =
+  List.fold_right xas ~init:Nil ~f:(fun (x, a) s ->
+    Cons (Rebind.create (x, Embed.create a) s))
+
+let bind (xas, t) = Bind.create (bind_s xas) t
 
 let unbind_raw b =
   Bind.unbind (type_rep_of_s type_rep) type_rep b
