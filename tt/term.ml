@@ -134,6 +134,10 @@ module Binds = struct
 
   let bind (xas, b) = Bind.create (bind_s xas) b
 
+  let map t ~args:(type_rep_of_a, f) ~body:(type_rep_of_b, g) =
+    let (xas, b) = unbind type_rep_of_a type_rep_of_b t in
+    bind (List.map xas ~f:(fun (x, a) -> (x, f a)), g b)
+
 end
 
 let bind = Binds.bind

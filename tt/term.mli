@@ -30,6 +30,12 @@ module Binds : sig
 
   val bind : ('a, 'b) e -> ('a, 'b) t
 
+  val map
+    :  ('a1, 'b1) t
+    -> args:('a1 Type.Rep.t * ('a1 -> 'a2))
+    -> body:('b1 Type.Rep.t * ('b1 -> 'b2))
+    -> ('a2, 'b2) t
+
 end
 
 val bind   : (Name.t * t) list * t -> (t s, t) Bind.t
