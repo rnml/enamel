@@ -119,10 +119,26 @@ let bind_s xas =
   List.fold_right xas ~init:Nil ~f:(fun (x, a) s ->
     Cons (Rebind.create (x, Embed.create a) s))
 
-let bind (xas, t) = Bind.create (bind_s xas) t
+module Binds = struct
 
-let unbind_raw b =
-  Bind.unbind (type_rep_of_s type_rep) type_rep b
+  type ('a, 'b) t = ('a s, 'b) Bind.t
+
+  type ('a, 'b) e = (Name.t * 'a) list * 'b
+
+  let type_rep a b = Bind.type_rep (type_rep_of_s a) b
+
+  let unbind typerep_of_a typerep_of_b t =
+    let (s, b) = Bind.unbind (type_rep_of_s typerep_of_a) typerep_of_b t in
+    let xas = unbind_s s in
+    (xas, b)
+
+  let bind (xas, b) = Bind.create (bind_s xas) b
+
+end
+
+let bind = Binds.bind
+
+let unbind_raw b = Bind.unbind (type_rep_of_s type_rep) type_rep b
 
 let unbind b = let (s, t) = unbind_raw b in (unbind_s s, t)
 
@@ -183,4 +199,3 @@ let rec pretty p = function
 
 let pretty t = pretty 0 t
 
-(* App of t * t list *)
