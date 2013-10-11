@@ -84,33 +84,20 @@ let type_rep_of_body : body Type.Rep.t =
     let project r = { lookup = fun field -> get field r }
   end : Type.Rep.Record.T with type t = body)
 
-let type_rep =
-  Bind.type_rep (Term.type_rep_of_s Term.type_rep) type_rep_of_body
+let type_rep = Term.Binds.type_rep Term.type_rep type_rep_of_body
 
 let kind t =
-  let (params, body) =
-    Bind.unbind (Term.type_rep_of_s Term.type_rep)
-      type_rep_of_body t
-  in
-  let params = Term.unbind_s params in
-  let (indices, univ) =
-    Bind.unbind (Term.type_rep_of_s Term.type_rep) Level.type_rep
-      body.kind
-  in
-  let indices = Term.unbind_s indices in
-  Term.Fun
-    (Bind.create (Term.bind_s (params @ indices)) (Term.Typ univ))
+  let (params, body) = Term.Binds.unbind Term.type_rep type_rep_of_body t in
+  Term.Fun begin
+    Term.Binds.map body.kind
+      ~args:(Term.type_rep, fun indices -> params @ indices)
+      ~body:(Level.type_rep, fun level -> Term.Typ level)
+  end
 
 let cons t =
-  let (params, body) =
-    Term.Binds.unbind Term.type_rep type_rep_of_body t
-  in
-  let param_args =
-    List.map params ~f:(fun (x, _) -> Term.Var x)
-  in
-  let ty_app indices =
-    Term.App (Term.Con body.tycon, param_args @ indices)
-  in
+  let (params, body) = Term.Binds.unbind Term.type_rep type_rep_of_body t in
+  let param_args = List.map params ~f:(fun (x, _) -> Term.Var x) in
+  let ty_app indices = Term.App (Term.Con body.tycon, param_args @ indices) in
   Map.map body.cons ~f:(fun b ->
     Term.Fun begin
       Term.Binds.map b
@@ -118,16 +105,15 @@ let cons t =
         ~args:(Term.Binds.type_rep Term.type_rep type_rep_of_arg, fun args ->
           params @
             List.map args ~f:(fun (arg_name, arg) ->
-              let arg =
-                Term.Fun begin
-                  Term.Binds.map arg
-                    ~args:(Term.type_rep, Fn.id)
-                    ~body:(type_rep_of_arg, function
-                      | Nonrec t -> t
-                      | Rec indices -> ty_app indices)
-                end
-              in
-              (arg_name, arg)))
+              (arg_name, begin
+                 Term.Fun begin
+                   Term.Binds.map arg
+                     ~args:(Term.type_rep, Fn.id)
+                     ~body:(type_rep_of_arg, function
+                       | Nonrec t -> t
+                       | Rec indices -> ty_app indices)
+                 end
+               end)))
     end)
 
 let elim _ = assert false
