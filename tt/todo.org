@@ -1,6 +1,10 @@
 * DONE parser
 * DONE pretty printer
-* DONE inductive type eliminator types
+* ACTV inductive types
+** DONE eliminator types
+** DONE parser
+** pretty printer 
+* alpha renaming on display
 * typechecker
 * evaluator
 ** whnf
