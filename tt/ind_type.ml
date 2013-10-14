@@ -1,13 +1,13 @@
 open Std_internal
 
 type arg =
-  | Rec of Term.t list
+  | Rec of (Term.t, Term.t list) Term.Binds.t
   | Nonrec of Term.t
 
 type body = {
   tycon : Constant.t;
   kind : (Term.t, Level.t) Term.Binds.t;
-  cons : ((Term.t, arg) Term.Binds.t, Term.t list) Term.Binds.t Constant.Map.t;
+  cons : (arg, Term.t list) Term.Binds.t Constant.Map.t;
 }
 
 type t = (Term.t, body) Term.Binds.t
@@ -18,13 +18,13 @@ let type_rep_of_arg : arg Type.Rep.t =
     let name : arg Type.Name.t = Type.Name.create ~name:"Tt.Inductive_type.arg"
     module Label = struct
       type 'a t =
-        | Rec : Term.t list t
+        | Rec : (Term.t, Term.t list) Term.Binds.t t
         | Nonrec : Term.t t
       let name_of : type a. a t -> string = function
         | Rec -> "rec"
         | Nonrec -> "nonrec"
       let type_of : type a. a t -> a Type.Rep.t = function
-        | Rec -> Type.Rep.List Term.type_rep
+        | Rec -> Term.Binds.type_rep Term.type_rep (Type.Rep.List Term.type_rep)
         | Nonrec -> Term.type_rep
       type univ = Label : 'a t -> univ
       let all = [Label Rec; Label Nonrec]
@@ -50,10 +50,7 @@ let type_rep_of_body : body Type.Rep.t =
       type 'a t =
         | Tycon  : Constant.t t
         | Kind : (Term.t Term.s, Level.t) Bind.t t
-        | Cons :
-            ( (Term.t, arg) Term.Binds.t
-            , Term.t list
-            ) Term.Binds.t Constant.Map.t t
+        | Cons : (arg, Term.t list) Term.Binds.t Constant.Map.t t
       let name_of : type a. a t -> string = function
         | Tycon -> "tycon"
         | Kind  -> "kind"
@@ -63,9 +60,7 @@ let type_rep_of_body : body Type.Rep.t =
         | Kind   -> Term.Binds.type_rep Term.type_rep Level.type_rep
         | Cons ->
           Constant.type_rep_of_map
-            (Term.Binds.type_rep
-               (Term.Binds.type_rep Term.type_rep type_rep_of_arg)
-               (Type.Rep.List Term.type_rep))
+            (Term.Binds.type_rep type_rep_of_arg (Type.Rep.List Term.type_rep))
       type univ = Label : 'a t -> univ
       let all = [Label Tycon; Label Kind; Label Cons]
     end
@@ -104,17 +99,18 @@ let cons t =
     Term.Fun begin
       Term.Binds.map b
         ~body:(Type.Rep.List Term.type_rep, ty_app)
-        ~args:(Term.Binds.type_rep Term.type_rep type_rep_of_arg, fun args ->
+        ~args:(type_rep_of_arg, fun args ->
           params @
             List.map args ~f:(fun (arg_name, arg) ->
               (arg_name, begin
-                 Term.Fun begin
-                   Term.Binds.map arg
-                     ~args:(Term.type_rep, Fn.id)
-                     ~body:(type_rep_of_arg, function
-                       | Nonrec t -> t
-                       | Rec indices -> ty_app indices)
-                 end
+                 match arg with
+                 | Nonrec t -> t
+                 | Rec b ->
+                   Term.Fun begin
+                     Term.Binds.map b
+                       ~args:(Term.type_rep, Fn.id)
+                       ~body:(Type.Rep.List Term.type_rep, ty_app)
+                   end
                end)))
     end)
 
@@ -134,17 +130,16 @@ let elim t =
   let means =
     List.map (Map.to_alist body.cons) ~f:(fun (con, con_ty) ->
       let (args, indices) =
-        Term.Binds.unbind
-          (Term.Binds.type_rep Term.type_rep type_rep_of_arg)
-          (Type.Rep.List Term.type_rep)
-          con_ty
+        Term.Binds.unbind type_rep_of_arg (Type.Rep.List Term.type_rep) con_ty
       in
       let args' =
-        List.concat_map args ~f:(fun (x, b) ->
-          let (arg_args, arg_ty) = Term.Binds.unbind Term.type_rep type_rep_of_arg b in
-          match arg_ty with
-          | Nonrec t -> [(x, Term.Fun (Term.Binds.bind (arg_args, t)))]
-          | Rec indices ->
+        List.concat_map args ~f:(fun (x, arg) ->
+          match arg with
+          | Nonrec t -> [(x, t)]
+          | Rec b ->
+            let (arg_args, indices) =
+              Term.Binds.unbind Term.type_rep (Type.Rep.List Term.type_rep) b
+            in
             let body = ty_app indices in
             let px = Term.Name.freshen x in
             let ind_hyp = p_app (indices @ [Term.Var x]) in
@@ -161,4 +156,29 @@ let elim t =
   let target = indices @ [dummy "tgt", ty_app index_vars] in
   let goal = p_app (vars target) in
   fun_bind (params @ [motive] @ means @ target, goal)
+
+let pretty t =
+  let (_params, body) =
+    Bind.unbind (Term.type_rep_of_s Term.type_rep) type_rep_of_body t
+  in
+  let c  = Constant.pretty body.tycon in
+  let k  = Term.pretty (kind t) in
+  let cs =
+    Map.map ~f:Term.pretty (cons t)
+    |> Map.to_alist
+    |> List.map ~f:(fun (c, p) ->
+      Pretty.hgrp (Constant.pretty c ^+^ Pretty.text ":" ^+^ p))
+    |> List.fold ~init:Pretty.empty ~f:(^^)
+  in
+  let e  = Term.pretty (elim t) in
+  Pretty.vgrp (c ^+^ k ^+^ cs ^+^ e)
+
+  (* let (params, body) = Bind.unbind (Term.type_rep_of_s Term.type_rep) type_rep_of_body t in
+   * Pretty.text "data "
+   * ^^ Constant.pretty body.tycon
+   * ^+^
+   *   (if (match params with Term.Nil -> true | _ -> false)
+   *    then Pretty.empty
+   *    else Pretty.text "(" ^^ Term.pretty_s Term.pretty params ^^ Pretty.text ")")
+   * ^+^ Pretty.text ":" *)
 

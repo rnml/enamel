@@ -46,3 +46,5 @@ val bind_s   : (Name.t * 'a) list -> 'a s
 
 val pretty   : t -> Pretty.t
 val pretty_s : ('a -> Pretty.t) -> 'a s -> Pretty.t
+
+val concat : 'a s list -> 'a s

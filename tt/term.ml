@@ -146,6 +146,19 @@ let unbind_raw b = Bind.unbind (type_rep_of_s type_rep) type_rep b
 
 let unbind b = let (s, t) = unbind_raw b in (unbind_s s, t)
 
+let concat2 (type a) s1 s2 =
+  let rec loop = function
+    | Nil -> s2
+    | Cons r ->
+      let ((x, a), s) =
+        ((r : (Name.t * a Embed.t, a s) Rebind.t) :> ((Name.t * a) * a s))
+      in
+      Cons (Rebind.create (x, Embed.create a) (loop s))
+  in
+  loop s1
+
+let concat ss = List.fold_right ss ~init:Nil ~f:concat2
+
 let pretty_s pretty_a s =
   let bnds = unbind_s s in
   let bnds =
@@ -167,7 +180,6 @@ let pretty_s pretty_a s =
 
 let paren x p =
   if x then Pretty.text "(" ^^ p ^^ Pretty.text ")" else p
-;;
 
 let rec pretty p = function
   | Typ _ -> Pretty.text "Type"

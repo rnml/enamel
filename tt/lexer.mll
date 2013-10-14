@@ -8,6 +8,7 @@ let con_or_kw = function
   | c -> Con (Constant.of_string c)
 
 let var_or_kw = function
+  | "data" -> Kw_data
   | v -> Var (Term.Name.raw v)
 
 }
@@ -28,6 +29,8 @@ rule token = parse
   | ',' { Comma }
   | ':' { Colon }
   | ';' { Semi }
+  | '=' { Equal }
+  | '|' { Pipe }
   | '.' { Period }
   | '\\' { Backslash }
   | '(' { Lparen } | ')' { Rparen }

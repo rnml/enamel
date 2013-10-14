@@ -3,10 +3,13 @@ open Std_internal
 type token = Parser.token =
   | Arrow
   | Comma
+  | Equal
   | Period
   | Backslash
   | Colon
+  | Pipe
   | Kw_type
+  | Kw_data
   | Lparen
   | Rparen
   | Semi
@@ -46,8 +49,8 @@ let parse_command =
        In_channel.with_file file ~f:(fun cin ->
          let doc =
            Lexing.from_channel cin
-           |> Parser.tele_top Lexer.token
-           |> Term.pretty_s Term.pretty
+           |> Parser.ind_type_top Lexer.token
+           |> Ind_type.pretty
          in
          Pretty.print doc stdout ~width:80;
          print_newline ()
