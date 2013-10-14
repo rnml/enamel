@@ -9,11 +9,10 @@ let un_fun =
     | Term.Fun b ->
       let (xas, t) = Term.unbind b in
       loop (xas :: acc) t
-    | other -> ([], other)
+    | other -> (List.concat (List.rev acc), other)
   in
   fun t ->
-    let (args, body) = loop [] t in
-    (List.concat (List.rev args), body)
+    loop [] t
 
 let con_arg ~tycon ty =
   let (arg_args, arg) = un_fun ty in
@@ -28,6 +27,8 @@ let con_ty ~tycon ~tmcon x =
   let (args, result) = un_fun x in
   match result with
   | Term.Con c when Constant.equal c tycon ->
+    let args = List.map args ~f:(fun (x, arg) ->
+      (x, con_arg ~tycon arg)) in
     Term.Binds.bind (args, [])
   | Term.App (Term.Con c, inds) when Constant.equal c tycon ->
     let args = List.map args ~f:(fun (x, arg) -> (x, con_arg ~tycon arg)) in

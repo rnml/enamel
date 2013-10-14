@@ -3,14 +3,15 @@ open Std_internal
 type arg =
   | Rec of (Term.t, Term.t list) Term.Binds.t
   | Nonrec of Term.t
+with sexp_of
 
 type body = {
   tycon : Constant.t;
   kind : (Term.t, Level.t) Term.Binds.t;
   cons : (arg, Term.t list) Term.Binds.t Constant.Map.t;
-}
+} with sexp_of
 
-type t = (Term.t, body) Term.Binds.t
+type t = (Term.t, body) Term.Binds.t with sexp_of
 
 let type_rep_of_arg : arg Type.Rep.t =
   Type.Rep.Variant (module struct

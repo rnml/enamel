@@ -10,7 +10,7 @@ type body = {
   cons : (arg, Term.t list) Term.Binds.t Constant.Map.t;
 }
 
-type t = (Term.t, body) Term.Binds.t
+type t = (Term.t, body) Term.Binds.t with sexp_of
 
 val type_rep_of_arg  : arg  Type.Rep.t
 val type_rep_of_body : body Type.Rep.t

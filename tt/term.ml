@@ -121,7 +121,7 @@ let bind_s xas =
 
 module Binds = struct
 
-  type ('a, 'b) t = ('a s, 'b) Bind.t
+  type ('a, 'b) t = ('a s, 'b) Bind.t with sexp_of
 
   type ('a, 'b) e = (Name.t * 'a) list * 'b
 

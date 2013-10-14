@@ -47,12 +47,14 @@ let parse_command =
     )
     (fun file () ->
        In_channel.with_file file ~f:(fun cin ->
-         let doc =
+         let it =
            Lexing.from_channel cin
            |> Parser.ind_type_top Lexer.token
-           |> Ind_type.pretty
          in
-         Pretty.print doc stdout ~width:80;
+         Ind_type.sexp_of_t it
+         |> Sexp.to_string_hum
+         |> print_endline;
+         Pretty.print (Ind_type.pretty it) stdout ~width:80;
          print_newline ()
        )
     )
