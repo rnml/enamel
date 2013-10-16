@@ -163,11 +163,15 @@ let pretty_s pretty_a s =
   let bnds = unbind_s s in
   let bnds =
     List.fold_right bnds ~init:None ~f:(fun (x, a) acc ->
+      let a = pretty_a a in
       Some begin
       let elem =
         Pretty.fgrp (
-          Pretty.text (Name.to_string x ^ " :")
-          ^^ Pretty.nest 2 (Pretty.break ^^ pretty_a a))
+          Pretty.text (Name.to_string x ^ " :") ^^ begin
+            match acc with
+            | None -> a
+            | Some _ -> Pretty.nest 2 (Pretty.break ^^ a)
+          end)
       in
       match acc with
       | None -> elem

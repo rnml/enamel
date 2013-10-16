@@ -5,7 +5,8 @@ type ('pat, 'term) t = 'pat * 'term with sexp
 let create p t = (p, t)
 
 let unbind typ tyt (p, t) =
-  let (p, perm) = Freshen.freshen typ p in
+  let fvs = Free_vars.Term.fv tyt t in
+  let (p, perm) = Freshen.fresh_wrt typ p ~fvs in
   (p, Swap.swap tyt perm t)
 
 let fvs_term a b acc (p, t) =

@@ -1,10 +1,10 @@
 * DONE parser
 * DONE pretty printer
+* DONE avoid fvs in body when picking fresh
 * ACTV inductive types
 ** DONE eliminator types
 ** DONE parser
 ** pretty printer 
-* alpha renaming on display
 * typechecker
 * evaluator
 ** whnf

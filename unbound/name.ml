@@ -18,6 +18,7 @@ module Basic : sig
   val create : name:string -> stamp:Stamp.t option -> t
   val preferred : t -> t
   val freshen : t -> t
+  val fresh_wrt : t -> ok:(t -> bool) -> t
 end = struct
 
   module U = struct
@@ -61,6 +62,17 @@ end = struct
   let preferred t =
     create ~name:t.name ~stamp:None
 
+  let fresh_wrt t ~ok =
+    let name = t.name in
+    let cand = create ~name ~stamp:None in
+    if ok cand then cand else
+      let rec loop i =
+        let stamp = Some (Stamp.of_int_exn i) in
+        let cand = create ~name ~stamp in
+        if ok cand then cand else loop (i + 1)
+      in
+      loop 1
+
 end
 
 module Univ = struct
@@ -85,6 +97,10 @@ module Univ = struct
   module Perm = Perm.Make (S)
   let to_string t = Basic.to_string t.basic
   let freshen t = { t with basic = Basic.freshen t.basic }
+  let fresh_wrt t ~fvs =
+    let kind = t.kind in
+    let ok basic = not (Set.mem fvs {kind; basic}) in
+    { t with basic = Basic.fresh_wrt t.basic ~ok }
 end
 
 type 'a t = Univ.t with sexp

@@ -162,16 +162,22 @@ let pretty t =
   let (_params, body) =
     Bind.unbind (Term.type_rep_of_s Term.type_rep) type_rep_of_body t
   in
-  let c  = Constant.pretty body.tycon in
-  let k  = Term.pretty (kind t) in
+  let c = (Pretty.text "tycon = " ^^ Constant.pretty body.tycon) |> Pretty.agrp in
+  let k  = (Pretty.text "kind = " ^^ Term.pretty (kind t)) |> Pretty.agrp in
   let cs =
     Map.map ~f:Term.pretty (cons t)
     |> Map.to_alist
     |> List.map ~f:(fun (c, p) ->
-      Pretty.hgrp (Constant.pretty c ^+^ Pretty.text ":" ^+^ p))
-    |> List.fold ~init:Pretty.empty ~f:(^^)
+      Pretty.hgrp
+        (Pretty.text "constructor = " ^^ Constant.pretty c ^+^ Pretty.text ":" ^+^ p))
+    |> List.fold ~init:Pretty.empty ~f:(^+^)
+    |> Pretty.vgrp
   in
-  let e  = Term.pretty (elim t) in
+  let e  =
+    ( Pretty.text "elim ="
+      ^^ Pretty.agrp (Pretty.nest 2 (Pretty.empty ^+^ Term.pretty (elim t)))
+    ) |> Pretty.agrp
+  in
   Pretty.vgrp (c ^+^ k ^+^ cs ^+^ e)
 
   (* let (params, body) = Bind.unbind (Term.type_rep_of_s Term.type_rep) type_rep_of_body t in

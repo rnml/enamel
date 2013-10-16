@@ -19,7 +19,10 @@ module type T = sig
   module Perm : Perm.S with type elt := t
 end
 
-module Univ : T
+module Univ : sig
+  include T
+  val fresh_wrt : t -> fvs:Set.t -> t
+end
 
 type 'a t with sexp
 val type_rep : 'a Type.Rep.t -> 'a t Type.Rep.t
