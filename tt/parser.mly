@@ -65,13 +65,13 @@ term_top : term EOF { $1 } ;
 
 tele_top
   : EOF                          { Term.Nil }
-  | Var Colon term Semi tele_top { cons $1 $3 $5 }
+  | Var Colon term Semi tele_top { cons (Some $1) $3 $5 }
   ;
 
 tele
   :                            { Term.Nil }
-  | Var Colon term             { cons $1 $3 Term.Nil }
-  | Var Colon term Comma tele  { cons $1 $3 $5 }
+  | Var Colon term             { cons (Some $1) $3 Term.Nil }
+  | Var Colon term Comma tele  { cons (Some $1) $3 $5 }
   ;
 
 term

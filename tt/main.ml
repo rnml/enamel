@@ -51,9 +51,6 @@ let parse_command =
            Lexing.from_channel cin
            |> Parser.ind_type_top Lexer.token
          in
-         Ind_type.sexp_of_t it
-         |> Sexp.to_string_hum
-         |> print_endline;
          Pretty.print (Ind_type.pretty it) stdout ~width:80;
          print_newline ()
        )

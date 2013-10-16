@@ -10,7 +10,7 @@ type t =
 
 and 'a s = (* telescope *)
   | Nil
-  | Cons of (t Name.t * 'a Embed.t, 'a s) Rebind.t
+  | Cons of (t Name.t option * 'a Embed.t, 'a s) Rebind.t
 with sexp_of
 
 let rec type_rep : t Type.Rep.t =
@@ -74,7 +74,7 @@ and type_rep_of_s : 'a. 'a Type.Rep.t -> 'a s Type.Rep.t =
         module Label = struct
           type 'a t =
             | Nil : unit t
-            | Cons : (o Name.t * a Embed.t, a s) Rebind.t t
+            | Cons : (o Name.t option * a Embed.t, a s) Rebind.t t
           let name_of : type a. a t -> string = function
             | Nil -> "nil"
             | Cons -> "cons"
@@ -82,7 +82,9 @@ and type_rep_of_s : 'a. 'a Type.Rep.t -> 'a s Type.Rep.t =
             | Nil -> Type.Rep.Unit
             | Cons ->
               Rebind.type_rep
-                (Type.Rep.Pair (Name.type_rep type_rep, Embed.type_rep arep))
+                (Type.Rep.Pair
+                   ( Type.Rep.Option (Name.type_rep type_rep)
+                   , Embed.type_rep arep ))
                 sa_rep
           type univ = Label : 'a t -> univ
           let all = [Label Nil; Label Cons]
@@ -109,10 +111,14 @@ module Name = Name.Make (struct
   let type_rep = type_rep
 end)
 
-let rec unbind_s : 'a. 'a s -> (Name.t * 'a) list = fun (type a) -> function
+let rec unbind_s : 'a. 'a s -> (Name.t option * 'a) list = fun (type a) -> function
   | Nil -> []
   | Cons r ->
-    let ((x, a), s) = ((r : (Name.t * a Embed.t, a s) Rebind.t) :> ((Name.t * a) * a s)) in
+    let ((x, a), s) =
+      ( (* safe cast *)
+        (r : (Name.t option * a Embed.t, a s) Rebind.t)
+        :> ((Name.t option * a) * a s) )
+    in
     (x, a) :: unbind_s s
 
 let bind_s xas =
@@ -123,7 +129,7 @@ module Binds = struct
 
   type ('a, 'b) t = ('a s, 'b) Bind.t with sexp_of
 
-  type ('a, 'b) e = (Name.t * 'a) list * 'b
+  type ('a, 'b) e = (Name.t option * 'a) list * 'b
 
   let type_rep a b = Bind.type_rep (type_rep_of_s a) b
 
@@ -151,7 +157,9 @@ let concat2 (type a) s1 s2 =
     | Nil -> s2
     | Cons r ->
       let ((x, a), s) =
-        ((r : (Name.t * a Embed.t, a s) Rebind.t) :> ((Name.t * a) * a s))
+        ( (* safe cast *)
+          (r : (Name.t option * a Embed.t, a s) Rebind.t)
+          :> ((Name.t option  * a) * a s) )
       in
       Cons (Rebind.create (x, Embed.create a) (loop s))
   in
@@ -159,31 +167,37 @@ let concat2 (type a) s1 s2 =
 
 let concat ss = List.fold_right ss ~init:Nil ~f:concat2
 
-let pretty_s pretty_a s =
-  let bnds = unbind_s s in
-  let bnds =
-    List.fold_right bnds ~init:None ~f:(fun (x, a) acc ->
-      let a = pretty_a a in
-      Some begin
-      let elem =
-        Pretty.fgrp (
-          Pretty.text (Name.to_string x ^ " :") ^^ begin
-            match acc with
-            | None -> a
-            | Some _ -> Pretty.nest 2 (Pretty.break ^^ a)
-          end)
-      in
-      match acc with
-      | None -> elem
-      | Some acc -> elem ^^ Pretty.text "," ^^ Pretty.break ^^ acc
-    end)
-  in
-  match bnds with
-  | None -> Pretty.empty
-  | Some bnds -> Pretty.agrp bnds
-
 let paren x p =
   if x then Pretty.text "(" ^^ p ^^ Pretty.text ")" else p
+
+let pcat ps = List.fold ~init:Pretty.empty ~f:(^^) ps
+
+let pretty_s pretty_a s =
+  let bnds =
+    unbind_s s
+    |> List.group ~break:(fun _ b -> Option.is_none (fst b))
+    |> List.map ~f:(fun chunk ->
+      let ps =
+        List.map chunk ~f:(fun (x, a) ->
+          match x with
+          | None -> pretty_a a
+          | Some x ->
+            Pretty.fgrp (
+              Pretty.text (Name.to_string x ^ " :") ^^ begin
+                Pretty.nest 2 (Pretty.break ^^ pretty_a a)
+              end))
+      in
+      let named = Option.is_some (fst (List.hd_exn chunk)) in
+      paren named (pcat begin
+        if named
+        then List.intersperse ~sep:(Pretty.text "," ^^ Pretty.break) ps
+        else ps
+      end))
+  in
+  let bnds = List.intersperse ~sep:(Pretty.text "->" ^^ Pretty.break) bnds in
+  if List.is_empty bnds
+  then Pretty.empty
+  else Pretty.agrp (pcat bnds)
 
 let rec pretty p = function
   | Typ _ -> Pretty.text "Type"

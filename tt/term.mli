@@ -10,7 +10,7 @@ type t =
 
 and 'a s = (* telescope *)
   | Nil
-  | Cons of (t Name.t * 'a Embed.t, 'a s) Rebind.t
+  | Cons of (t Name.t option * 'a Embed.t, 'a s) Rebind.t
 with sexp_of
 
 val type_rep   : t Type.Rep.t
@@ -22,7 +22,7 @@ module Binds : sig
 
   type ('a, 'b) t = ('a s, 'b) Bind.t with sexp_of
 
-  type ('a, 'b) e = (Name.t * 'a) list * 'b
+  type ('a, 'b) e = (Name.t option * 'a) list * 'b
 
   val type_rep : 'a Type.Rep.t -> 'b Type.Rep.t -> ('a, 'b) t Type.Rep.t
 
@@ -32,17 +32,17 @@ module Binds : sig
 
   val map
     :  ('a1, 'b1) t
-    -> args:('a1 Type.Rep.t * ((Name.t * 'a1) list -> (Name.t * 'a2) list))
+    -> args:('a1 Type.Rep.t * ((Name.t option * 'a1) list -> (Name.t option * 'a2) list))
     -> body:('b1 Type.Rep.t * ('b1 -> 'b2))
     -> ('a2, 'b2) t
 
 end
 
-val bind   : (Name.t * t) list * t -> (t s, t) Bind.t
-val unbind : (t s, t) Bind.t -> (Name.t * t) list * t
+val bind   : (Name.t option * t) list * t -> (t s, t) Bind.t
+val unbind : (t s, t) Bind.t -> (Name.t option * t) list * t
 
-val unbind_s : 'a s -> (Name.t * 'a) list
-val bind_s   : (Name.t * 'a) list -> 'a s
+val unbind_s : 'a s -> (Name.t option * 'a) list
+val bind_s   : (Name.t option * 'a) list -> 'a s
 
 val pretty   : t -> Pretty.t
 val pretty_s : ('a -> Pretty.t) -> 'a s -> Pretty.t
