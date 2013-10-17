@@ -82,13 +82,15 @@ let type_rep_of_body : body Type.Rep.t =
 
 let type_rep = Term.Binds.type_rep Term.type_rep type_rep_of_body
 
+let fun_map b ~args:(type_rep_of_a, f) ~body:(type_rep_of_b, g) =
+  let (xas, body) = Term.Binds.unbind type_rep_of_a type_rep_of_b b in
+  if List.is_empty xas then g body else Term.Fun (Term.Binds.bind (f xas, g body))
+
 let kind t =
   let (params, body) = Term.Binds.unbind Term.type_rep type_rep_of_body t in
-  Term.Fun begin
-    Term.Binds.map body.kind
-      ~args:(Term.type_rep, fun indices -> params @ indices)
-      ~body:(Level.type_rep, fun level -> Term.Typ level)
-  end
+  fun_map body.kind
+    ~args:(Term.type_rep, fun indices -> params @ indices)
+    ~body:(Level.type_rep, fun level -> Term.Typ level)
 
 let vars ctx = List.map ctx ~f:(fun (x, _) -> Term.Var x)
 
@@ -110,27 +112,25 @@ let cons t =
   let params = fill params in
   let ty_app indices = Term.App (Term.Con body.tycon, param_vars @ indices) in
   Map.map body.cons ~f:(fun b ->
-    Term.Fun begin
-      Term.Binds.map b
-        ~body:(Type.Rep.List Term.type_rep, ty_app)
-        ~args:(type_rep_of_arg, fun args ->
-          params @
-            List.map args ~f:(fun (arg_name, arg) ->
-              (arg_name, begin
-                 match arg with
-                 | Nonrec t -> t
-                 | Rec b ->
-                   Term.Fun begin
-                     Term.Binds.map b
-                       ~args:(Term.type_rep, Fn.id)
-                       ~body:(Type.Rep.List Term.type_rep, ty_app)
-                   end
-               end)))
-    end)
+    fun_map b
+      ~body:(Type.Rep.List Term.type_rep, ty_app)
+      ~args:(type_rep_of_arg, fun args ->
+        params @
+          List.map args ~f:(fun (arg_name, arg) ->
+            (arg_name, begin
+               match arg with
+               | Nonrec t -> t
+               | Rec b ->
+                 fun_map b
+                   ~args:(Term.type_rep, Fn.id)
+                   ~body:(Type.Rep.List Term.type_rep, ty_app)
+             end))))
 
 let dummy name = Term.Name.freshen (Term.Name.create name)
 
-let fun_bind bnd = Term.Fun (Term.Binds.bind bnd)
+let fun_bind = function
+  | ([], body) -> body
+  | bnd -> Term.Fun (Term.Binds.bind bnd)
 
 let elim t =
   let (params, body) = Term.Binds.unbind Term.type_rep type_rep_of_body t in
