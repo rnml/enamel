@@ -187,33 +187,25 @@ let elim t =
   fun_bind (params @ [motive] @ means @ fill target, goal)
 
 let pretty t =
-  let (_params, body) =
-    Bind.unbind (Term.type_rep_of_s Term.type_rep) type_rep_of_body t
+  let (params, body) = Bind.unbind (Term.type_rep_of_s Term.type_rep) type_rep_of_body t in
+  let (indices, _univ) = Bind.unbind (Term.type_rep_of_s Term.type_rep) Level.type_rep body.kind in
+  let init =
+    Pretty.hgrp begin
+      Pretty.text "data "
+      ^+^ Constant.pretty body.tycon
+      ^+^ Term.pretty_s Term.pretty params
+      ^+^ Pretty.text ":"
+      ^+^ Term.pretty_s Term.pretty indices
+      ^+^ Pretty.text "Type"
+      ^+^ Pretty.text "="
+    end
   in
-  let c = (Pretty.text "tycon = " ^^ Constant.pretty body.tycon) |> Pretty.agrp in
-  let k  = (Pretty.text "kind = " ^^ Term.pretty (kind t)) |> Pretty.agrp in
-  let cs =
-    Map.map ~f:Term.pretty (cons t)
-    |> Map.to_alist
-    |> List.map ~f:(fun (c, p) ->
-      Pretty.hgrp
-        (Pretty.text "constructor = " ^^ Constant.pretty c ^+^ Pretty.text ":" ^+^ p))
-    |> List.fold ~init:Pretty.empty ~f:(^+^)
-    |> Pretty.vgrp
-  in
-  let e  =
-    ( Pretty.text "elim ="
-      ^^ Pretty.agrp (Pretty.nest 2 (Pretty.empty ^+^ Term.pretty (elim t)))
-    ) |> Pretty.agrp
-  in
-  Pretty.vgrp (c ^+^ k ^+^ cs ^+^ e)
-
-  (* let (params, body) = Bind.unbind (Term.type_rep_of_s Term.type_rep) type_rep_of_body t in
-   * Pretty.text "data "
-   * ^^ Constant.pretty body.tycon
-   * ^+^
-   *   (if (match params with Term.Nil -> true | _ -> false)
-   *    then Pretty.empty
-   *    else Pretty.text "(" ^^ Term.pretty_s Term.pretty params ^^ Pretty.text ")")
-   * ^+^ Pretty.text ":" *)
+  Pretty.vgrp (Map.fold (cons t) ~init ~f:(fun ~key:con ~data:ty acc ->
+    acc ^+^ Pretty.hgrp begin
+      Pretty.text "  |"
+      ^+^ Constant.pretty con
+      ^+^ Pretty.text ":"
+      ^+^ Term.pretty ty
+    end
+  ))
 
