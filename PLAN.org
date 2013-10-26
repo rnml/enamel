@@ -12,7 +12,8 @@
 ** DONE F parser and pretty printer
 ** DONE F define subst, equal
 ** DONE fill in stubbed out definitions in F
-** ACTV Unbound-ify target and module languages
+** DONE Unbound-ify target language
+** ACTV Unbound-ify module language
 ** ACTV F interpreter
 ** define alpha_eq as a generic
 * elisp-like auto-documentation
