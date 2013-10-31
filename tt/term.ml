@@ -124,6 +124,35 @@ let bind_s xas =
   List.fold_right xas ~init:Nil ~f:(fun (x, a) s ->
     Cons (Rebind.create (x, Embed.create a) s))
 
+let sexp_of_scope sexp_of_t s =
+  Sexp.List (List.map s ~f:(fun (name, arg) ->
+    let name =
+      match name with
+      | None -> Sexp.Atom "_"
+      | Some x -> Sexp.Atom (Name.to_string x)
+    in
+    Sexp.List [name; sexp_of_t arg]
+  ))
+
+let unbinds typerep_of_a typerep_of_b t =
+  let (s, b) = Bind.unbind (type_rep_of_s typerep_of_a) typerep_of_b t in
+  let xas = unbind_s s in
+  (xas, b)
+
+let sexp_of_s sexp_of_a s = sexp_of_scope sexp_of_a (unbind_s s)
+
+let rec sexp_of_t = function
+  | Typ _ -> Sexp.Atom "type"
+  | Var x -> Sexp.Atom (Name.to_string x)
+  | Con c -> Sexp.Atom (Constant.to_string c)
+  | App (hd, args) -> Sexp.List (sexp_of_t hd :: List.map args ~f:sexp_of_t)
+  | Fun b ->
+    let (s, b) = unbinds type_rep type_rep b in
+    Sexp.List [Sexp.Atom "forall"; sexp_of_scope sexp_of_t s; sexp_of_t b]
+  | Lam b ->
+    let (s, b) = unbinds type_rep type_rep b in
+    Sexp.List [Sexp.Atom "lambda"; sexp_of_scope sexp_of_t s; sexp_of_t b]
+
 module Binds = struct
 
   type ('a, 'b) t = ('a s, 'b) Bind.t with sexp_of
@@ -132,10 +161,7 @@ module Binds = struct
 
   let type_rep a b = Bind.type_rep (type_rep_of_s a) b
 
-  let unbind typerep_of_a typerep_of_b t =
-    let (s, b) = Bind.unbind (type_rep_of_s typerep_of_a) typerep_of_b t in
-    let xas = unbind_s s in
-    (xas, b)
+  let unbind = unbinds
 
   let bind (xas, b) = Bind.create (bind_s xas) b
 
@@ -231,28 +257,3 @@ let rec pretty p = function
     end
 
 let pretty t = pretty 0 t
-
-let sexp_of_scope sexp_of_t s =
-  Sexp.List (List.map s ~f:(fun (name, arg) ->
-    let name =
-      match name with
-      | None -> Sexp.Atom "_"
-      | Some x -> Sexp.Atom (Name.to_string x)
-    in
-    Sexp.List [name; sexp_of_t arg]
-  ))
-
-let rec sexp_of_t = function
-  | Typ _ -> Sexp.Atom "type"
-  | Var x -> Sexp.Atom (Name.to_string x)
-  | Con c -> Sexp.Atom (Constant.to_string x)
-  | App (hd, args) -> Sexp.List (sexp_of_t hd :: List.map args ~f:sexp_of_t)
-  | Fun b ->
-    let (s, b) = Binds.unbind type_rep type_rep t in
-    Sexp.List [Sexp.Atom "forall"; sexp_of_s sexp_of_t s; sexp_of_t b]
-  | Lam b ->
-    let (s, b) = Binds.unbind type_rep type_rep t in
-    Sexp.List [Sexp.Atom "lambda"; sexp_of_s sexp_of_t s; sexp_of_t b]
-
-let sexp_of_s sexp_of_a s = sexp_of_scope sexp_of_a (unbind_s s)
-
