@@ -11,7 +11,6 @@ type t =
 and 'a s = (* telescope *)
   | Nil
   | Cons of (t Name.t option * 'a Embed.t, 'a s) Rebind.t
-with sexp_of
 
 let rec type_rep : t Type.Rep.t =
   Type.Rep.Variant (module struct
@@ -232,4 +231,28 @@ let rec pretty p = function
     end
 
 let pretty t = pretty 0 t
+
+let sexp_of_scope sexp_of_t s =
+  Sexp.List (List.map s ~f:(fun (name, arg) ->
+    let name =
+      match name with
+      | None -> Sexp.Atom "_"
+      | Some x -> Sexp.Atom (Name.to_string x)
+    in
+    Sexp.List [name; sexp_of_t arg]
+  ))
+
+let rec sexp_of_t = function
+  | Typ _ -> Sexp.Atom "type"
+  | Var x -> Sexp.Atom (Name.to_string x)
+  | Con c -> Sexp.Atom (Constant.to_string x)
+  | App (hd, args) -> Sexp.List (sexp_of_t hd :: List.map args ~f:sexp_of_t)
+  | Fun b ->
+    let (s, b) = Binds.unbind type_rep type_rep t in
+    Sexp.List [Sexp.Atom "forall"; sexp_of_s sexp_of_t s; sexp_of_t b]
+  | Lam b ->
+    let (s, b) = Binds.unbind type_rep type_rep t in
+    Sexp.List [Sexp.Atom "lambda"; sexp_of_s sexp_of_t s; sexp_of_t b]
+
+let sexp_of_s sexp_of_a s = sexp_of_scope sexp_of_a (unbind_s s)
 
