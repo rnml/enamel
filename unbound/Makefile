@@ -2,8 +2,8 @@
 
 PACKAGES=core
 INCLUDES= -I ../typerep
-LIBRARIES= typerep
-SYNTAX=comparelib sexplib bin_prot
+LIBRARIES= my_typerep
+SYNTAX=comparelib sexplib bin_prot typerep_kernel
 MODULES=\
   std_internal \
   perm \

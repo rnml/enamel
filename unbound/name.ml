@@ -177,7 +177,7 @@ end) = struct
 
   let create name = freshen (raw name)
 
-  let type_name = Type.Name.create ~name:X.name
+  let type_name = Type.Name.create ~name:X.name <:sexp_of<_>>
   let type_rep = Type.Rep.Abstract type_name
 
   let () = Registry.Free_vars.Term.register type_name Univ.Set.add

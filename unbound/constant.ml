@@ -4,7 +4,7 @@ include Interned_string.Make (struct
   let initial_table_size = 100
 end)
 
-let type_name = Type.Name.create ~name:"Constant.t"
+let type_name = Type.Name.create ~name:"Constant.t" sexp_of_t
 
 let () = Swap.register type_name (fun _ c -> c)
 let () = Free_vars.Term.register type_name (fun fvs _ -> fvs)

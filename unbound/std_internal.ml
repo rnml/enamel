@@ -1,3 +1,3 @@
 include Core.Std
 include Int.Replace_polymorphic_compare
-include Typerep.Std
+include My_typerep.Std
