@@ -13,8 +13,10 @@
 ** DONE F define subst, equal
 ** DONE fill in stubbed out definitions in F
 ** DONE Unbound-ify target language
+** TODO continue fixing build with "with typerep"
+   - [ ] get typerep bridge working for abstract types
 ** ACTV Unbound-ify module language
-** ACTV F interpreter
+** F interpreter
 ** define alpha_eq as a generic
 * elisp-like auto-documentation
 * syntax
