@@ -3,13 +3,14 @@
 PACKAGES=core
 INCLUDES=
 LIBRARIES=
-SYNTAX=comparelib sexplib
+SYNTAX=comparelib sexplib typerep_kernel
 MODULES=\
   type \
   generic \
   sexp_conv \
   type_rep_example \
   fold \
+  of_typerep \
   std
 
 B= typerep

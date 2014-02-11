@@ -16,7 +16,7 @@ end = struct
   end
   include T
   include Sexpable.Of_stringable (T)
-  let type_name = Type.Name.create ~name:"Dollars"
+  let type_name = Type.Name.create ~name:"Dollars" <:sexp_of<_>>
   let type_rep = Type.Rep.Abstract type_name
   let () = Sexp_conv.register_to_sexp type_name sexp_of_t
   let () = Sexp_conv.register_of_sexp type_name t_of_sexp
@@ -32,7 +32,7 @@ module Sound = struct
     Type.Rep.Variant (module struct
       type outer_t = t
       type t = outer_t
-      let name : t Type.Name.t = Type.Name.create ~name:"Sound.t"
+      let name : t Type.Name.t = Type.Name.create ~name:"Sound.t" <:sexp_of<_>>
       module Label = struct
         type 'a t =
         | Roar : unit t
@@ -73,7 +73,7 @@ module Animal = struct
   let type_rep =
     Type.Rep.Record (module struct
       type nonrec t = t
-      let name : t Type.Name.t = Type.Name.create ~name:"Animal.t"
+      let name : t Type.Name.t = Type.Name.create ~name:"Animal.t" <:sexp_of<_>>
       module Label = struct
         type 'a t =
         | Name  : string t
@@ -115,7 +115,7 @@ module Tree = struct
     Type.Rep.Variant (module struct
       type t_outer = t
       type t = t_outer
-      let name : t Type.Name.t = Type.Name.create ~name:"Sound.t"
+      let name : t Type.Name.t = Type.Name.create ~name:"Sound.t" <:sexp_of<_>>
       module Label = struct
         type 'a t =
         | Empty : unit t
@@ -156,7 +156,7 @@ module Even_odd_lists = struct
     Type.Rep.Variant (module struct
       type outer_t = even
       type t = outer_t
-      let name : t Type.Name.t = Type.Name.create ~name:"Sound.t"
+      let name : t Type.Name.t = Type.Name.create ~name:"Sound.t" <:sexp_of<_>>
       module Label = struct
         type 'a t =
         | Nil : unit t
@@ -186,7 +186,7 @@ module Even_odd_lists = struct
     Type.Rep.Record (module struct
       type outer_t = odd
       type t = outer_t
-      let name : t Type.Name.t = Type.Name.create ~name:"Animal.t"
+      let name : t Type.Name.t = Type.Name.create ~name:"Animal.t" <:sexp_of<_>>
       module Label = struct
         type 'a t =
         | Head : int t

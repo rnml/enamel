@@ -6,12 +6,12 @@ module Name = struct
 
   include Type_equal.Id
 
-  let int    : int    t = create ~name:"int"
-  let char   : char   t = create ~name:"char"
-  let float  : float  t = create ~name:"float"
-  let string : string t = create ~name:"string"
-  let bool   : bool   t = create ~name:"bool"
-  let unit   : unit   t = create ~name:"unit"
+  let int    : int    t = create ~name:"int"    <:sexp_of<_>>
+  let char   : char   t = create ~name:"char"   <:sexp_of<_>>
+  let float  : float  t = create ~name:"float"  <:sexp_of<_>>
+  let string : string t = create ~name:"string" <:sexp_of<_>>
+  let bool   : bool   t = create ~name:"bool"   <:sexp_of<_>>
+  let unit   : unit   t = create ~name:"unit"   <:sexp_of<_>>
 
   module Key = struct
     module T = struct

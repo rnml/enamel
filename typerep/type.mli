@@ -70,7 +70,7 @@ module rec Rep : sig
       type rep = { lookup : 'a. 'a field -> 'a }
       include Labeled
         with type 'a Label.t = 'a field
-         and type rep := rep
+        with type rep := rep
       val get : 'a field -> t -> 'a
     end
     type 'a t = (module T with type t = 'a)
@@ -82,7 +82,7 @@ module rec Rep : sig
       type rep = Tagged : 'a tag * 'a -> rep
       include Labeled
         with type 'a Label.t = 'a tag
-         and type rep := rep
+        with type rep := rep
       val put : 'a tag -> 'a -> t
     end
     type 'a t = (module T with type t = 'a)
