@@ -13,10 +13,10 @@ MODULES=\
   of_typerep \
   std
 
-B= typerep
+B= my_typerep
 T=$B.cmxa
 
-FOR_PACK_OPT=-for-pack Typerep
+FOR_PACK_OPT=-for-pack My_typerep
 
 ### RULES ##########################################################
 
