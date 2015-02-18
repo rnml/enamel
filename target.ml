@@ -4,12 +4,12 @@ open Unbound
 open F
 
 module Args = struct
-  type t = (Ty.Name.t * Kind.t Embed.t) list with sexp
+  type t = (Type.Name.t * Kind.t Embed.t) list with sexp
 
   let type_rep =
     Type.Rep.List
       (Type.Rep.Pair
-         (Ty.Name.type_rep, Embed.type_rep Kind.type_rep))
+         (Type.Name.type_rep, Embed.type_rep Kind.type_rep))
 
   let bind tks body =
     let tks = List.map tks ~f:(fun (t, k) -> (t, Embed.create k)) in
@@ -24,8 +24,8 @@ end
 
 module rec Csig : sig
   type t =
-    | Val of Ty.t
-    | Type of Ty.t * Kind.t
+    | Val of Type.t
+    | Type of Type.t * Kind.t
     | Sig of Asig.t
     | Struct of t Label.Map.t
     | Fun of (Args.t, t * Asig.t) Bind.t
@@ -33,26 +33,26 @@ module rec Csig : sig
 
   val type_rep : t Type.Rep.t Lazy.t
 
-  val mk_fun : (Ty.Name.t * Kind.t) list -> t -> Asig.t -> t
+  val mk_fun : (Type.Name.t * Kind.t) list -> t -> Asig.t -> t
 
   val un_fun
     :  (Args.t, t * Asig.t) Bind.t
-    -> (Ty.Name.t * Kind.t) list * t * Asig.t
+    -> (Type.Name.t * Kind.t) list * t * Asig.t
 
-  val to_f : t -> Ty.t
+  val to_f : t -> Type.t
 
-  val subst : t -> Ty.Name.t * Ty.t -> t
+  val subst : t -> Type.Name.t * Type.t -> t
 
-  val sub : Ty.Context.t -> t -> t -> [`Coerce of Tm.t -> Tm.t]
+  val sub : Type.Context.t -> t -> t -> [`Coerce of Term.t -> Term.t]
 
   val matches :
-    Ty.Context.t -> t -> Asig.t ->
-    (Ty.t * Kind.t) list * [`Coerce of Tm.t -> Tm.t]
+    Type.Context.t -> t -> Asig.t ->
+    (Type.t * Kind.t) list * [`Coerce of Term.t -> Term.t]
 
 end = struct
   type t =
-    | Val of Ty.t
-    | Type of Ty.t * Kind.t
+    | Val of Type.t
+    | Type of Type.t * Kind.t
     | Sig of Asig.t
     | Struct of t Label.Map.t
     | Fun of (Args.t, t * Asig.t) Bind.t
@@ -66,8 +66,8 @@ end = struct
       let name : t Type.Name.t = Type.Name.create ~name:"F.Kind.t"
       module Label = struct
         type 'a t =
-          | Val : Ty.t t
-          | Type : (Ty.t * Kind.t) t
+          | Val : Type.t t
+          | Type : (Type.t * Kind.t) t
           | Sig : Asig.t t
           | Struct : o Label.Map.t t
           | Fun : (Args.t, o * Asig.t) Bind.t t
@@ -78,8 +78,8 @@ end = struct
           | Struct -> "struct"
           | Fun    -> "fun"
         let type_of : type a. a t -> a Type.Rep.t = function
-          | Val    -> Ty.type_rep
-          | Type   -> Type.Rep.(Pair (Ty.type_rep, Kind.type_rep))
+          | Val    -> Type.type_rep
+          | Type   -> Type.Rep.(Pair (Type.type_rep, Kind.type_rep))
           | Sig    -> Lazy.force Asig.type_rep
           | Struct -> Label.map_type_rep (Lazy.force orep)
           | Fun    -> Bind.type_rep Args.type_rep (Type.Rep.Pair (Lazy.force orep, Lazy.force Asig.type_rep))
@@ -125,28 +125,28 @@ end = struct
   let rec to_f = function
     | Val t -> t
     | Type (t, k) ->
-      let p = Ty.Name.create "p" in
-      Ty.forall
+      let p = Type.Name.create "p" in
+      Type.forall
         ( p
         , Kind.Arr (k, Kind.Star)
-        , Ty.Arr
-            ( Ty.App (Ty.Name p, t)
-            , Ty.App (Ty.Name p, t)))
+        , Type.Arr
+            ( Type.App (Type.Name p, t)
+            , Type.App (Type.Name p, t)))
     | Sig asig ->
       let asig = Asig.to_f asig in
-      Ty.Arr (asig, asig)
+      Type.Arr (asig, asig)
     | Struct map ->
-      Ty.Record (Label.Map.map map ~f:to_f)
+      Type.Record (Label.Map.map map ~f:to_f)
     | Fun b ->
       let (aks, csig, asig) = un_fun b in
       List.fold_right aks
-        ~f:(fun (a, k) acc -> Ty.exists (a, k, acc))
-        ~init:(Ty.Arr (to_f csig, Asig.to_f asig))
+        ~f:(fun (a, k) acc -> Type.exists (a, k, acc))
+        ~init:(Type.Arr (to_f csig, Asig.to_f asig))
 
   let rec subst t sub =
     match t with
-    | Val a -> Val (Ty.subst a sub)
-    | Type (a, k) -> Type (Ty.subst a sub, k)
+    | Val a -> Val (Type.subst a sub)
+    | Type (a, k) -> Type (Type.subst a sub, k)
     | Sig asig -> Sig (Asig.subst asig sub)
     | Struct m -> Struct (Map.map m ~f:(fun t -> subst t sub))
     | Fun bnd ->
@@ -160,12 +160,12 @@ end = struct
     | (Csig.Val t1, Csig.Val t2) ->
       F.subtype ctx ~src:t1 ~dst:t2
     | (Csig.Type (t1, _), Csig.Type (t2, _)) ->
-      if not (F.Ty.equal t1 t2) then failwith "type mismatch";
+      if not (F.Type.equal t1 t2) then failwith "type mismatch";
       `Coerce (fun x -> x)
     | (Csig.Sig s1, Csig.Sig s2) ->
       let `Coerce _ = Asig.sub ctx s1 s2 in
       let `Coerce _ = Asig.sub ctx s2 s1 in
-      `Coerce (fun _ -> Tm.sig_mod (Asig.to_f s2))
+      `Coerce (fun _ -> Term.sig_mod (Asig.to_f s2))
     | (Csig.Struct map1, Csig.Struct map2) ->
       let map =
         Label.Map.merge map1 map2 (fun ~key:_ cs ->
@@ -177,9 +177,9 @@ end = struct
             Some f)
       in
       `Coerce (fun e ->
-        Tm.Record
+        Term.Record
           (Map.mapi map
-             ~f:(fun ~key:lx ~data:f -> f (Tm.Dot (e, lx)))))
+             ~f:(fun ~key:lx ~data:f -> f (Term.Dot (e, lx)))))
     | (Fun b1 , Fun b2) ->
       let (aks1, csig1, asig1) = un_fun b1 in
       let (aks2, csig2, asig2) = un_fun b2 in
@@ -187,7 +187,7 @@ end = struct
         (* CR: this must be wrong -- we should be freshening as
            we unbind or something *)
         List.fold aks2 ~init:ctx ~f:(fun ctx (a, k) ->
-          Ty.Context.add ctx a k)
+          Type.Context.add ctx a k)
       in
       let (tks, `Coerce fdom) =
         matches ctx csig2 (Asig.mk_exists aks1 csig1)
@@ -201,14 +201,14 @@ end = struct
       in
       `Coerce (fun f ->
         List.fold_right aks2
-          ~f:(fun (a, k) e -> Tm.mk_tyfun a k e)
+          ~f:(fun (a, k) e -> Term.mk_tyfun a k e)
           ~init:begin
-            let x = Tm.Name.create "x" in
-            Tm.mk_fun x (Csig.to_f csig2) (frng begin
-              Tm.App
+            let x = Term.Name.create "x" in
+            Term.mk_fun x (Csig.to_f csig2) (frng begin
+              Term.App
                 ( List.fold tks ~init:f
-                    ~f:(fun e (t, _k) -> Tm.Tyapp (e, t))
-                , fdom (Tm.Name x) )
+                    ~f:(fun e (t, _k) -> Term.Tyapp (e, t))
+                , fdom (Term.Name x) )
             end)
           end)
     | _ -> failwith "signature mismatch"
@@ -219,8 +219,8 @@ end = struct
       List.map alphas ~f:(fun (alpha, kind) ->
         let rec lookup csig csig' =
           match (csig, csig') with
-          | (Type (tau, k), Type (Ty.Name alpha', k'))
-            when Ty.Name.equal alpha alpha'
+          | (Type (tau, k), Type (Type.Name alpha', k'))
+            when Type.Name.equal alpha alpha'
             ->
             if Kind.equal k k' && Kind.equal k kind then
               Some (tau, k)
@@ -261,17 +261,17 @@ and Asig : sig
 
   val type_rep : t Type.Rep.t Lazy.t
 
-  val mk_exists : (Ty.Name.t * Kind.t) list -> Csig.t -> t
+  val mk_exists : (Type.Name.t * Kind.t) list -> Csig.t -> t
 
   val un_exists
     :  (Args.t, Csig.t) Bind.t
-    -> (Ty.Name.t * Kind.t) list * Csig.t
+    -> (Type.Name.t * Kind.t) list * Csig.t
 
-  val to_f : t -> Ty.t
+  val to_f : t -> Type.t
 
-  val sub : Ty.Context.t -> t -> t -> [`Coerce of Tm.t -> Tm.t]
+  val sub : Type.Context.t -> t -> t -> [`Coerce of Term.t -> Term.t]
 
-  val subst : t -> Ty.Name.t * Ty.t -> t
+  val subst : t -> Type.Name.t * Type.t -> t
 
 end = struct
 
@@ -311,7 +311,7 @@ end = struct
     | Exists b ->
       let (aks, csig) = un_exists b in
       List.fold_right aks
-        ~f:(fun (a, k) acc -> Ty.exists (a, k, acc))
+        ~f:(fun (a, k) acc -> Type.exists (a, k, acc))
         ~init:(Csig.to_f csig)
 
   let subst (Exists b) sub =
@@ -325,34 +325,32 @@ end = struct
     | ((aks1, csig1), (aks2, csig2)) ->
       let (ts, `Coerce f) = Csig.matches ctx csig1 asig2 in
       `Coerce (fun x ->
-        let y = Tm.Name.create "y" in
+        let y = Term.Name.create "y" in
         let taks =
           List.map ~f:(fun ((a, k), (t, _)) -> (t, a, k))
             (List.zip_exn aks2 ts)
         in
-        Tm.unpack (List.map ~f:fst aks1) y x
-          (Tm.pack taks (f (Tm.Name y)) (Csig.to_f csig2)))
+        Term.unpack (List.map ~f:fst aks1) y x
+          (Term.pack taks (f (Term.Name y)) (Csig.to_f csig2)))
 
 end
 
 module Context = struct
   type t = {
-    ty_ctx : Ty.Context.t;
-    tm_ctx : Csig.t Tm.Name.Map.t;
+    ty_ctx : Type.Context.t;
+    tm_ctx : Csig.t Term.Name.Map.t;
   } with sexp
 
   let empty = {
-    ty_ctx = Ty.Context.empty;
-    tm_ctx = Tm.Name.Map.empty;
+    ty_ctx = Type.Context.empty;
+    tm_ctx = Term.Name.Map.empty;
   }
 
-  let add_ty g a k = {g with ty_ctx = Ty.Context.add g.ty_ctx a k}
-  let find_ty g a = Ty.Context.find g.ty_ctx a
+  let add_ty g a k = {g with ty_ctx = Type.Context.add g.ty_ctx a k}
+  let find_ty g a = Type.Context.find g.ty_ctx a
 
   let add_tm g x t = {g with tm_ctx = Map.add g.tm_ctx x t}
   let find_tm g x = Map.find g.tm_ctx x
 
   let ty_ctx t = t.ty_ctx
 end
-
-

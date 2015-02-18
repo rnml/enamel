@@ -1,7 +1,7 @@
 ### PARAMETERS #####################################################
 
-PACKAGES=core core_extended
-INCLUDES= -I unbound
+PACKAGES=core
+INCLUDES= -I ../unbound
 LIBRARIES= unbound
 SYNTAX=comparelib sexplib bin_prot
 
@@ -36,8 +36,8 @@ OCAMLOPT_FLAGS=\
   $(FIND_OPTS) \
   -thread \
   -linkpkg \
-  -w YSPUZF \
-  -warn-error YSPUZ
+  -w +Y+S+P+U+Z+F-40-41-42 \
+  -warn-error +Y+S+P+U+Z-40-41-42
 
 OCAMLC=ocamlfind ocamlc $(INCLUDES)
 OCAMLOPT=ocamlfind ocamlopt $(INCLUDES)

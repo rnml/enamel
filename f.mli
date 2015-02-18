@@ -1,112 +1,89 @@
 (* System F-omega *)
 
 open Std_internal
-open Unbound
 
 module Kind : sig
   type t =
-    | Star
-    | Arr of t * t
-  with sexp
+    | Type
+    | Fun of t * t
+  with compare
+
   val equal : t -> t -> bool
-  val type_rep : t Type.Rep.t
 end
 
-module Label : sig
-  include Identifiable
-  val type_rep : t Type.Rep.t
-  val map_type_rep : 'a Type.Rep.t -> 'a Map.t Type.Rep.t
-end
+module Label : Identifiable
 
-module Ty : sig
+module Type : sig
 
-  type t =
-    | Name   of t Name.t
-    | Arr    of t * t
-    | Record of t Label.Map.t
-    | Forall of (t Name.t * Kind.t Embed.t, t) Bind.t
-    | Exists of (t Name.t * Kind.t Embed.t, t) Bind.t
-    | Fun    of (t Name.t * Kind.t Embed.t, t) Bind.t
-    | App    of t * t
-  with sexp
+  module Name : Identifiable
 
-  val type_rep : t Type.Rep.t
+  module Shape : sig
+    type 'a t =
+      | Name   of Name.t
+      | Fun    of 'a * 'a
+      | Record of 'a Label.Map.t
+      | Forall of Name.t * Kind.t * 'a
+      | Exists of Name.t * Kind.t * 'a
+      | Lam    of Name.t * Kind.t * 'a
+      | App    of 'a * 'a
+  end
 
-  module Name : Name.S with type a := t
+  type t
 
-  val unbind : (Name.t * Kind.t Embed.t, t) Bind.t -> Name.t * Kind.t * t
+  val create : t Shape.t -> t
+  val match_ : t -> t Shape.t
 
-  val forall : Name.t * Kind.t * t -> t
-  val exists : Name.t * Kind.t * t -> t
-  val fun_   : Name.t * Kind.t * t -> t
+  val fv : t -> Name.Set.t
+  (* val subst : t -> Name.t * t -> t *)
+  val equal : t -> t -> bool
 
   module Context : sig
-    type t with sexp
+    type t
     val empty : t
     val add   : t -> Name.t -> Kind.t -> t
     val find  : t -> Name.t -> Kind.t option
   end
-
-  val fvs : t -> Name.Set.t
-  val swap : Name.t * Name.t -> t -> t
-  val subst : t -> Name.t * t -> t
-  val equal : t -> t -> bool
-
-  val ok : Context.t -> t -> Kind.t Or_error.t
 end
 
-module Tm : sig
-
-  type t =
-    | Name   of t Name.t
-    | Fun    of (t Name.t * Ty.t Embed.t, t) Bind.t
-    | App    of t * t
-    | Record of t Label.Map.t
-    | Dot    of t * Label.t
-    | Tyfun  of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
-    | Tyapp  of t * Ty.t
-    | Pack   of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t (* pack <ty, tm> : exists a. ty *)
-    | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
-    | Let of (t Name.t * t Embed.t, t) Bind.t
-  with sexp
-
-  val type_rep : t Type.Rep.t
-
-  val mk_fun : t Name.t -> Ty.t -> t -> t
-  val un_fun : (t Name.t * Ty.t Embed.t, t) Bind.t -> t Name.t * Ty.t * t
-  val mk_tyfun : Ty.Name.t -> Kind.t -> t -> t
-  val un_tyfun : (Ty.Name.t * Kind.t Embed.t, t) Bind.t -> Ty.Name.t * Kind.t * t
-  val mk_pack : Ty.t -> t -> Ty.Name.t * Ty.t -> t
-  val un_pack : (Ty.Name.t, Ty.t) Bind.t -> Ty.Name.t * Ty.t
-  val mk_unpack : Ty.Name.t -> t Name.t -> t -> t -> t
-  val un_unpack : (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t -> Ty.Name.t * t Name.t * t * t
-  val mk_let : t Name.t -> t -> t -> t
-  val un_let : (t Name.t * t Embed.t, t) Bind.t -> t Name.t * t * t
-
-  module Name : sig
-    include Name.S with type a := t
-    val to_label : t -> Label.t
-    val of_label : Label.t -> t
-  end
-
-  val type_mod : Ty.t -> Kind.t -> t
-  val sig_mod : Ty.t -> t
-
-  val pack : (Ty.t * Ty.Name.t * Kind.t) list -> t -> Ty.t -> t
-
-  val unpack : Ty.Name.t list -> Name.t -> t -> t -> t
-
-  module Context : sig
-    type t
-    val empty   : t
-    val add_tm  : t -> Name.t -> Ty.t -> t
-    val find_tm : t -> Name.t -> Ty.t option
-    val add_ty  : t -> Ty.Name.t -> Kind.t -> t
-    val ty_ctx  : t -> Ty.Context.t
-  end
-
-  val ok : Context.t -> t -> Ty.t Or_error.t
-end
-
-val subtype : Ty.Context.t -> src:Ty.t -> dst:Ty.t -> [`Coerce of Tm.t -> Tm.t]
-
+(* module Term : sig
+ *
+ *   module Name : T
+ *
+ *   module Shape : sig
+ *     type 'a t =
+ *       | Name   of Name.t
+ *       | Fun    of Name.t * Type.t * 'a
+ *       | App    of 'a * 'a
+ *       | Record of 'a Label.Map.t
+ *       | Dot    of 'a * Label.t
+ *       | Tyfun  of Type.Name.t * Kind.t * 'a
+ *       | Tyapp  of 'a * Type.t
+ *       | Pack   of Type.t * 'a * Type.Name.t * Type.t (\* pack <ty, tm> : exists a. ty *\)
+ *       | Unpack of Type.Name.t * Name.t * 'a * 'a
+ *       | Let    of Name.t * 'a * 'a
+ *   end
+ *
+ *   type t
+ *
+ *   val create : t Shape.t -> t
+ *   val match_ : t -> t Shape.t
+ *
+ *   module Name : sig
+ *     include Name.S with type a := t
+ *     val to_label : t -> Label.t
+ *     val of_label : Label.t -> t
+ *   end
+ *
+ *   val type_mod : Type.t -> Kind.t -> t
+ *   val sig_mod : Type.t -> t
+ *
+ *   module Context : sig
+ *     type t
+ *     val empty   : t
+ *     val add_tm  : t -> Name.t -> Type.t -> t
+ *     val find_tm : t -> Name.t -> Type.t option
+ *     val add_ty  : t -> Type.Name.t -> Kind.t -> t
+ *     val ty_ctx  : t -> Type.Context.t
+ *   end
+ * end
+ *)
