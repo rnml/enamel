@@ -1,21 +1,7 @@
 #+STARTUP: hidestars
 * todo list
-** DONE define fvs for both term and pat
-** DONE define swap
-** DONE name permutations
-** DONE replace swap with perm
-** DONE define generics for Unbound type constructors
-** DONE define binders and then freshen
-** DONE migrate systemf.ml over to generic implementation
-** DONE factored out unbound library
-** DONE switch target language to iterated binders
-** DONE F parser and pretty printer
-** DONE F define subst, equal
-** DONE fill in stubbed out definitions in F
-** DONE Unbound-ify target language
-** TODO continue fixing build with "with typerep"
-   - [ ] get typerep bridge working for abstract types
-** ACTV Unbound-ify module language
+** Unbound target language
+** Unbound module language
 ** F interpreter
 ** define alpha_eq as a generic
 * elisp-like auto-documentation
