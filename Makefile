@@ -1,8 +1,8 @@
 ### PARAMETERS #####################################################
 
 PACKAGES=core core_extended
-INCLUDES= -I typerep -I unbound
-LIBRARIES= typerep unbound
+INCLUDES= -I unbound
+LIBRARIES= unbound
 SYNTAX=comparelib sexplib bin_prot
 
 MODULES=\
