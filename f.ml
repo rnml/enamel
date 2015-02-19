@@ -24,12 +24,12 @@ module Type = struct
     end)
 
   type t =
-    | Name   of Name.t
+    | Name   of (Name.t)
     | Fun    of (t * t)
-    | Record of t Label.Map.t
-    | Forall of (Name.t * Kind.t Embed.t, t) Bind.t
-    | Exists of (Name.t * Kind.t Embed.t, t) Bind.t
-    | Lam    of (Name.t * Kind.t Embed.t, t) Bind.t
+    | Record of (t Label.Map.t)
+    | Forall of ((Name.t * Kind.t Embed.t, t) Bind.t)
+    | Exists of ((Name.t * Kind.t Embed.t, t) Bind.t)
+    | Lam    of ((Name.t * Kind.t Embed.t, t) Bind.t)
     | App    of (t * t)
   with compare
 
@@ -172,72 +172,107 @@ module Type = struct
 
   let equal t1 t2 = compare t1 t2 = 0
 
-  module Context : sig
-    type t
-    val empty   : t
-    val add   : t -> Name.t -> Kind.t -> t
-    val find  : t -> Name.t -> Kind.t option
-  end = struct
-    type t = Kind.t Name.Map.t
-    let empty = Name.Map.empty
-    let add g a k = Map.add g ~key:a ~data:k
-    let find g x = Map.find g x
-  end
 end
 
-(* module Term = struct
- *
- *   type t =
- *     | Name of t Name.t
- *     | Fun of (t Name.t * Ty.t Embed.t, t) Bind.t
- *     | App of t * t
- *     | Record of t Label.Map.t
- *     | Dot of t * Label.t
- *     | Tyfun of (Ty.Name.t * Kind.t Embed.t, t) Bind.t
- *     | Tyapp of t * Ty.t
- *     | Pack of Ty.t * t * (Ty.Name.t, Ty.t) Bind.t
- *     | Unpack of (Ty.Name.t * t Name.t * t Embed.t, t) Bind.t
- *     | Let of (t Name.t * t Embed.t, t) Bind.t
- *
- *   module X = Name
- *
- *   module Name = struct
- *     include Name.Make (struct
- *       type nonrec a = t
- *       let name = "Type.Name"
- *     end)
- *     let to_label t = to_univ t |> Name.Univ.to_string |> Label.of_string
- *     let of_label l = Label.to_string l |> raw
- *   end
- *
- *   module Context : sig
- *     type t
- *     val empty   : t
- *     val add_tm  : t -> Name.t -> Ty.t -> t
- *     val find_tm : t -> Name.t -> Ty.t option
- *     val add_ty  : t -> Ty.Name.t -> Kind.t -> t
- *     val ty_ctx  : t -> Ty.Context.t
- *   end = struct
- *
- *     type t = {
- *       ty_ctx : Ty.Context.t;
- *       tm_ctx : Ty.t Name.Map.t;
- *     }
- *
- *     let empty = {
- *       ty_ctx = Ty.Context.empty;
- *       tm_ctx = Name.Map.empty;
- *     }
- *
- *     let add_ty g a k = {g with ty_ctx = Ty.Context.add g.ty_ctx a k}
- *
- *     let ty_ctx g = g.ty_ctx
- *
- *     let add_tm g x s =
- *       {g with tm_ctx = Map.add g.tm_ctx ~key:x ~data:s}
- *
- *     let find_tm g x = Map.find g.tm_ctx x
- *   end
- *
- * end
-*)
+module Term = struct
+
+  module Name = struct
+    include Make_name_type (struct
+      let module_name = "F.Term.Name"
+    end)
+    let to_label t = to_string t |> Label.of_string
+    let of_label l = Label.to_string l |> of_string
+  end
+
+  type t =
+    | Name   of (Name.t)
+    | Fun    of (Name.t * Type.t Embed.t, t) Bind.t
+    | App    of (t * t)
+    | Record of (t Label.Map.t)
+    | Dot    of (t * Label.t)
+    | Tyfun  of ((Type.Name.t * Kind.t Embed.t, t) Bind.t)
+    | Tyapp  of (t * Type.t)
+    | Pack   of (Type.t * t * (Type.Name.t, Type.t) Bind.t)
+    | Unpack of ((Type.Name.t * Name.t * t Embed.t, t) Bind.t)
+    | Let    of ((Name.t * t Embed.t, t) Bind.t)
+
+  let rec tc : t Term_tc.t = {
+    close = (fun ptc l p t ->
+      match t with
+      | Name   x -> let tc = Lazy.force name_tc   in Name   (tc.close ptc l p x)
+      | Fun    x -> let tc = Lazy.force fun_tc    in Fun    (tc.close ptc l p x)
+      | App    x -> let tc = Lazy.force app_tc    in Fun    (tc.close ptc l p x)
+      | Record x -> let tc = Lazy.force record_tc in Record (tc.close ptc l p x)
+      | Dot    x -> let tc = Lazy.force dot_tc    in Forall (tc.close ptc l p x)
+      | Tyfun  x -> let tc = Lazy.force tyfun_tc  in Exists (tc.close ptc l p x)
+      | Tyapp  x -> let tc = Lazy.force tyapp_tc  in Lam    (tc.close ptc l p x)
+      | Pack   x -> let tc = Lazy.force pack_tc   in App    (tc.close ptc l p x)
+      | Unpack x -> let tc = Lazy.force unpack_tc in App    (tc.close ptc l p x)
+      | Let    x -> let tc = Lazy.force let_tc    in App    (tc.close ptc l p x)
+    );
+    open_ = (fun ptc l p t ->
+      match t with
+      | Name   x -> let tc = Lazy.force name_tc   in Name   (tc.open_ ptc l p x)
+      | Fun    x -> let tc = Lazy.force fun_tc    in Fun    (tc.open_ ptc l p x)
+      | App    x -> let tc = Lazy.force app_tc    in Fun    (tc.open_ ptc l p x)
+      | Record x -> let tc = Lazy.force record_tc in Record (tc.open_ ptc l p x)
+      | Dot    x -> let tc = Lazy.force dot_tc    in Forall (tc.open_ ptc l p x)
+      | Tyfun  x -> let tc = Lazy.force tyfun_tc  in Exists (tc.open_ ptc l p x)
+      | Tyapp  x -> let tc = Lazy.force tyapp_tc  in Lam    (tc.open_ ptc l p x)
+      | Pack   x -> let tc = Lazy.force pack_tc   in App    (tc.open_ ptc l p x)
+      | Unpack x -> let tc = Lazy.force unpack_tc in App    (tc.open_ ptc l p x)
+      | Let    x -> let tc = Lazy.force let_tc    in App    (tc.open_ ptc l p x)
+    );
+    compare;
+    fv = (function
+      | Name   x -> let tc = Lazy.force name_tc   in tc.fv x
+      | Fun    x -> let tc = Lazy.force fun_tc    in tc.fv x
+      | App    x -> let tc = Lazy.force app_tc    in tc.fv x
+      | Record x -> let tc = Lazy.force record_tc in tc.fv x
+      | Dot    x -> let tc = Lazy.force dot_tc    in tc.fv x
+      | Tyfun  x -> let tc = Lazy.force tyfun_tc  in tc.fv x
+      | Tyapp  x -> let tc = Lazy.force tyapp_tc  in tc.fv x
+      | Pack   x -> let tc = Lazy.force pack_tc   in tc.fv x
+      | Unpack x -> let tc = Lazy.force unpack_tc in tc.fv x
+      | Let    x -> let tc = Lazy.force let_tc    in tc.fv x
+    );
+  }
+
+  and name_tc   : (Name.t)                                       Term_tc.t Lazy.t = lazy (Name.tc)
+  and fun_tc    : (Name.t * Type.t Embed.t, t) Bind.t            Term_tc.t Lazy.t = lazy (Bind.tc (Pattern_tc.pair Name.ptc (Embed.tc Type.tc)) tc)
+  and app_tc    : (t * t)                                        Term_tc.t Lazy.t = lazy (Term_tc.pair tc tc)
+  and record_tc : (t Label.Map.t)                                Term_tc.t Lazy.t = lazy (Term_tc.map tc)
+  and dot_tc    : (t * Label.t)                                  Term_tc.t Lazy.t = lazy (Term_tc.pair tc (Term_tc.const ~cmp:<:compare<Label.t>>))
+  and tyfun_tc  : ((Type.Name.t * Kind.t Embed.t, t) Bind.t)     Term_tc.t Lazy.t = lazy (Bind.tc (Pattern_tc.pair Type.Name.ptc (Embed.tc Kind.tc)) tc)
+  and tyapp_tc  : (t * Type.t)                                   Term_tc.t Lazy.t = lazy (Term_tc.pair tc Type.tc)
+  and pack_tc   : (Type.t * t * (Type.Name.t, Type.t) Bind.t)    Term_tc.t Lazy.t = lazy (___HERE___)
+  and unpack_tc : ((Type.Name.t * Name.t * t Embed.t, t) Bind.t) Term_tc.t Lazy.t = lazy ()
+  and let_tc    : ((Name.t * t Embed.t, t) Bind.t)               Term_tc.t Lazy.t = lazy ()
+
+  and bind_tc : (Name.t * Kind.t Embed.t, t) Bind.t Term_tc.t Lazy.t =
+    lazy (Bind.tc (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc)
+
+  and pair_tc : (t * t) Term_tc.t Lazy.t =
+    lazy (Term_tc.pair tc tc)
+
+  and lmap_tc : t Label.Map.t Term_tc.t Lazy.t =
+    lazy (Term_tc.map tc)
+
+  let compare = tc.compare
+  let equal   = Term_tc.equal tc
+
+  module Shape = struct
+    type 'a t =
+      | Name   of Name.t
+      | Fun    of Name.t * Type.t * 'a
+      | App    of 'a * 'a
+      | Record of 'a Label.Map.t
+      | Dot    of 'a * Label.t
+      | Tyfun  of Type.Name.t * Kind.t * 'a
+      | Tyapp  of 'a * Type.t
+      | Pack   of Type.t * 'a * Type.Name.t * Type.t (* pack <ty, tm> : exists a. ty *)
+      | Unpack of Type.Name.t * Name.t * 'a * 'a     (* let pack <a, x> = e in e     *)
+      | Let    of Name.t * 'a * 'a                   (* let x = e in e               *)
+  end
+
+end
