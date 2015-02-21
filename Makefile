@@ -1,8 +1,8 @@
 ### PARAMETERS #####################################################
 
 PACKAGES=core
-INCLUDES=-I ../unbound
-LIBRARIES=unbound
+INCLUDES=-I ../unbound -I ../graph
+LIBRARIES=unbound graph_lib
 SYNTAX=comparelib sexplib bin_prot
 
 MODULES= \
