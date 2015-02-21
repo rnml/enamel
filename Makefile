@@ -1,11 +1,11 @@
 ### PARAMETERS #####################################################
 
 PACKAGES=core
-INCLUDES= -I ../unbound
-LIBRARIES= unbound
+INCLUDES=-I ../unbound
+LIBRARIES=unbound
 SYNTAX=comparelib sexplib bin_prot
 
-MODULES=\
+MODULES= \
   std_internal \
   scc \
   f \

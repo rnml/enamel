@@ -267,4 +267,84 @@ module Term = struct
       | Let    of Name.t * 'a * 'a                   (* let x = e in e               *)
   end
 
+  let create : t Shape.t -> t = function
+    | Name x -> Name x
+    | App (m, n) -> App (m, n)
+    | Fun (x, a, m) ->
+      let a = Embed.create Type.tc a in
+      let bind =
+        Bind.create tc (Pattern_tc.pair Name.ptc (Embed.tc Type.tc)) (x, a) m
+      in
+      Fun bind
+    | Tyapp (m, n) -> Tyapp (m, n)
+    | Tyfun (x, a, m) ->
+      let a = Embed.create Kind.tc a in
+      let bind =
+        Bind.create tc (Pattern_tc.pair Type.Name.ptc (Embed.tc Kind.tc)) (x, a) m
+      in
+      Tyfun bind
+    | Record r -> Record r
+    | Dot (m, x) -> Dot (m, x)
+    | Pack (a, m, b, c) ->
+      let bind = Bind.create Type.tc Type.Name.ptc b c in
+      Pack (a, m, bind)
+    | Unpack (a, x, m, n) ->
+      let m = Embed.create tc m in
+      let bind =
+        Bind.create tc (Pattern_tc.triple Type.Name.ptc Name.ptc (Embed.tc tc)) (a, x, m) n
+      in
+      Unpack bind
+    | Let (x, m, n) ->
+      let m = Embed.create tc m in
+      let bind =
+        Bind.create tc (Pattern_tc.pair Name.ptc (Embed.tc tc)) (x, m) n
+      in
+      Let bind
+
+  let match_ : t -> t Shape.t = function
+    | Name x -> Name x
+    | App (m, n) -> App (m, n)
+    | Fun bind ->
+      let ((x, a), m) =
+        Bind.expose tc (Pattern_tc.pair Name.ptc (Embed.tc Type.tc)) bind
+      in
+      let a = Embed.expose Type.tc a in
+      Fun (x, a, m)
+    | Tyapp (m, n) -> Tyapp (m, n)
+    | Tyfun bind ->
+      let ((x, a), m) =
+        Bind.expose tc (Pattern_tc.pair Type.Name.ptc (Embed.tc Kind.tc)) bind
+      in
+      let a = Embed.expose Kind.tc a in
+      Tyfun (x, a, m)
+    | Record r -> Record r
+    | Dot (m, x) -> Dot (m, x)
+    | Pack (a, m, bind) ->
+      let (b, c) = Bind.expose Type.tc Type.Name.ptc bind in
+      Pack (a, m, b, c)
+    | Unpack bind ->
+      let ((a, x, m), n) =
+        Bind.expose tc (Pattern_tc.triple Type.Name.ptc Name.ptc (Embed.tc tc)) bind
+      in
+      let m = Embed.expose tc m in
+      Unpack (a, x, m, n)
+    | Let bind ->
+      let ((x, m), n) =
+        Bind.expose tc (Pattern_tc.pair Name.ptc (Embed.tc tc)) bind
+      in
+      let m = Embed.expose tc m in
+      Let (x, m, n)
+
+  let term_fv t =
+    tc.fv t
+    |> Set.to_list
+    |> List.filter_map ~f:Name.match_
+    |> Name.Set.of_list
+
+  let type_fv t =
+    tc.fv t
+    |> Set.to_list
+    |> List.filter_map ~f:Type.Name.match_
+    |> Type.Name.Set.of_list
+
 end
