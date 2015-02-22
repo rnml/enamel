@@ -16,12 +16,12 @@ let check_expr_command =
   Command.basic ~summary:"type check a expr (from stdin)"
     Command.Spec.(empty)
     (fun () ->
-      let tm = Sexp.input_sexp stdin |> Enamel.Tm.t_of_sexp in
-      let (tm, ty) = Enamel.Tm.ok Initial_context.ctx tm in
+      let tm = Sexp.input_sexp stdin |> Enamel.Term.t_of_sexp in
+      let (tm, ty) = Enamel.Term.ok Initial_context.ctx tm in
       Sexp.List [
-        F.Tm.sexp_of_t tm;
+        F.Term.sexp_of_t tm;
         Sexp.Atom ":";
-        F.Ty.sexp_of_t ty;
+        F.Type.sexp_of_t ty;
       ]
       |> Sexp.to_string_hum
       |> print_endline
@@ -31,10 +31,10 @@ let check_type_command =
   Command.basic ~summary:"kind check a type (from stdin)"
     Command.Spec.(empty)
     (fun () ->
-      let ty = Sexp.input_sexp stdin |> Enamel.Ty.t_of_sexp in
-      let (ty, ki) = Enamel.Ty.ok Initial_context.ctx ty in
+      let ty = Sexp.input_sexp stdin |> Enamel.Type.t_of_sexp in
+      let (ty, ki) = Enamel.Type.ok Initial_context.ctx ty in
       Sexp.List [
-        F.Ty.sexp_of_t ty;
+        F.Type.sexp_of_t ty;
         Sexp.Atom ":";
         F.Kind.sexp_of_t ki;
       ]
@@ -50,9 +50,9 @@ let elaborate_command =
       let (t, e) = Enamel.Mod.ok Initial_context.ctx m in
       let t = Target.Asig.to_f t in
       Sexp.List [
-        F.Tm.sexp_of_t e;
+        F.Term.sexp_of_t e;
         Sexp.Atom ":";
-        F.Ty.sexp_of_t t;
+        F.Type.sexp_of_t t;
       ]
       |> Sexp.to_string_hum
       |> print_endline
@@ -75,8 +75,8 @@ module Check_f_type = struct
         In_channel.input_all stdin
         |> String.strip
         |> Sexp.of_string
-        |> F.Ty.t_of_sexp
-        |> F.Ty.ok F.Ty.Context.empty
+        |> F.Type.t_of_sexp
+        |> F.Type.ok F.Type.Context.empty
         |> Or_error.ok_exn
         |> F.Kind.sexp_of_t
         |> Sexp.to_string_hum
@@ -92,10 +92,10 @@ module Check_f_term = struct
         In_channel.input_all stdin
         |> String.strip
         |> Sexp.of_string
-        |> F.Tm.t_of_sexp
-        |> F.Tm.ok F.Tm.Context.empty
+        |> F.Term.t_of_sexp
+        |> F.Term.ok F.Term.Context.empty
         |> Or_error.ok_exn
-        |> F.Ty.sexp_of_t
+        |> F.Type.sexp_of_t
         |> Sexp.to_string_hum
         |> print_endline
       )
@@ -110,10 +110,10 @@ module Z = struct
         In_channel.input_all stdin
         |> String.strip
         |> Sexp.of_string
-        |> F.Tm.t_of_sexp
-        |> F.Tm.ok F.Tm.Context.empty
+        |> F.Term.t_of_sexp
+        |> F.Term.ok F.Term.Context.empty
         |> Or_error.ok_exn
-        |> F.Ty.sexp_of_t
+        |> F.Type.sexp_of_t
         |> Sexp.to_string_hum
         |> print_endline
       )
