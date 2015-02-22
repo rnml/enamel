@@ -2,6 +2,8 @@
 
 open Std_internal
 
+module Label : Identifiable
+
 module Kind : sig
   type t =
     | Type
@@ -10,8 +12,6 @@ module Kind : sig
 
   val equal : t -> t -> bool
 end
-
-module Label : Identifiable
 
 module Type : sig
 
