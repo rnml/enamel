@@ -364,8 +364,8 @@ module Term = struct
     | Unpack (a, b, c, d) -> create @@ Unpack (a, b, tm c, tm d)
     | Let    (a, b, c)    -> create @@ Let (a, tm b, tm c)
 
-  let rec term_subst t sub =
-    let tm t = term_subst t sub in
+  let rec subst t sub =
+    let tm t = subst t sub in
     let ty t = t in
     match match_ t with
     | Name x -> if Name.equal x (fst sub) then snd sub else t
