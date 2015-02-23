@@ -364,4 +364,19 @@ module Term = struct
     | Unpack (a, b, c, d) -> create @@ Unpack (a, b, tm c, tm d)
     | Let    (a, b, c)    -> create @@ Let (a, tm b, tm c)
 
+  let rec term_subst t sub =
+    let tm t = term_subst t sub in
+    let ty t = t in
+    match match_ t with
+    | Name x -> if Name.equal x (fst sub) then snd sub else t
+    | Fun    (a, b, c)    -> create @@ Fun (a, ty b, tm c)
+    | App    (a, b)       -> create @@ App (tm a, tm b)
+    | Record (a)          -> create @@ Record (Map.map ~f:tm a)
+    | Dot    (a, b)       -> create @@ Dot (tm a, b)
+    | Tyfun  (a, b, c)    -> create @@ Tyfun (a, b, tm c)
+    | Tyapp  (a, b)       -> create @@ Tyapp (tm a, ty b)
+    | Pack   (a, b, c, d) -> create @@ Pack (ty a, tm b, c, ty d)
+    | Unpack (a, b, c, d) -> create @@ Unpack (a, b, tm c, tm d)
+    | Let    (a, b, c)    -> create @@ Let (a, tm b, tm c)
+
 end
