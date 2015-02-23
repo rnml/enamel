@@ -353,14 +353,14 @@ module Term = struct
     let tm t = type_subst t sub in
     let ty t = Type.subst t sub in
     match match_ t with
-    | Name _ -> t
-    | Fun    (x, a, m) -> create @@ Fun (x, ty a, tm m)
-    | App    (m, n)    -> create @@ App (type_subst m sub, tm n)
-    | Record map       -> create @@ Record (Map.map map ~f:tm)
-    | Dot    (m, l)    -> create @@ Dot (tm m, l)
-    | Tyfun  (a, k, m) -> create @@ Tyfun (a, k, tm m)
-    | Tyapp  (m, a)    -> create @@ Tyapp (tm m, ty a)
-    | Pack   (a, m, u, v) -> create @@ Pack (ty a, tm m, u, ty v)
+    | Name   (a)          -> create @@ Name a
+    | Fun    (a, b, c)    -> create @@ Fun (a, ty b, tm c)
+    | App    (a, b)       -> create @@ App (tm a, tm b)
+    | Record (a)          -> create @@ Record (Map.map ~f:tm a)
+    | Dot    (a, b)       -> create @@ Dot (tm a, b)
+    | Tyfun  (a, b, c)    -> create @@ Tyfun (a, b, tm c)
+    | Tyapp  (a, b)       -> create @@ Tyapp (tm a, ty b)
+    | Pack   (a, b, c, d) -> create @@ Pack (ty a, tm b, c, ty d)
     | Unpack (a, b, c, d) -> create @@ Unpack (a, b, tm c, tm d)
     | Let    (a, b, c)    -> create @@ Let (a, tm b, tm c)
 
