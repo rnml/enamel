@@ -34,7 +34,7 @@ module Type : sig
   val match_ : t -> t Shape.t
 
   val fv : t -> Name.Set.t
-  (* val subst : t -> Name.t * t -> t *)
+  val subst : t -> Name.t * t -> t
   val equal : t -> t -> bool
 end
 
@@ -64,7 +64,7 @@ module Term : sig
   val term_fv : t -> Name.Set.t
   val type_fv : t -> Type.Name.Set.t
 
-  val term_subst : t -> Name.t * t -> t
+  (* val term_subst : t -> Name.t * t -> t *)
   val type_subst : t -> Type.Name.t * Type.t -> t
 
   val equal : t -> t -> bool

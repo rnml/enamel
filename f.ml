@@ -350,23 +350,18 @@ module Term = struct
     |> Type.Name.Set.of_list
 
   let rec type_subst t sub =
+    let tm t = type_subst t sub in
+    let ty t = Type.subst t sub in
     match match_ t with
-    | Fun    (a, b)    -> create (Fun (subst a sub, subst b sub))
-    | Record map       -> create (Record (Map.map map ~f:(fun t -> subst t sub)))
-    | Forall (x, k, a) -> create (Forall (x, k, subst a sub))
-    | Exists (x, k, a) -> create (Exists (x, k, subst a sub))
-    | Lam    (x, k, a) -> create (Lam (x, k, subst a sub))
-    | App    (a, b)    -> create (App (subst a sub, subst b sub))
-
-      | Name _ -> t
-      | Fun    (x, a, m) -> create @@ Fun (x, Type.subst a sub, type_subst m sub)
-      | App    (m, n)    -> create @@ App (type_subst m sub, type_subst n sub)
-      | Record map       -> create @@ Record (Map.map map ~f:(fun t -> type_subst t sub))
-      | Dot    of 'a * Label.t
-      | Tyfun  of Type.Name.t * Kind.t * 'a
-      | Tyapp  of 'a * Type.t
-      | Pack   of Type.t * 'a * Type.Name.t * Type.t (* pack <ty, tm> : exists a. ty *)
-      | Unpack of Type.Name.t * Name.t * 'a * 'a     (* let pack <a, x> = e in e     *)
-      | Let    of Name.t * 'a * 'a                   (* let x = e in e               *)
+    | Name _ -> t
+    | Fun    (x, a, m) -> create @@ Fun (x, ty a, tm m)
+    | App    (m, n)    -> create @@ App (type_subst m sub, tm n)
+    | Record map       -> create @@ Record (Map.map map ~f:tm)
+    | Dot    (m, l)    -> create @@ Dot (tm m, l)
+    | Tyfun  (a, k, m) -> create @@ Tyfun (a, k, tm m)
+    | Tyapp  (m, a)    -> create @@ Tyapp (tm m, ty a)
+    | Pack   (a, m, u, v) -> create @@ Pack (ty a, tm m, u, ty v)
+    | Unpack (a, b, c, d) -> create @@ Unpack (a, b, tm c, tm d)
+    | Let    (a, b, c)    -> create @@ Let (a, tm b, tm c)
 
 end
