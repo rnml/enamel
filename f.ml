@@ -162,15 +162,17 @@ module Type = struct
     |> List.filter_map ~f:Name.match_
     |> Name.Set.of_list
 
-  (* TODO: add subst to Term_tc and Pattern_tc, just like in the paper *)
-  (* let subst t (x, n) =
-   *   let t = tc.open Name.ptc Nat.zero x t in
-   *   tc.close Name.ptc Nat.zero  : 'p. 'p Pattern_tc.t -> Nat.t -> 'p -> 'a -> 'a;
-   *
-   *   close    : 'p. 'p t -> Nat.t -> 'p -> 'a -> 'a;
-   *   open_    : 'p. 'p t -> Nat.t -> 'p -> 'a -> 'a; *)
-
   let equal t1 t2 = compare t1 t2 = 0
+
+  let rec subst t sub =
+    match match_ t with
+    | Name x -> if Name.equal x (fst sub) then snd sub else t
+    | Fun    (a, b)    -> create (Fun (subst a sub, subst b sub))
+    | Record map       -> create (Record (Map.map map ~f:(fun t -> subst t sub)))
+    | Forall (x, k, a) -> create (Forall (x, k, subst a sub))
+    | Exists (x, k, a) -> create (Exists (x, k, subst a sub))
+    | Lam    (x, k, a) -> create (Lam (x, k, subst a sub))
+    | App    (a, b)    -> create (App (subst a sub, subst b sub))
 
 end
 
@@ -346,5 +348,25 @@ module Term = struct
     |> Set.to_list
     |> List.filter_map ~f:Type.Name.match_
     |> Type.Name.Set.of_list
+
+  let rec type_subst t sub =
+    match match_ t with
+    | Fun    (a, b)    -> create (Fun (subst a sub, subst b sub))
+    | Record map       -> create (Record (Map.map map ~f:(fun t -> subst t sub)))
+    | Forall (x, k, a) -> create (Forall (x, k, subst a sub))
+    | Exists (x, k, a) -> create (Exists (x, k, subst a sub))
+    | Lam    (x, k, a) -> create (Lam (x, k, subst a sub))
+    | App    (a, b)    -> create (App (subst a sub, subst b sub))
+
+      | Name _ -> t
+      | Fun    (x, a, m) -> create @@ Fun (x, Type.subst a sub, type_subst m sub)
+      | App    (m, n)    -> create @@ App (type_subst m sub, type_subst n sub)
+      | Record map       -> create @@ Record (Map.map map ~f:(fun t -> type_subst t sub))
+      | Dot    of 'a * Label.t
+      | Tyfun  of Type.Name.t * Kind.t * 'a
+      | Tyapp  of 'a * Type.t
+      | Pack   of Type.t * 'a * Type.Name.t * Type.t (* pack <ty, tm> : exists a. ty *)
+      | Unpack of Type.Name.t * Name.t * 'a * 'a     (* let pack <a, x> = e in e     *)
+      | Let    of Name.t * 'a * 'a                   (* let x = e in e               *)
 
 end
