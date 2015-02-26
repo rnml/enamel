@@ -101,7 +101,7 @@ module Target : sig
 
     module Shape : sig
       type nonrec t =
-        | Exists of (F.Type.Name.t * F.Kind.t) list * t
+        | Exists of (F.Type.Name.t * F.Kind.t Embed.t) list * Csig.t
     end
 
     (* val create : Shape.t -> t *)

@@ -522,7 +522,6 @@ module Target = struct
     module Shape : sig
       type t =
         | Exists of (F.Type.Name.t * F.Kind.t Embed.t) list * Csig.t
-      with compare
     end
 
   end = struct
@@ -550,6 +549,12 @@ module Target = struct
       lazy (Bind.tc
               (Pattern_tc.list (Pattern_tc.pair F.Type.Name.ptc (Embed.tc F.Kind.tc)))
               Csig.tc)
+
+    module Shape = struct
+      type t =
+        | Exists of (F.Type.Name.t * F.Kind.t Embed.t) list * Csig.t
+    end
+
   end
 
 end
