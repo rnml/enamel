@@ -4,13 +4,13 @@ module rec Csig : sig
   type t
 
   module Shape : sig
-    type nonrec 'a t
-       | Val of F.Type.t
-       | Type of F.Type.t * F.Kind.t
-       | Sig of Asig.t
+    type nonrec 'a t =
+       | Val    of F.Type.t
+       | Type   of F.Type.t * F.Kind.t
+       | Sig    of Asig.t
        | Struct of 'a F.Label.Map.t
-       | Fun of (F.Type.Name.t * F.Kind.t) list * 'a * Asig.t
-    let map_fst : 'a1 t -> f:('a1 -> 'a2) -> 'a2 t
+       | Fun    of (F.Type.Name.t * F.Kind.t) list * 'a * Asig.t
+    val map : 'a1 t -> f:('a1 -> 'a2) -> 'a2 t
   end
 
   val create : t Shape.t -> t
