@@ -118,19 +118,19 @@ module F = struct
       | Forall (x, arg_type, body) ->
         let arg_type = Embed.create Kind.tc arg_type in
         let bind =
-          Bind.create tc (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) (x, arg_type) body
+          Bind.create (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc (x, arg_type) body
         in
         Forall bind
       | Exists (x, arg_type, body) ->
         let arg_type = Embed.create Kind.tc arg_type in
         let bind =
-          Bind.create tc (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) (x, arg_type) body
+          Bind.create (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc (x, arg_type) body
         in
         Exists bind
       | Lam (x, arg_type, body) ->
         let arg_type = Embed.create Kind.tc arg_type in
         let bind =
-          Bind.create tc (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) (x, arg_type) body
+          Bind.create (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc (x, arg_type) body
         in
         Lam bind
 
@@ -141,19 +141,19 @@ module F = struct
       | Record a -> Record a
       | Forall bind ->
         let ((x, arg_type), body) =
-          Bind.expose tc (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) bind
+          Bind.expose (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc bind
         in
         let arg_type = Embed.expose Kind.tc arg_type in
         Forall (x, arg_type, body)
       | Exists bind ->
         let ((x, arg_type), body) =
-          Bind.expose tc (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) bind
+          Bind.expose (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc bind
         in
         let arg_type = Embed.expose Kind.tc arg_type in
         Exists (x, arg_type, body)
       | Lam bind ->
         let ((x, arg_type), body) =
-          Bind.expose tc (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) bind
+          Bind.expose (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc bind
         in
         let arg_type = Embed.expose Kind.tc arg_type in
         Lam (x, arg_type, body)
@@ -277,31 +277,31 @@ module F = struct
       | Fun (x, a, m) ->
         let a = Embed.create Type.tc a in
         let bind =
-          Bind.create tc (Pattern_tc.pair Name.ptc (Embed.tc Type.tc)) (x, a) m
+          Bind.create (Pattern_tc.pair Name.ptc (Embed.tc Type.tc)) tc (x, a) m
         in
         Fun bind
       | Tyapp (m, n) -> Tyapp (m, n)
       | Tyfun (x, a, m) ->
         let a = Embed.create Kind.tc a in
         let bind =
-          Bind.create tc (Pattern_tc.pair Type.Name.ptc (Embed.tc Kind.tc)) (x, a) m
+          Bind.create (Pattern_tc.pair Type.Name.ptc (Embed.tc Kind.tc)) tc (x, a) m
         in
         Tyfun bind
       | Record r -> Record r
       | Dot (m, x) -> Dot (m, x)
       | Pack (a, m, b, c) ->
-        let bind = Bind.create Type.tc Type.Name.ptc b c in
+        let bind = Bind.create Type.Name.ptc Type.tc b c in
         Pack (a, m, bind)
       | Unpack (a, x, m, n) ->
         let m = Embed.create tc m in
         let bind =
-          Bind.create tc (Pattern_tc.triple Type.Name.ptc Name.ptc (Embed.tc tc)) (a, x, m) n
+          Bind.create (Pattern_tc.triple Type.Name.ptc Name.ptc (Embed.tc tc)) tc (a, x, m) n
         in
         Unpack bind
       | Let (x, m, n) ->
         let m = Embed.create tc m in
         let bind =
-          Bind.create tc (Pattern_tc.pair Name.ptc (Embed.tc tc)) (x, m) n
+          Bind.create (Pattern_tc.pair Name.ptc (Embed.tc tc)) tc (x, m) n
         in
         Let bind
 
@@ -310,31 +310,31 @@ module F = struct
       | App (m, n) -> App (m, n)
       | Fun bind ->
         let ((x, a), m) =
-          Bind.expose tc (Pattern_tc.pair Name.ptc (Embed.tc Type.tc)) bind
+          Bind.expose (Pattern_tc.pair Name.ptc (Embed.tc Type.tc)) tc bind
         in
         let a = Embed.expose Type.tc a in
         Fun (x, a, m)
       | Tyapp (m, n) -> Tyapp (m, n)
       | Tyfun bind ->
         let ((x, a), m) =
-          Bind.expose tc (Pattern_tc.pair Type.Name.ptc (Embed.tc Kind.tc)) bind
+          Bind.expose (Pattern_tc.pair Type.Name.ptc (Embed.tc Kind.tc)) tc bind
         in
         let a = Embed.expose Kind.tc a in
         Tyfun (x, a, m)
       | Record r -> Record r
       | Dot (m, x) -> Dot (m, x)
       | Pack (a, m, bind) ->
-        let (b, c) = Bind.expose Type.tc Type.Name.ptc bind in
+        let (b, c) = Bind.expose Type.Name.ptc Type.tc bind in
         Pack (a, m, b, c)
       | Unpack bind ->
         let ((a, x, m), n) =
-          Bind.expose tc (Pattern_tc.triple Type.Name.ptc Name.ptc (Embed.tc tc)) bind
+          Bind.expose (Pattern_tc.triple Type.Name.ptc Name.ptc (Embed.tc tc)) tc bind
         in
         let m = Embed.expose tc m in
         Unpack (a, x, m, n)
       | Let bind ->
         let ((x, m), n) =
-          Bind.expose tc (Pattern_tc.pair Name.ptc (Embed.tc tc)) bind
+          Bind.expose (Pattern_tc.pair Name.ptc (Embed.tc tc)) tc bind
         in
         let m = Embed.expose tc m in
         Let (x, m, n)
@@ -397,7 +397,7 @@ module Target = struct
       | Fun    of (((F.Type.Name.t * F.Kind.t Embed.t) list, t * Asig.t) Bind.t)
     with compare
 
-    val tc : t Term_tc.t
+    val tc : t Term_tc.t Lazy.t
 
     module Shape : sig
       type nonrec 'a t =
@@ -424,7 +424,7 @@ module Target = struct
       | Fun    of (((F.Type.Name.t * F.Kind.t Embed.t) list, t * Asig.t) Bind.t)
     with compare
 
-    let rec tc : t Term_tc.t = {
+    let rec tc : t Term_tc.t Lazy.t = lazy {
       close = (fun ptc l p t ->
         match t with
         | Val    x -> let tc = Lazy.force val_tc    in Val    (tc.close ptc l p x)
@@ -458,10 +458,10 @@ module Target = struct
       lazy (Term_tc.pair F.Type.tc F.Kind.tc)
 
     and sig_tc : Asig.t Term_tc.t Lazy.t =
-      lazy Asig.tc
+      lazy (Lazy.force Asig.tc)
 
     and struct_tc : t Label.Map.t Term_tc.t Lazy.t =
-      lazy (Term_tc.map tc)
+      lazy (Term_tc.map (Lazy.force tc))
 
     and fun_tc : ( (F.Type.Name.t * F.Kind.t Embed.t) list
                  , t * Asig.t
@@ -470,7 +470,7 @@ module Target = struct
               (Pattern_tc.list (Pattern_tc.pair
                                   F.Type.Name.ptc
                                   (Embed.tc F.Kind.tc)))
-              (Term_tc.pair tc Asig.tc))
+              (Term_tc.pair (Lazy.force tc) (Lazy.force Asig.tc)))
 
     let equal t1 t2 = compare t1 t2 = 0
 
@@ -499,8 +499,8 @@ module Target = struct
       | Fun bind ->
         let (args, (csig, asig)) =
           Bind.expose
-            (Term_tc.pair tc Asig.tc)
             (Pattern_tc.list (Pattern_tc.pair F.Type.Name.ptc (Embed.tc F.Kind.tc)))
+            (Term_tc.pair (Lazy.force tc) (Lazy.force Asig.tc))
             bind
         in
         let args =
@@ -517,7 +517,7 @@ module Target = struct
       | Exists of (((F.Type.Name.t * F.Kind.t Embed.t) list, Csig.t) Bind.t)
     with compare
 
-    val tc : t Term_tc.t
+    val tc : t Term_tc.t Lazy.t
 
     module Shape : sig
       type t =
@@ -529,7 +529,7 @@ module Target = struct
       | Exists of (((F.Type.Name.t * F.Kind.t Embed.t) list, Csig.t) Bind.t)
     with compare
 
-    let rec tc : t Term_tc.t = {
+    let rec tc : t Term_tc.t Lazy.t = lazy {
       close = (fun ptc l p t ->
         match t with
         | Exists x -> let tc = Lazy.force exists_tc in Exists (tc.close ptc l p x)
@@ -548,7 +548,7 @@ module Target = struct
       ((F.Type.Name.t * F.Kind.t Embed.t) list, Csig.t) Bind.t Term_tc.t Lazy.t =
       lazy (Bind.tc
               (Pattern_tc.list (Pattern_tc.pair F.Type.Name.ptc (Embed.tc F.Kind.tc)))
-              Csig.tc)
+              (Lazy.force Csig.tc))
 
     module Shape = struct
       type t =
