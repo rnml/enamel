@@ -1,116 +1,75 @@
 open Std_internal
 
-module type T = sig
-  module Kind : sig
-    type t with sexp
-    val ok : Target.Context.t -> t -> F.Kind.t
-  end
-  module Ty : sig
-    type 'a t with sexp
-    type 'a check = Target.Context.t -> 'a -> F.Ty.t * F.Kind.t
-    val ok : 'a check -> 'a t check
-  end
-  module Tm : sig
-    type ('a, 'b) t with sexp
-    type 'b check = Target.Context.t -> 'b -> F.Tm.t * F.Ty.t
-    val ok : 'a Ty.check -> 'b check -> ('a, 'b) t check
-  end
+module type Base = sig
+  module Kind : sig type t end
+  module Type : sig type 'ty t end
+  module Term : sig type ('tm, 'ty) t end
 end
 
-module Source (Base : T) : sig
+module Source (Base : Base) : sig
 
-  module Kind : sig
-    type t = Base.Kind.t with sexp
-  end
+  module Label : Identifiable
+  module Name : Identifiable
 
-  module rec Path : sig
-    type t = Mod.t with sexp
-    val ok : Target.Context.t -> t -> F.Tm.t * Target.Csig.t
-  end
-
-  and Ty : sig
+  module rec Type : sig
     type t =
-      | Wrap of t Base.Ty.t
-      | Path of Path.t
-      | Let of Bnd.t * t
-    with sexp
-    val ok :
-      Target.Context.t -> t -> F.Ty.t * F.Kind.t
+      | Wrap of t Base.Type.t
+      | Path of Module.t
+      (* | Let  of Struct.t * t *)
   end
 
-  and Tm : sig
+  and Term : sig
     type t =
-      | Wrap of (Ty.t, t) Base.Tm.t
-      | Path of Path.t
-      | Let of Bnd.t * t
-    with sexp
-    val ok :
-      Target.Context.t -> t -> F.Tm.t * F.Ty.t
+      | Wrap of (Type.t, t) Base.Term.t
+      | Path of Module.t
+      (* | Let  of Struct.t * t *)
   end
 
-  and Sig : sig
+  and Signature : sig
     type t =
-      | Path of Path.t
-      | Val of Ty.t
-      | Type of Ty.t
-      | Abstype of Kind.t
-      | Sig of Sig.t
-      | Struct of Decl.t
-      | Fun of F.Tm.Name.t * t * t
-      | Where of t * F.Label.t list * Ty.t
-      | Let of Bnd.t * t
-    with sexp
-    val ok : Target.Context.t -> t -> Target.Asig.t
+      | Path      of Module.t
+      | Val       of Type.t
+      | Type      of Type.t
+      | Abstype   of Base.Kind.t
+      | Signature of t
+      | Struct    of Decl.t
+      | Fun       of Name.t * t * t
+      | Where     of t * Label.t list * Type.t
+      (* | Let     of Struct.t * t *)
   end
 
   and Decl : sig
     type t =
-      | Decl of F.Tm.Name.t * Sig.t
+      | Decl    of Name.t * Signature.t
       | Nil
-      | Cat of t * t
-      | Include of Sig.t
-      | Local of Bnd.t * t
-    with sexp
-    val ok :
-      Target.Context.t
-      -> t
-      -> (F.Ty.Name.t * F.Kind.t) list
-         * Target.Csig.t F.Label.Map.t
+      | Cat     of t * t
+      | Include of Signature.t
+      (* | Local   of Struct.t * t *)
   end
 
-  and Mod : sig
+  and Module : sig
     type t =
-      | Name of F.Tm.Name.t
-      | Val of Tm.t
-      | Type of Ty.t
-      | Sig of Sig.t
-      | Struct of Bnd.t
-      | Dot of t * F.Label.t
-      | Fun of F.Tm.Name.t * Sig.t * t
-      | App of t * t
-      | Seal of t * Sig.t
-      | Let of Bnd.t * t
-    with sexp
-    val ok :
-      (* CR: flip order of returned pair *)
-      Target.Context.t -> t -> Target.Asig.t * F.Tm.t
+      | Name      of Name.t
+      | Type      of Type.t
+      | Value     of Term.t
+      | Struct    of Struct.t
+      | Signature of Signature.t
+      | Dot       of t * Label.t
+      | Fun       of Name.t * Signature.t * t
+      | AppV      of Name.t * Name.t
+      | SealV     of Name.t * Signature.t
+      (* | App    of t * t *)
+      (* | Seal   of t * Signature.t *)
+      (* | Let    of Struct.t * t *)
   end
 
-  and Bnd : sig
+  and Struct : sig
     type t =
-      | Let of F.Tm.Name.t * Mod.t
+      | Let     of Name.t * Module.t
       | Nil
-      | Cat of t * t
-      | Include of Mod.t
-      | Local of t * t
-    with sexp
-    val ok :
-      Target.Context.t
-      -> t
-      -> (F.Ty.Name.t * F.Kind.t) list
-         * Target.Csig.t F.Label.Map.t
-         * (F.Tm.t -> F.Tm.t)
+      | Cat     of t * t
+      | Include of Module.t
+      (* | Local   of t * t *)
   end
 
 end
-
