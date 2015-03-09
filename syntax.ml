@@ -275,6 +275,10 @@ module F = struct
 end
 
 module Target = struct
-  module Csig = Syntax0.Target.Csig
-  module Asig = Syntax0.Target.Asig
+  module Csig = struct
+    include Syntax0.Target.Csig
+  end
+  module Asig =struct
+    include  Syntax0.Target.Asig
+  end
 end
