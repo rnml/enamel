@@ -89,7 +89,7 @@ module Target : sig
       val map : 'a1 t -> f:('a1 -> 'a2) -> 'a2 t
     end
 
-    (* val create : t Shape.t -> t *)
+    val create : t Shape.t -> t
     val match_ : t -> t Shape.t
 
     val equal : t -> t -> bool

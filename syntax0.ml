@@ -425,7 +425,7 @@ module Target = struct
       val map : 'a1 t -> f:('a1 -> 'a2) -> 'a2 t
     end
 
-    (* val create : t Shape.t -> t *)
+    val create : t Shape.t -> t
     val match_ : t -> t Shape.t
 
     val equal : t -> t -> bool
@@ -506,6 +506,25 @@ module Target = struct
         | Struct (a)       -> Struct (Label.Map.map ~f a)
         | Fun    (a, b, c) -> Fun (a, f b, c)
     end
+
+    let create : t Shape.t -> t = function
+      | Val (a)     -> Val (a)
+      | Type (a, b) -> Type (a, b)
+      | Sig (a)     -> Sig (a)
+      | Struct (a)  -> Struct (a)
+      | Fun (args, csig, asig) ->
+        let args =
+          List.map args ~f:(fun (a, b) ->
+            let b = Embed.create F.Kind.tc b in
+            (a, b))
+        in
+        let bind =
+          Bind.create
+            (Pattern_tc.list (Pattern_tc.pair F.Type.Name.ptc (Embed.tc F.Kind.tc)))
+            (Term_tc.pair (Lazy.force tc) (Lazy.force Asig.tc))
+            args (csig, asig)
+        in
+        Fun bind
 
     let match_ : t -> t Shape.t = function
       | Val (a)     -> Val (a)
