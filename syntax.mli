@@ -77,7 +77,7 @@ end
 module Target : sig
 
   module rec Csig : sig
-    type t with sexp_of
+    type t with sexp
 
     module Shape : sig
       type nonrec 'a t =
@@ -97,7 +97,7 @@ module Target : sig
   end
 
   and Asig : sig
-    type t with sexp_of
+    type t with sexp
 
     module Shape : sig
       type t =

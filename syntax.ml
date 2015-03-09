@@ -280,33 +280,74 @@ module Target = struct
 
   let rec sexp_of_asig t : Sexp.t =
     match T.Asig.match_ t with
-    | Exists (params, csig) ->
-      List [
-        Atom "exists";
-        <:sexp_of< (F.Type.Name.t * F.Kind.t) list >> params;
-        sexp_of_csig csig;
-      ]
+    | Exists (a, b) ->
+      let a = <:sexp_of< (F.Type.Name.t * F.Kind.t) list >> a in
+      let b = sexp_of_csig b in
+      List [Atom "exists"; a; b]
 
   and sexp_of_csig t : Sexp.t =
     match T.Csig.match_ t with
-    | Val a -> List [Atom "val"; F.Type.sexp_of_t a]
-    | Type (a, b) -> List [Atom "type"; F.Type.sexp_of_t a; F.Kind.sexp_of_t b]
-    | Sig a -> List [Atom "sig"; sexp_of_asig a]
-    | Struct a -> List (Atom "struct" :: List.map (Map.to_alist a) ~f:<:sexp_of< Label.t * csig >>)
-    | Forall (params, a, b) ->
-      List [
-        Atom "forall";
-        <:sexp_of< (F.Type.Name.t * F.Kind.t) list >> params;
-        sexp_of_csig a;
-        sexp_of_asig b;
-      ]
+    | Val a ->
+      let a = F.Type.sexp_of_t a in
+      List [Atom "val"; a]
+    | Type (a, b) ->
+      let a = F.Type.sexp_of_t a in
+      let b = F.Kind.sexp_of_t b in
+      List [Atom "type"; a; b]
+    | Sig a ->
+      let a = sexp_of_asig a in
+      List [Atom "sig"; a]
+    | Struct a ->
+      let a = Map.to_alist a in
+      let a = List.map ~f:<:sexp_of< Label.t * csig >> a in
+      List (Atom "struct" :: a)
+    | Forall (a, b, c) ->
+      let a = <:sexp_of< (F.Type.Name.t * F.Kind.t) list >> a in
+      let b = sexp_of_csig b in
+      let c = sexp_of_asig c in
+      List [Atom "forall"; a; b; c]
+
+  let rec asig_of_sexp s =
+    match (s : Sexp.t) with
+    | List [Atom "exists"; a; b] ->
+      let a = <:of_sexp< (F.Type.Name.t * F.Kind.t) list >> a in
+      let b = csig_of_sexp b in
+      T.Asig.create @@ Exists (a, b)
+    | sexp ->
+      of_sexp_error "asig_of_sexp" sexp
+
+  and csig_of_sexp s =
+    match (s : Sexp.t) with
+    | List [Atom "val"; a] ->
+      let a = F.Type.t_of_sexp a in
+      T.Csig.create @@ Val a
+    | List [Atom "type"; a; b] ->
+      let a = F.Type.t_of_sexp a in
+      let b = F.Kind.t_of_sexp b in
+      T.Csig.create @@ Type (a, b)
+    | List [Atom "sig"; a] ->
+      let a = asig_of_sexp a in
+      T.Csig.create @@ Sig a
+    | List (Atom "struct" :: a) ->
+      let a = List.map ~f:<:of_sexp< Label.t * csig >> a in
+      let a = Label.Map.of_alist_exn a in
+      T.Csig.create @@ Struct a
+    | List [Atom "forall"; a; b; c] ->
+      let a = <:of_sexp< (F.Type.Name.t * F.Kind.t) list >> a in
+      let b = csig_of_sexp b in
+      let c = asig_of_sexp c in
+      T.Csig.create @@ Forall (a, b, c)
+    | sexp ->
+      of_sexp_error "csig_of_sexp" sexp
 
   module Csig = struct
     include T.Csig
     let sexp_of_t = sexp_of_csig
+    let t_of_sexp = csig_of_sexp
   end
   module Asig = struct
     include T.Asig
     let sexp_of_t = sexp_of_asig
+    let t_of_sexp = asig_of_sexp
   end
 end
