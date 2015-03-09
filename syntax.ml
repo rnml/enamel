@@ -275,10 +275,38 @@ module F = struct
 end
 
 module Target = struct
+
+  module T = Syntax0.Target
+
+  let rec sexp_of_asig t : Sexp.t =
+    match T.Asig.match_ t with
+    | Exists (params, csig) ->
+      List [
+        Atom "exists";
+        <:sexp_of< (F.Type.Name.t * F.Kind.t) list >> params;
+        sexp_of_csig csig;
+      ]
+
+  and sexp_of_csig t : Sexp.t =
+    match T.Csig.match_ t with
+    | Val a -> List [Atom "val"; F.Type.sexp_of_t a]
+    | Type (a, b) -> List [Atom "type"; F.Type.sexp_of_t a; F.Kind.sexp_of_t b]
+    | Sig a -> List [Atom "sig"; sexp_of_asig a]
+    | Struct a -> List (Atom "struct" :: List.map (Map.to_alist a) ~f:<:sexp_of< Label.t * csig >>)
+    | Forall (params, a, b) ->
+      List [
+        Atom "forall";
+        <:sexp_of< (F.Type.Name.t * F.Kind.t) list >> params;
+        sexp_of_csig a;
+        sexp_of_asig b;
+      ]
+
   module Csig = struct
-    include Syntax0.Target.Csig
+    include T.Csig
+    let sexp_of_t = sexp_of_csig
   end
-  module Asig =struct
-    include  Syntax0.Target.Asig
+  module Asig = struct
+    include T.Asig
+    let sexp_of_t = sexp_of_asig
   end
 end

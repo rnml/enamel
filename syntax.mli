@@ -77,7 +77,7 @@ end
 module Target : sig
 
   module rec Csig : sig
-    type t
+    type t with sexp_of
 
     module Shape : sig
       type nonrec 'a t =
@@ -85,7 +85,7 @@ module Target : sig
         | Type   of F.Type.t * F.Kind.t
         | Sig    of Asig.t
         | Struct of 'a Label.Map.t
-        | Fun    of (F.Type.Name.t * F.Kind.t) list * 'a * Asig.t
+        | Forall of (F.Type.Name.t * F.Kind.t) list * 'a * Asig.t
       val map : 'a1 t -> f:('a1 -> 'a2) -> 'a2 t
     end
 
@@ -97,7 +97,7 @@ module Target : sig
   end
 
   and Asig : sig
-    type t
+    type t with sexp_of
 
     module Shape : sig
       type t =

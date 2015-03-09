@@ -410,7 +410,7 @@ module Target = struct
       | Type   of (F.Type.t * F.Kind.t)
       | Sig    of (Asig.t)
       | Struct of (t Label.Map.t)
-      | Fun    of (((F.Type.Name.t * F.Kind.t Embed.t) list, t * Asig.t) Bind.t)
+      | Forall of (((F.Type.Name.t * F.Kind.t Embed.t) list, t * Asig.t) Bind.t)
     with compare
 
     val tc : t Term_tc.t Lazy.t
@@ -421,7 +421,7 @@ module Target = struct
         | Type   of F.Type.t * F.Kind.t
         | Sig    of Asig.t
         | Struct of 'a Label.Map.t
-        | Fun    of (F.Type.Name.t * F.Kind.t) list * 'a * Asig.t
+        | Forall of (F.Type.Name.t * F.Kind.t) list * 'a * Asig.t
       val map : 'a1 t -> f:('a1 -> 'a2) -> 'a2 t
     end
 
@@ -437,7 +437,7 @@ module Target = struct
       | Type   of (F.Type.t * F.Kind.t)
       | Sig    of (Asig.t)
       | Struct of (t Label.Map.t)
-      | Fun    of (((F.Type.Name.t * F.Kind.t Embed.t) list, t * Asig.t) Bind.t)
+      | Forall of (((F.Type.Name.t * F.Kind.t Embed.t) list, t * Asig.t) Bind.t)
     with compare
 
     let rec tc : t Term_tc.t Lazy.t = lazy {
@@ -447,7 +447,7 @@ module Target = struct
         | Type   x -> let tc = Lazy.force type_tc   in Type   (tc.close ptc l p x)
         | Sig    x -> let tc = Lazy.force sig_tc    in Sig    (tc.close ptc l p x)
         | Struct x -> let tc = Lazy.force struct_tc in Struct (tc.close ptc l p x)
-        | Fun    x -> let tc = Lazy.force fun_tc    in Fun    (tc.close ptc l p x)
+        | Forall x -> let tc = Lazy.force forall_tc in Forall (tc.close ptc l p x)
       );
       open_ = (fun ptc l p t ->
         match t with
@@ -455,7 +455,7 @@ module Target = struct
         | Type   x -> let tc = Lazy.force type_tc   in Type   (tc.open_ ptc l p x)
         | Sig    x -> let tc = Lazy.force sig_tc    in Sig    (tc.open_ ptc l p x)
         | Struct x -> let tc = Lazy.force struct_tc in Struct (tc.open_ ptc l p x)
-        | Fun    x -> let tc = Lazy.force fun_tc    in Fun    (tc.open_ ptc l p x)
+        | Forall x -> let tc = Lazy.force forall_tc in Forall (tc.open_ ptc l p x)
       );
       compare;
       fv = (function
@@ -463,7 +463,7 @@ module Target = struct
         | Type   x -> let tc = Lazy.force type_tc   in tc.fv x
         | Sig    x -> let tc = Lazy.force sig_tc    in tc.fv x
         | Struct x -> let tc = Lazy.force struct_tc in tc.fv x
-        | Fun    x -> let tc = Lazy.force fun_tc    in tc.fv x
+        | Forall x -> let tc = Lazy.force forall_tc in tc.fv x
       );
     }
 
@@ -479,7 +479,7 @@ module Target = struct
     and struct_tc : t Label.Map.t Term_tc.t Lazy.t =
       lazy (Term_tc.map (Lazy.force tc))
 
-    and fun_tc : ( (F.Type.Name.t * F.Kind.t Embed.t) list
+    and forall_tc : ( (F.Type.Name.t * F.Kind.t Embed.t) list
                  , t * Asig.t
                  ) Bind.t Term_tc.t Lazy.t =
       lazy (Bind.tc
@@ -496,7 +496,7 @@ module Target = struct
         | Type   of F.Type.t * F.Kind.t
         | Sig    of Asig.t
         | Struct of 'a Label.Map.t
-        | Fun    of (F.Type.Name.t * F.Kind.t) list * 'a * Asig.t
+        | Forall of (F.Type.Name.t * F.Kind.t) list * 'a * Asig.t
 
       let map t ~f =
         match t with
@@ -504,7 +504,7 @@ module Target = struct
         | Type   (a, b)    -> Type (a, b)
         | Sig    (a)       -> Sig (a)
         | Struct (a)       -> Struct (Label.Map.map ~f a)
-        | Fun    (a, b, c) -> Fun (a, f b, c)
+        | Forall (a, b, c) -> Forall (a, f b, c)
     end
 
     let create : t Shape.t -> t = function
@@ -512,7 +512,7 @@ module Target = struct
       | Type (a, b) -> Type (a, b)
       | Sig (a)     -> Sig (a)
       | Struct (a)  -> Struct (a)
-      | Fun (args, csig, asig) ->
+      | Forall (args, csig, asig) ->
         let args =
           List.map args ~f:(fun (a, b) ->
             let b = Embed.create F.Kind.tc b in
@@ -524,14 +524,14 @@ module Target = struct
             (Term_tc.pair (Lazy.force tc) (Lazy.force Asig.tc))
             args (csig, asig)
         in
-        Fun bind
+        Forall bind
 
     let match_ : t -> t Shape.t = function
       | Val (a)     -> Val (a)
       | Type (a, b) -> Type (a, b)
       | Sig (a)     -> Sig (a)
       | Struct (a)  -> Struct (a)
-      | Fun bind ->
+      | Forall bind ->
         let (args, (csig, asig)) =
           Bind.expose
             (Pattern_tc.list (Pattern_tc.pair F.Type.Name.ptc (Embed.tc F.Kind.tc)))
@@ -543,7 +543,7 @@ module Target = struct
             let b = Embed.expose F.Kind.tc b in
             (a, b))
         in
-        Fun (args, csig, asig)
+        Forall (args, csig, asig)
 
   end
 
