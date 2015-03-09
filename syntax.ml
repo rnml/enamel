@@ -273,3 +273,8 @@ module F = struct
   end
 
 end
+
+module Target = struct
+  module Csig = Syntax0.Target.Csig
+  module Asig = Syntax0.Target.Asig
+end
