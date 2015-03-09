@@ -537,8 +537,10 @@ module Target = struct
 
     module Shape : sig
       type t =
-        | Exists of (F.Type.Name.t * F.Kind.t Embed.t) list * Csig.t
+        | Exists of (F.Type.Name.t * F.Kind.t) list * Csig.t
     end
+
+    val match_ : t -> Shape.t
 
   end = struct
     type t =
@@ -568,8 +570,22 @@ module Target = struct
 
     module Shape = struct
       type t =
-        | Exists of (F.Type.Name.t * F.Kind.t Embed.t) list * Csig.t
+        | Exists of (F.Type.Name.t * F.Kind.t) list * Csig.t
     end
+
+    let match_ : t -> Shape.t = function
+      | Exists a ->
+        let (b, c) =
+          Bind.expose
+            (Pattern_tc.list (Pattern_tc.pair F.Type.Name.ptc (Embed.tc F.Kind.tc)))
+            (Lazy.force Csig.tc) a
+        in
+        let b =
+          List.map b ~f:(fun (c, d) ->
+            let d = Embed.expose F.Kind.tc d in
+            (c, d))
+        in
+        Shape.Exists (b, c)
 
   end
 

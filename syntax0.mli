@@ -100,12 +100,12 @@ module Target : sig
     type t
 
     module Shape : sig
-      type nonrec t =
-        | Exists of (F.Type.Name.t * F.Kind.t Embed.t) list * Csig.t
+      type t =
+        | Exists of (F.Type.Name.t * F.Kind.t) list * Csig.t
     end
 
     (* val create : Shape.t -> t *)
-    (* val match_ : t -> Shape.t *)
+    val match_ : t -> Shape.t
   end
 
 end
