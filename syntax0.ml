@@ -215,7 +215,7 @@ module F = struct
       | Pack   of (Type.t * t * (Type.Name.t, Type.t) Bind.t)
       | Unpack of ((Type.Name.t * Name.t * t Embed.t, t) Bind.t)
       | Let    of ((Name.t * t Embed.t, t) Bind.t)
-    with compare, sexp
+    with sexp
 
     let rec tc : t Term_tc.t = {
       close = (fun ptc l p t ->
@@ -244,7 +244,29 @@ module F = struct
         | Unpack x -> let tc = Lazy.force unpack_tc in Unpack (tc.open_ ptc l p x)
         | Let    x -> let tc = Lazy.force let_tc    in Let    (tc.open_ ptc l p x)
       );
-      compare;
+      compare = (fun x y ->
+        match (x, y) with
+        | (Name   x, Name   y) -> let tc = Lazy.force name_tc   in tc.compare x y
+        | (Lambda x, Lambda y) -> let tc = Lazy.force lambda_tc in tc.compare x y
+        | (App    x, App    y) -> let tc = Lazy.force app_tc    in tc.compare x y
+        | (Record x, Record y) -> let tc = Lazy.force record_tc in tc.compare x y
+        | (Dot    x, Dot    y) -> let tc = Lazy.force dot_tc    in tc.compare x y
+        | (Tyfun  x, Tyfun  y) -> let tc = Lazy.force tyfun_tc  in tc.compare x y
+        | (Tyapp  x, Tyapp  y) -> let tc = Lazy.force tyapp_tc  in tc.compare x y
+        | (Pack   x, Pack   y) -> let tc = Lazy.force pack_tc   in tc.compare x y
+        | (Unpack x, Unpack y) -> let tc = Lazy.force unpack_tc in tc.compare x y
+        | (Let    x, Let    y) -> let tc = Lazy.force let_tc    in tc.compare x y
+        | (Name   _, _) -> -1 | (_, Name   _) -> 1
+        | (Lambda _, _) -> -1 | (_, Lambda _) -> 1
+        | (App    _, _) -> -1 | (_, App    _) -> 1
+        | (Record _, _) -> -1 | (_, Record _) -> 1
+        | (Dot    _, _) -> -1 | (_, Dot    _) -> 1
+        | (Tyfun  _, _) -> -1 | (_, Tyfun  _) -> 1
+        | (Tyapp  _, _) -> -1 | (_, Tyapp  _) -> 1
+        | (Pack   _, _) -> -1 | (_, Pack   _) -> 1
+        | (Unpack _, _) -> -1 | (_, Unpack _) -> 1
+        (* | (Let    _, _) -> -1 | (_, Let    _) -> 1 *)
+      );
       fv = (function
         | Name   x -> let tc = Lazy.force name_tc   in tc.fv x
         | Lambda x -> let tc = Lazy.force lambda_tc in tc.fv x
@@ -411,7 +433,6 @@ module Target = struct
       | Sig    of (Asig.t)
       | Struct of (t Label.Map.t)
       | Forall of (((F.Type.Name.t * F.Kind.t Embed.t) list, t * Asig.t) Bind.t)
-    with compare
 
     val tc : t Term_tc.t Lazy.t
 
@@ -438,7 +459,6 @@ module Target = struct
       | Sig    of (Asig.t)
       | Struct of (t Label.Map.t)
       | Forall of (((F.Type.Name.t * F.Kind.t Embed.t) list, t * Asig.t) Bind.t)
-    with compare
 
     let rec tc : t Term_tc.t Lazy.t = lazy {
       close = (fun ptc l p t ->
@@ -457,7 +477,19 @@ module Target = struct
         | Struct x -> let tc = Lazy.force struct_tc in Struct (tc.open_ ptc l p x)
         | Forall x -> let tc = Lazy.force forall_tc in Forall (tc.open_ ptc l p x)
       );
-      compare;
+      compare = (fun x y ->
+        match (x, y) with
+        | (Val    x, Val    y) -> let tc = Lazy.force val_tc    in tc.compare x y
+        | (Type   x, Type   y) -> let tc = Lazy.force type_tc   in tc.compare x y
+        | (Sig    x, Sig    y) -> let tc = Lazy.force sig_tc    in tc.compare x y
+        | (Struct x, Struct y) -> let tc = Lazy.force struct_tc in tc.compare x y
+        | (Forall x, Forall y) -> let tc = Lazy.force forall_tc in tc.compare x y
+        | (Val    _, _) -> -1 | (_, Val    _) -> 1
+        | (Type   _, _) -> -1 | (_, Type   _) -> 1
+        | (Sig    _, _) -> -1 | (_, Sig    _) -> 1
+        | (Struct _, _) -> -1 | (_, Struct _) -> 1
+        (* | (Forall _, _) -> -1 | (_, Forall _) -> 1 *)
+      );
       fv = (function
         | Val    x -> let tc = Lazy.force val_tc    in tc.fv x
         | Type   x -> let tc = Lazy.force type_tc   in tc.fv x
@@ -488,7 +520,7 @@ module Target = struct
                                   (Embed.tc F.Kind.tc)))
               (Term_tc.pair (Lazy.force tc) (Lazy.force Asig.tc)))
 
-    let equal t1 t2 = compare t1 t2 = 0
+    let equal t1 t2 = (Lazy.force tc).compare t1 t2 = 0
 
     module Shape = struct
       type nonrec 'a t =
@@ -565,7 +597,6 @@ module Target = struct
   end = struct
     type t =
       | Exists of (((F.Type.Name.t * F.Kind.t Embed.t) list, Csig.t) Bind.t)
-    with compare
 
     let rec tc : t Term_tc.t Lazy.t = lazy {
       close = (fun ptc l p t ->
@@ -576,7 +607,10 @@ module Target = struct
         match t with
         | Exists x -> let tc = Lazy.force exists_tc in Exists (tc.open_ ptc l p x)
       );
-      compare;
+      compare = (fun x y ->
+        match (x, y) with
+        | (Exists x, Exists y) -> let tc = Lazy.force exists_tc in tc.compare x y
+      );
       fv = (function
         | Exists x -> let tc = Lazy.force exists_tc in tc.fv x
       );
@@ -587,6 +621,8 @@ module Target = struct
       lazy (Bind.tc
               (Pattern_tc.list (Pattern_tc.pair F.Type.Name.ptc (Embed.tc F.Kind.tc)))
               (Lazy.force Csig.tc))
+
+    let compare a b = (Lazy.force tc).compare a b
 
     module Shape = struct
       type t =
