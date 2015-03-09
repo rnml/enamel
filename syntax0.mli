@@ -104,7 +104,7 @@ module Target : sig
         | Exists of (F.Type.Name.t * F.Kind.t) list * Csig.t
     end
 
-    (* val create : Shape.t -> t *)
+    val create : Shape.t -> t
     val match_ : t -> Shape.t
   end
 
