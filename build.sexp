@@ -4,6 +4,7 @@
  (syntax    (comparelib sexplib bin_prot))
  (modules (std_internal
            scc
+           syntax0
            syntax
            module_system
            initial_context

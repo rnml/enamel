@@ -2,559 +2,274 @@ open Std_internal
 
 open Or_error.Monad_infix
 
-module Label : Identifiable = String_id
+module Label = Syntax0.Label
 
 module F = struct
 
   module Kind = struct
-    type t =
-      | Type
-      | Fun of t * t
-    with compare
+    include Syntax0.F.Kind
 
-    let tc = Term_tc.const ~cmp:compare
+    let rec sexp_of_t : t -> Sexp.t = function
+      | Type -> Atom "*"
+      | Fun (a, b) ->
+        let rec loop acc : t -> Sexp.t = function
+          | Fun (a, b) -> loop (a :: acc) b
+          | b -> List (Atom "fun" :: List.rev_map ~f:sexp_of_t (b :: acc))
+        in
+        loop [a] b
 
-    let compare = tc.compare
-    let equal   = Term_tc.equal tc
+    let rec t_of_sexp : Sexp.t -> t = function
+      | Atom "*" -> Type
+      | List (Atom "fun" :: a :: b :: args) ->
+        Fun ( t_of_sexp a
+            , let rec loop b args =
+              match args with
+              | [] -> t_of_sexp b
+              | c :: args -> Fun (t_of_sexp b, loop c args)
+              in loop b args)
+      | sexp -> of_sexp_error "Kind.t_of_sexp" sexp
   end
 
   module Type = struct
 
-    module Name =
-      Make_name_type (struct
-        let module_name = "F.Type.Name"
-      end)
+    include Syntax0.F.Type
 
-    type t =
-      | Name   of (Name.t)
-      | Fun    of (t * t)
-      | Record of (t Label.Map.t)
-      | Forall of ((Name.t * Kind.t Embed.t, t) Bind.t)
-      | Exists of ((Name.t * Kind.t Embed.t, t) Bind.t)
-      | Lam    of ((Name.t * Kind.t Embed.t, t) Bind.t)
-      | App    of (t * t)
-    with compare
-
-    let rec tc : t Term_tc.t = {
-      close = (fun ptc l p t ->
-        match t with
-        | Name   x -> let tc = Lazy.force name_tc in Name   (tc.close ptc l p x)
-        | Fun    x -> let tc = Lazy.force pair_tc in Fun    (tc.close ptc l p x)
-        | Record x -> let tc = Lazy.force lmap_tc in Record (tc.close ptc l p x)
-        | Forall x -> let tc = Lazy.force bind_tc in Forall (tc.close ptc l p x)
-        | Exists x -> let tc = Lazy.force bind_tc in Exists (tc.close ptc l p x)
-        | Lam    x -> let tc = Lazy.force bind_tc in Lam    (tc.close ptc l p x)
-        | App    x -> let tc = Lazy.force pair_tc in App    (tc.close ptc l p x)
-      );
-      open_ = (fun ptc l p t ->
-        match t with
-        | Name   x -> let tc = Lazy.force name_tc in Name   (tc.open_ ptc l p x)
-        | Fun    x -> let tc = Lazy.force pair_tc in Fun    (tc.open_ ptc l p x)
-        | Record x -> let tc = Lazy.force lmap_tc in Record (tc.open_ ptc l p x)
-        | Forall x -> let tc = Lazy.force bind_tc in Forall (tc.open_ ptc l p x)
-        | Exists x -> let tc = Lazy.force bind_tc in Exists (tc.open_ ptc l p x)
-        | Lam    x -> let tc = Lazy.force bind_tc in Lam    (tc.open_ ptc l p x)
-        | App    x -> let tc = Lazy.force pair_tc in App    (tc.open_ ptc l p x)
-      );
-      compare;
-      fv = (function
-        | Name   x -> let tc = Lazy.force name_tc in tc.fv x
-        | Fun    x -> let tc = Lazy.force pair_tc in tc.fv x
-        | Record x -> let tc = Lazy.force lmap_tc in tc.fv x
-        | Forall x -> let tc = Lazy.force bind_tc in tc.fv x
-        | Exists x -> let tc = Lazy.force bind_tc in tc.fv x
-        | Lam    x -> let tc = Lazy.force bind_tc in tc.fv x
-        | App    x -> let tc = Lazy.force pair_tc in tc.fv x
-      );
-    }
-
-    and name_tc : Name.t Term_tc.t Lazy.t =
-      lazy Name.tc
-
-    and bind_tc : (Name.t * Kind.t Embed.t, t) Bind.t Term_tc.t Lazy.t =
-      lazy (Bind.tc (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc)
-
-    and pair_tc : (t * t) Term_tc.t Lazy.t =
-      lazy (Term_tc.pair tc tc)
-
-    and lmap_tc : t Label.Map.t Term_tc.t Lazy.t =
-      lazy (Term_tc.map tc)
-
-    let compare = tc.compare
-    let equal   = Term_tc.equal tc
-
-    let fv t =
-      tc.fv t
-      |> Set.to_list
-      |> List.filter_map ~f:Name.match_
-      |> Name.Set.of_list
-
-    module Shape = struct
-      type 'a t =
-        | Name   of Name.t
-        | Fun    of 'a * 'a
-        | Record of 'a Label.Map.t
-        | Forall of Name.t * Kind.t * 'a
-        | Exists of Name.t * Kind.t * 'a
-        | Lam    of Name.t * Kind.t * 'a
-        | App    of 'a * 'a
-
-      let rec map t ~f =
-        match t with
-        | Name x -> Name x
-        | Fun (a, b) -> Fun (f a, f b)
-        | Record a -> Record (Map.map ~f a)
-        | Forall (x, a, b) -> Forall (x, a, f b)
-        | Exists (x, a, b) -> Exists (x, a, f b)
-        | Lam (x, a, b) -> Lam (x, a, f b)
-        | App (a, b) -> App (f a, f b)
-    end
-
-    let create : t Shape.t -> t = function
-      | Name x -> Name x
-      | App (a, b) -> App (a, b)
-      | Fun (a, b) -> Fun (a, b)
-      | Record a -> Record a
-      | Forall (x, arg_type, body) ->
-        let arg_type = Embed.create Kind.tc arg_type in
-        let bind =
-          Bind.create (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc (x, arg_type) body
-        in
-        Forall bind
-      | Exists (x, arg_type, body) ->
-        let arg_type = Embed.create Kind.tc arg_type in
-        let bind =
-          Bind.create (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc (x, arg_type) body
-        in
-        Exists bind
-      | Lam (x, arg_type, body) ->
-        let arg_type = Embed.create Kind.tc arg_type in
-        let bind =
-          Bind.create (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc (x, arg_type) body
-        in
-        Lam bind
-
-    let match_ : t -> t Shape.t = function
-      | Name x -> Name x
-      | App (a, b) -> App (a, b)
-      | Fun (a, b) -> Fun (a, b)
-      | Record a -> Record a
-      | Forall bind ->
-        let ((x, arg_type), body) =
-          Bind.expose (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc bind
-        in
-        let arg_type = Embed.expose Kind.tc arg_type in
-        Forall (x, arg_type, body)
-      | Exists bind ->
-        let ((x, arg_type), body) =
-          Bind.expose (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc bind
-        in
-        let arg_type = Embed.expose Kind.tc arg_type in
-        Exists (x, arg_type, body)
-      | Lam bind ->
-        let ((x, arg_type), body) =
-          Bind.expose (Pattern_tc.pair Name.ptc (Embed.tc Kind.tc)) tc bind
-        in
-        let arg_type = Embed.expose Kind.tc arg_type in
-        Lam (x, arg_type, body)
-
-    let fv t =
-      tc.fv t
-      |> Set.to_list
-      |> List.filter_map ~f:Name.match_
-      |> Name.Set.of_list
-
-    let equal t1 t2 = compare t1 t2 = 0
-
-    let rec subst t sub =
+    let rec sexp_of_t (t : t) : Sexp.t =
       match match_ t with
-      | Name x -> if Name.equal x (fst sub) then snd sub else t
-      | Fun    (a, b)    -> create (Fun (subst a sub, subst b sub))
-      | Record map       -> create (Record (Map.map map ~f:(fun t -> subst t sub)))
-      | Forall (x, k, a) -> create (Forall (x, k, subst a sub))
-      | Exists (x, k, a) -> create (Exists (x, k, subst a sub))
-      | Lam    (x, k, a) -> create (Lam (x, k, subst a sub))
-      | App    (a, b)    -> create (App (subst a sub, subst b sub))
+      | Name x -> Name.sexp_of_t x
+      | Fun (a, b) ->
+        let rec loop acc t : Sexp.t =
+          match match_ t with
+          | Fun (a, b) -> loop (a :: acc) b
+          | _ -> List (Atom "fun" :: List.rev_map ~f:sexp_of_t (t :: acc))
+        in
+        loop [a] b
+      | Record map ->
+        List ( Sexp.Atom "record"
+               :: (Map.to_alist map
+               |> List.map ~f:<:sexp_of< Label.t * t >>))
+      | Forall (x, k, b) ->
+        let rec loop acc t : Sexp.t =
+          match match_ t with
+          | Forall (x, k, b) -> loop ((x, k) :: acc) b
+          | _ ->
+            List (Atom "forall"
+                  :: List.rev (sexp_of_t t
+                               :: List.map acc
+                                    ~f:<:sexp_of< Name.t * Kind.t >>))
+        in
+        loop [(x, k)] b
+      | Exists (x, k, b) ->
+        let rec loop acc t : Sexp.t =
+          match match_ t with
+          | Exists (x, k, b) -> loop ((x, k) :: acc) b
+          | _ ->
+            List (Atom "exists"
+                  :: List.rev (sexp_of_t t
+                               :: List.map acc
+                                    ~f:<:sexp_of< Name.t * Kind.t >>))
+        in
+        loop [(x, k)] b
+      | Lambda (x, k, b) ->
+        let rec loop acc t : Sexp.t =
+          match match_ t with
+          | Lambda (x, k, b) -> loop ((x, k) :: acc) b
+          | _ ->
+            List (Atom "lambda"
+                  :: List.rev (sexp_of_t t
+                               :: List.map acc
+                                    ~f:<:sexp_of< Name.t * Kind.t >>))
+        in
+        loop [(x, k)] b
+      | App (a, b) ->
+        let rec loop t args : Sexp.t =
+          match match_ t with
+          | App (a, b) -> loop a (b :: args)
+          | _ -> List (List.map ~f:sexp_of_t (t :: args))
+        in
+        loop a [b]
 
+    let rec t_of_sexp (s : Sexp.t) : t =
+      match s with
+      | Atom _ -> create (Name (Name.t_of_sexp s))
+      | List (Atom "fun" :: a :: b :: cs) ->
+        let a = t_of_sexp a in
+        let b = t_of_sexp b in
+        let rec loop b cs =
+          match cs with
+          | [] -> b
+          | c :: ds ->
+            let c = t_of_sexp c in
+            create (Fun (b, loop c ds))
+        in
+        create (Fun (a, loop b cs))
+      | List (Atom "record" :: alist) ->
+        create (Record
+                   (Label.Map.of_alist_exn
+                    @@ List.map alist ~f:<:of_sexp< Label.t * t >>))
+      | List (Atom "forall" :: param :: rest) as sexp ->
+        begin
+          let (x, k) = <:of_sexp< Name.t * Kind.t >> param in
+          match List.rev rest with
+          | [] -> of_sexp_error "F.Type.t_of_sexp" sexp
+          | last :: args ->
+            create (Forall (x, k, begin
+              let last = t_of_sexp last in
+              List.fold args ~init:last ~f:(fun acc param ->
+                let (x, kind) = <:of_sexp< Name.t * Kind.t >> param in
+                create (Forall (x, kind, acc)))
+            end))
+        end
+      | List (Atom "exists" :: param :: rest) as sexp ->
+        begin
+          let (x, k) = <:of_sexp< Name.t * Kind.t >> param in
+          match List.rev rest with
+          | [] -> of_sexp_error "F.Type.t_of_sexp" sexp
+          | last :: args ->
+            create (Exists (x, k, begin
+              let last = t_of_sexp last in
+              List.fold args ~init:last ~f:(fun acc param ->
+                let (x, k) = <:of_sexp< Name.t * Kind.t >> param in
+                create (Exists (x, k, acc)))
+            end))
+        end
+      | List (Atom "lambda" :: param :: rest) as sexp ->
+        begin
+          let (x, k) = <:of_sexp< Name.t * Kind.t >> param in
+          match List.rev rest with
+          | [] -> of_sexp_error "F.Type.t_of_sexp" sexp
+          | last :: args ->
+            create (Lambda (x, k, begin
+              let last = t_of_sexp last in
+              List.fold args ~init:last ~f:(fun acc param ->
+                let (x, k) = <:of_sexp< Name.t * Kind.t >> param in
+                create (Lambda (x, k, acc)))
+            end))
+        end
+      | List (head :: args) ->
+        let head = t_of_sexp head in
+        let args = List.map args ~f:t_of_sexp in
+        List.fold ~init:head args ~f:(fun acc arg -> create (App (acc, arg)))
+      | sexp -> of_sexp_error "F.Type.t_of_sexp" sexp
   end
 
   module Term = struct
 
-    module Name = struct
-      include Make_name_type (struct
-        let module_name = "F.Term.Name"
-      end)
-      let to_label t = to_string t |> Label.of_string
-      let of_label l = Label.to_string l |> of_string
-    end
+    include Syntax0.F.Term
 
-    type t =
-      | Name   of (Name.t)
-      | Fun    of (Name.t * Type.t Embed.t, t) Bind.t
-      | App    of (t * t)
-      | Record of (t Label.Map.t)
-      | Dot    of (t * Label.t)
-      | Tyfun  of ((Type.Name.t * Kind.t Embed.t, t) Bind.t)
-      | Tyapp  of (t * Type.t)
-      | Pack   of (Type.t * t * (Type.Name.t, Type.t) Bind.t)
-      | Unpack of ((Type.Name.t * Name.t * t Embed.t, t) Bind.t)
-      | Let    of ((Name.t * t Embed.t, t) Bind.t)
-    with compare
-
-    let rec tc : t Term_tc.t = {
-      close = (fun ptc l p t ->
-        match t with
-        | Name   x -> let tc = Lazy.force name_tc   in Name   (tc.close ptc l p x)
-        | Fun    x -> let tc = Lazy.force fun_tc    in Fun    (tc.close ptc l p x)
-        | App    x -> let tc = Lazy.force app_tc    in App    (tc.close ptc l p x)
-        | Record x -> let tc = Lazy.force record_tc in Record (tc.close ptc l p x)
-        | Dot    x -> let tc = Lazy.force dot_tc    in Dot    (tc.close ptc l p x)
-        | Tyfun  x -> let tc = Lazy.force tyfun_tc  in Tyfun  (tc.close ptc l p x)
-        | Tyapp  x -> let tc = Lazy.force tyapp_tc  in Tyapp  (tc.close ptc l p x)
-        | Pack   x -> let tc = Lazy.force pack_tc   in Pack   (tc.close ptc l p x)
-        | Unpack x -> let tc = Lazy.force unpack_tc in Unpack (tc.close ptc l p x)
-        | Let    x -> let tc = Lazy.force let_tc    in Let    (tc.close ptc l p x)
-      );
-      open_ = (fun ptc l p t ->
-        match t with
-        | Name   x -> let tc = Lazy.force name_tc   in Name   (tc.open_ ptc l p x)
-        | Fun    x -> let tc = Lazy.force fun_tc    in Fun    (tc.open_ ptc l p x)
-        | App    x -> let tc = Lazy.force app_tc    in App    (tc.open_ ptc l p x)
-        | Record x -> let tc = Lazy.force record_tc in Record (tc.open_ ptc l p x)
-        | Dot    x -> let tc = Lazy.force dot_tc    in Dot    (tc.open_ ptc l p x)
-        | Tyfun  x -> let tc = Lazy.force tyfun_tc  in Tyfun  (tc.open_ ptc l p x)
-        | Tyapp  x -> let tc = Lazy.force tyapp_tc  in Tyapp  (tc.open_ ptc l p x)
-        | Pack   x -> let tc = Lazy.force pack_tc   in Pack   (tc.open_ ptc l p x)
-        | Unpack x -> let tc = Lazy.force unpack_tc in Unpack (tc.open_ ptc l p x)
-        | Let    x -> let tc = Lazy.force let_tc    in Let    (tc.open_ ptc l p x)
-      );
-      compare;
-      fv = (function
-        | Name   x -> let tc = Lazy.force name_tc   in tc.fv x
-        | Fun    x -> let tc = Lazy.force fun_tc    in tc.fv x
-        | App    x -> let tc = Lazy.force app_tc    in tc.fv x
-        | Record x -> let tc = Lazy.force record_tc in tc.fv x
-        | Dot    x -> let tc = Lazy.force dot_tc    in tc.fv x
-        | Tyfun  x -> let tc = Lazy.force tyfun_tc  in tc.fv x
-        | Tyapp  x -> let tc = Lazy.force tyapp_tc  in tc.fv x
-        | Pack   x -> let tc = Lazy.force pack_tc   in tc.fv x
-        | Unpack x -> let tc = Lazy.force unpack_tc in tc.fv x
-        | Let    x -> let tc = Lazy.force let_tc    in tc.fv x
-      );
-    }
-
-    and name_tc   : (Name.t)                                       Term_tc.t Lazy.t = lazy (Name.tc)
-    and fun_tc    : (Name.t * Type.t Embed.t, t) Bind.t            Term_tc.t Lazy.t = lazy (Bind.tc (Pattern_tc.pair Name.ptc (Embed.tc Type.tc)) tc)
-    and app_tc    : (t * t)                                        Term_tc.t Lazy.t = lazy (Term_tc.pair tc tc)
-    and record_tc : (t Label.Map.t)                                Term_tc.t Lazy.t = lazy (Term_tc.map tc)
-    and dot_tc    : (t * Label.t)                                  Term_tc.t Lazy.t = lazy (Term_tc.pair tc (Term_tc.const ~cmp:<:compare<Label.t>>))
-    and tyfun_tc  : ((Type.Name.t * Kind.t Embed.t, t) Bind.t)     Term_tc.t Lazy.t = lazy (Bind.tc (Pattern_tc.pair Type.Name.ptc (Embed.tc Kind.tc)) tc)
-    and tyapp_tc  : (t * Type.t)                                   Term_tc.t Lazy.t = lazy (Term_tc.pair tc Type.tc)
-    and pack_tc   : (Type.t * t * (Type.Name.t, Type.t) Bind.t)    Term_tc.t Lazy.t = lazy (Term_tc.triple Type.tc tc (Bind.tc Type.Name.ptc Type.tc))
-    and unpack_tc : ((Type.Name.t * Name.t * t Embed.t, t) Bind.t) Term_tc.t Lazy.t = lazy (Bind.tc (Pattern_tc.triple Type.Name.ptc Name.ptc (Embed.tc tc)) tc)
-    and let_tc    : ((Name.t * t Embed.t, t) Bind.t)               Term_tc.t Lazy.t = lazy (Bind.tc (Pattern_tc.pair Name.ptc (Embed.tc tc)) tc)
-
-    let compare = tc.compare
-    let equal   = Term_tc.equal tc
-
-    module Shape = struct
-      type 'a t =
-        | Name   of Name.t
-        | Fun    of Name.t * Type.t * 'a
-        | App    of 'a * 'a
-        | Record of 'a Label.Map.t
-        | Dot    of 'a * Label.t
-        | Tyfun  of Type.Name.t * Kind.t * 'a
-        | Tyapp  of 'a * Type.t
-        | Pack   of Type.t * 'a * Type.Name.t * Type.t (* pack <ty, tm> : exists a. ty *)
-        | Unpack of Type.Name.t * Name.t * 'a * 'a     (* let pack <a, x> = e in e     *)
-        | Let    of Name.t * 'a * 'a                   (* let x = e in e               *)
-    end
-
-    let create : t Shape.t -> t = function
-      | Name x -> Name x
-      | App (m, n) -> App (m, n)
-      | Fun (x, a, m) ->
-        let a = Embed.create Type.tc a in
-        let bind =
-          Bind.create (Pattern_tc.pair Name.ptc (Embed.tc Type.tc)) tc (x, a) m
-        in
-        Fun bind
-      | Tyapp (m, n) -> Tyapp (m, n)
-      | Tyfun (x, a, m) ->
-        let a = Embed.create Kind.tc a in
-        let bind =
-          Bind.create (Pattern_tc.pair Type.Name.ptc (Embed.tc Kind.tc)) tc (x, a) m
-        in
-        Tyfun bind
-      | Record r -> Record r
-      | Dot (m, x) -> Dot (m, x)
-      | Pack (a, m, b, c) ->
-        let bind = Bind.create Type.Name.ptc Type.tc b c in
-        Pack (a, m, bind)
-      | Unpack (a, x, m, n) ->
-        let m = Embed.create tc m in
-        let bind =
-          Bind.create (Pattern_tc.triple Type.Name.ptc Name.ptc (Embed.tc tc)) tc (a, x, m) n
-        in
-        Unpack bind
-      | Let (x, m, n) ->
-        let m = Embed.create tc m in
-        let bind =
-          Bind.create (Pattern_tc.pair Name.ptc (Embed.tc tc)) tc (x, m) n
-        in
-        Let bind
-
-    let match_ : t -> t Shape.t = function
-      | Name x -> Name x
-      | App (m, n) -> App (m, n)
-      | Fun bind ->
-        let ((x, a), m) =
-          Bind.expose (Pattern_tc.pair Name.ptc (Embed.tc Type.tc)) tc bind
-        in
-        let a = Embed.expose Type.tc a in
-        Fun (x, a, m)
-      | Tyapp (m, n) -> Tyapp (m, n)
-      | Tyfun bind ->
-        let ((x, a), m) =
-          Bind.expose (Pattern_tc.pair Type.Name.ptc (Embed.tc Kind.tc)) tc bind
-        in
-        let a = Embed.expose Kind.tc a in
-        Tyfun (x, a, m)
-      | Record r -> Record r
-      | Dot (m, x) -> Dot (m, x)
-      | Pack (a, m, bind) ->
-        let (b, c) = Bind.expose Type.Name.ptc Type.tc bind in
-        Pack (a, m, b, c)
-      | Unpack bind ->
-        let ((a, x, m), n) =
-          Bind.expose (Pattern_tc.triple Type.Name.ptc Name.ptc (Embed.tc tc)) tc bind
-        in
-        let m = Embed.expose tc m in
-        Unpack (a, x, m, n)
-      | Let bind ->
-        let ((x, m), n) =
-          Bind.expose (Pattern_tc.pair Name.ptc (Embed.tc tc)) tc bind
-        in
-        let m = Embed.expose tc m in
-        Let (x, m, n)
-
-    let term_fv t =
-      tc.fv t
-      |> Set.to_list
-      |> List.filter_map ~f:Name.match_
-      |> Name.Set.of_list
-
-    let type_fv t =
-      tc.fv t
-      |> Set.to_list
-      |> List.filter_map ~f:Type.Name.match_
-      |> Type.Name.Set.of_list
-
-    let rec type_subst t sub =
-      let tm t = type_subst t sub in
-      let ty t = Type.subst t sub in
+    let rec sexp_of_t t =
       match match_ t with
-      | Name   (a)          -> create @@ Name a
-      | Fun    (a, b, c)    -> create @@ Fun (a, ty b, tm c)
-      | App    (a, b)       -> create @@ App (tm a, tm b)
-      | Record (a)          -> create @@ Record (Map.map ~f:tm a)
-      | Dot    (a, b)       -> create @@ Dot (tm a, b)
-      | Tyfun  (a, b, c)    -> create @@ Tyfun (a, b, tm c)
-      | Tyapp  (a, b)       -> create @@ Tyapp (tm a, ty b)
-      | Pack   (a, b, c, d) -> create @@ Pack (ty a, tm b, c, ty d)
-      | Unpack (a, b, c, d) -> create @@ Unpack (a, b, tm c, tm d)
-      | Let    (a, b, c)    -> create @@ Let (a, tm b, tm c)
+      | Name x -> Name.sexp_of_t x
+      | Lambda (a, b, c) -> gather_params_term a b c []
+      | Tyfun  (a, b, c) -> gather_params_type  a b c []
+      | App    (a, b)    -> gather_args_term     a b   []
+      | Tyapp  (a, b)    -> gather_args_type     a b   []
+      | Record a ->
+        let a = Map.to_alist a in
+        let a = List.map a ~f:<:sexp_of< Label.t * t >> in
+        List (Atom "record" :: a)
+      | Dot (a, b) ->
+        let a = sexp_of_t a in
+        let b = Label.sexp_of_t b in
+        List [Atom "dot"; a; b]
+      | Pack (a, b, c, d) ->
+        let a = Type.sexp_of_t      a in
+        let b = sexp_of_t           b in
+        let c = Type.Name.sexp_of_t c in
+        let d = Type.sexp_of_t      d in
+        List [Atom "pack"; a; b; List [Atom "exists"; c; d]]
+      | Unpack (a, b, c, d) ->
+        let a = Type.Name.sexp_of_t a in
+        let b = Name.sexp_of_t      b in
+        let c = sexp_of_t           c in
+        let d = sexp_of_t           d in
+        List [Atom "unpack"; List [a; b; c]; d]
+      | Let (a, b, c) ->
+        let a = Name.sexp_of_t a in
+        let b = sexp_of_t      b in
+        let c = sexp_of_t      c in
+        List [Atom "let"; List [a; b]; c]
 
-    let rec subst t sub =
-      let tm t = subst t sub in
-      let ty t = t in
+    and gather_params t acc : Sexp.t =
       match match_ t with
-      | Name x -> if Name.equal x (fst sub) then snd sub else t
-      | Fun    (a, b, c)    -> create @@ Fun (a, ty b, tm c)
-      | App    (a, b)       -> create @@ App (tm a, tm b)
-      | Record (a)          -> create @@ Record (Map.map ~f:tm a)
-      | Dot    (a, b)       -> create @@ Dot (tm a, b)
-      | Tyfun  (a, b, c)    -> create @@ Tyfun (a, b, tm c)
-      | Tyapp  (a, b)       -> create @@ Tyapp (tm a, ty b)
-      | Pack   (a, b, c, d) -> create @@ Pack (ty a, tm b, c, ty d)
-      | Unpack (a, b, c, d) -> create @@ Unpack (a, b, tm c, tm d)
-      | Let    (a, b, c)    -> create @@ Let (a, tm b, tm c)
+      | Lambda (a, b, c) -> gather_params_term a b c acc
+      | Tyfun  (a, b, c) -> gather_params_type a b c acc
+      | _                -> List [Atom "lambda"; List (List.rev acc); sexp_of_t t]
 
-  end
+    and gather_params_term a b c acc =
+      gather_params c
+        (Sexp.List [Name.sexp_of_t a; Type.sexp_of_t b] :: acc)
 
-end
+    and gather_params_type a b c acc =
+      gather_params c
+        (Sexp.List [Atom "type"; Type.Name.sexp_of_t a; Kind.sexp_of_t b] :: acc)
 
-module Target = struct
+    and gather_args t acc : Sexp.t =
+      match match_ t with
+      | App   (a, b) -> gather_args_term a b acc
+      | Tyapp (a, b) -> gather_args_type a b acc
+      | _            -> List (sexp_of_t t :: acc)
 
-  module rec Csig : sig
+    and gather_args_term t arg acc =
+      gather_args t (sexp_of_t arg :: acc)
 
-    type t =
-      | Val    of (F.Type.t)
-      | Type   of (F.Type.t * F.Kind.t)
-      | Sig    of (Asig.t)
-      | Struct of (t Label.Map.t)
-      | Fun    of (((F.Type.Name.t * F.Kind.t Embed.t) list, t * Asig.t) Bind.t)
-    with compare
+    and gather_args_type t arg acc =
+      gather_args t (List [Atom "type"; Type.sexp_of_t arg] :: acc)
 
-    val tc : t Term_tc.t Lazy.t
+    let copy_list xs = List.fold_right ~init:[] ~f:(fun x xs -> x :: xs) xs
 
-    module Shape : sig
-      type nonrec 'a t =
-        | Val    of F.Type.t
-        | Type   of F.Type.t * F.Kind.t
-        | Sig    of Asig.t
-        | Struct of 'a Label.Map.t
-        | Fun    of (F.Type.Name.t * F.Kind.t) list * 'a * Asig.t
-      val map : 'a1 t -> f:('a1 -> 'a2) -> 'a2 t
-    end
-
-    (* val create : t Shape.t -> t *)
-    val match_ : t -> t Shape.t
-
-    val equal : t -> t -> bool
-
-  end = struct
-
-    type t =
-      | Val    of (F.Type.t)
-      | Type   of (F.Type.t * F.Kind.t)
-      | Sig    of (Asig.t)
-      | Struct of (t Label.Map.t)
-      | Fun    of (((F.Type.Name.t * F.Kind.t Embed.t) list, t * Asig.t) Bind.t)
-    with compare
-
-    let rec tc : t Term_tc.t Lazy.t = lazy {
-      close = (fun ptc l p t ->
-        match t with
-        | Val    x -> let tc = Lazy.force val_tc    in Val    (tc.close ptc l p x)
-        | Type   x -> let tc = Lazy.force type_tc   in Type   (tc.close ptc l p x)
-        | Sig    x -> let tc = Lazy.force sig_tc    in Sig    (tc.close ptc l p x)
-        | Struct x -> let tc = Lazy.force struct_tc in Struct (tc.close ptc l p x)
-        | Fun    x -> let tc = Lazy.force fun_tc    in Fun    (tc.close ptc l p x)
-      );
-      open_ = (fun ptc l p t ->
-        match t with
-        | Val    x -> let tc = Lazy.force val_tc    in Val    (tc.open_ ptc l p x)
-        | Type   x -> let tc = Lazy.force type_tc   in Type   (tc.open_ ptc l p x)
-        | Sig    x -> let tc = Lazy.force sig_tc    in Sig    (tc.open_ ptc l p x)
-        | Struct x -> let tc = Lazy.force struct_tc in Struct (tc.open_ ptc l p x)
-        | Fun    x -> let tc = Lazy.force fun_tc    in Fun    (tc.open_ ptc l p x)
-      );
-      compare;
-      fv = (function
-        | Val    x -> let tc = Lazy.force val_tc    in tc.fv x
-        | Type   x -> let tc = Lazy.force type_tc   in tc.fv x
-        | Sig    x -> let tc = Lazy.force sig_tc    in tc.fv x
-        | Struct x -> let tc = Lazy.force struct_tc in tc.fv x
-        | Fun    x -> let tc = Lazy.force fun_tc    in tc.fv x
-      );
-    }
-
-    and val_tc : F.Type.t Term_tc.t Lazy.t =
-      lazy F.Type.tc
-
-    and type_tc : (F.Type.t * F.Kind.t) Term_tc.t Lazy.t =
-      lazy (Term_tc.pair F.Type.tc F.Kind.tc)
-
-    and sig_tc : Asig.t Term_tc.t Lazy.t =
-      lazy (Lazy.force Asig.tc)
-
-    and struct_tc : t Label.Map.t Term_tc.t Lazy.t =
-      lazy (Term_tc.map (Lazy.force tc))
-
-    and fun_tc : ( (F.Type.Name.t * F.Kind.t Embed.t) list
-                 , t * Asig.t
-                 ) Bind.t Term_tc.t Lazy.t =
-      lazy (Bind.tc
-              (Pattern_tc.list (Pattern_tc.pair
-                                  F.Type.Name.ptc
-                                  (Embed.tc F.Kind.tc)))
-              (Term_tc.pair (Lazy.force tc) (Lazy.force Asig.tc)))
-
-    let equal t1 t2 = compare t1 t2 = 0
-
-    module Shape = struct
-      type nonrec 'a t =
-        | Val    of F.Type.t
-        | Type   of F.Type.t * F.Kind.t
-        | Sig    of Asig.t
-        | Struct of 'a Label.Map.t
-        | Fun    of (F.Type.Name.t * F.Kind.t) list * 'a * Asig.t
-
-      let map t ~f =
-        match t with
-        | Val    (a)       -> Val (a)
-        | Type   (a, b)    -> Type (a, b)
-        | Sig    (a)       -> Sig (a)
-        | Struct (a)       -> Struct (Label.Map.map ~f a)
-        | Fun    (a, b, c) -> Fun (a, f b, c)
-    end
-
-    let match_ : t -> t Shape.t = function
-      | Val (a)     -> Val (a)
-      | Type (a, b) -> Type (a, b)
-      | Sig (a)     -> Sig (a)
-      | Struct (a)  -> Struct (a)
-      | Fun bind ->
-        let (args, (csig, asig)) =
-          Bind.expose
-            (Pattern_tc.list (Pattern_tc.pair F.Type.Name.ptc (Embed.tc F.Kind.tc)))
-            (Term_tc.pair (Lazy.force tc) (Lazy.force Asig.tc))
-            bind
-        in
-        let args =
-          List.map args ~f:(fun (a, b) ->
-            let b = Embed.expose F.Kind.tc b in
-            (a, b))
-        in
-        Fun (args, csig, asig)
-
-  end
-
-  and Asig : sig
-    type t =
-      | Exists of (((F.Type.Name.t * F.Kind.t Embed.t) list, Csig.t) Bind.t)
-    with compare
-
-    val tc : t Term_tc.t Lazy.t
-
-    module Shape : sig
-      type t =
-        | Exists of (F.Type.Name.t * F.Kind.t Embed.t) list * Csig.t
-    end
-
-  end = struct
-    type t =
-      | Exists of (((F.Type.Name.t * F.Kind.t Embed.t) list, Csig.t) Bind.t)
-    with compare
-
-    let rec tc : t Term_tc.t Lazy.t = lazy {
-      close = (fun ptc l p t ->
-        match t with
-        | Exists x -> let tc = Lazy.force exists_tc in Exists (tc.close ptc l p x)
-      );
-      open_ = (fun ptc l p t ->
-        match t with
-        | Exists x -> let tc = Lazy.force exists_tc in Exists (tc.open_ ptc l p x)
-      );
-      compare;
-      fv = (function
-        | Exists x -> let tc = Lazy.force exists_tc in tc.fv x
-      );
-    }
-
-    and exists_tc :
-      ((F.Type.Name.t * F.Kind.t Embed.t) list, Csig.t) Bind.t Term_tc.t Lazy.t =
-      lazy (Bind.tc
-              (Pattern_tc.list (Pattern_tc.pair F.Type.Name.ptc (Embed.tc F.Kind.tc)))
-              (Lazy.force Csig.tc))
-
-    module Shape = struct
-      type t =
-        | Exists of (F.Type.Name.t * F.Kind.t Embed.t) list * Csig.t
-    end
-
+    let rec t_of_sexp (s : Sexp.t) =
+        match s with
+        | List (Atom "record" :: a) ->
+          let a = List.map a ~f:<:of_sexp< Label.t * t >> in
+          let a = Label.Map.of_alist_exn a in
+          create @@ Record a
+        | List [Atom "dot"; a; b] ->
+          let a = t_of_sexp a in
+          let b = Label.t_of_sexp b in
+          create @@ Dot (a, b)
+        | List [Atom "pack"; a; b; List [Atom "exists"; c; d]] ->
+          let a = Type.t_of_sexp      a in
+          let b = t_of_sexp           b in
+          let c = Type.Name.t_of_sexp c in
+          let d = Type.t_of_sexp      d in
+          create @@ Pack (a, b, c, d)
+        | List [Atom "unpack"; List [a; b; c]; d] ->
+          let a = Type.Name.t_of_sexp a in
+          let b = Name.t_of_sexp      b in
+          let c = t_of_sexp           c in
+          let d = t_of_sexp           d in
+          create @@ Unpack (a, b, c, d)
+        | List [Atom "let"; List [a; b]; c] ->
+          let a = Name.t_of_sexp a in
+          let b = t_of_sexp      b in
+          let c = t_of_sexp      c in
+          create @@ Let (a, b, c)
+        | List [Atom "lambda"; List a; b] ->
+          let b = t_of_sexp b in
+          List.fold_right ~init:b a ~f:(fun s acc ->
+            match s with
+            | List [Atom "type"; a; b] ->
+              let a = Type.Name.t_of_sexp a in
+              let b = Kind.t_of_sexp b in
+              create @@ Tyfun (a, b, acc)
+            | List [a; b] ->
+              let a = Name.t_of_sexp a in
+              let b = Type.t_of_sexp b in
+              create @@ Lambda (a, b, acc)
+            | _ -> of_sexp_error "F.Term.t_of_sexp param" s)
+        | List (a :: b :: c) ->
+          let a = t_of_sexp a in
+          List.fold_left ~init:a (b :: c) ~f:(fun acc s ->
+            match s with
+            | List [Atom "type"; a] ->
+              let a = Type.t_of_sexp a in
+              create @@ Tyapp (acc, a)
+            | a ->
+              let a = t_of_sexp a in
+              create @@ App (acc, a))
+        | Atom _ -> create @@ Name (Name.t_of_sexp s)
+        | List _ -> of_sexp_error "F.Term.t_of_sexp" s
   end
 
 end

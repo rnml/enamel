@@ -8,6 +8,7 @@ SYNTAX=comparelib sexplib bin_prot
 MODULES= \
   std_internal \
   scc \
+  syntax0 \
   syntax \
   module_system \
   initial_context \
